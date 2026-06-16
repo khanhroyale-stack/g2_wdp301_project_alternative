@@ -2,7 +2,7 @@ const Category = require("../models/category.model");
 
 const getCategories = async (req, res) => {
   try {
-    const cats = await Category.find({ isActive: true }).sort({ name: 1 });
+    const cats = await Category.find({ status: "active" }).sort({ name: 1 });
     res.json({ success: true, data: cats });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -29,7 +29,7 @@ const updateCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
   try {
-    await Category.findByIdAndUpdate(req.params.id, { isActive: false });
+    await Category.findByIdAndUpdate(req.params.id, { status: "inactive" });
     res.json({ success: true, message: "Đã ẩn danh mục" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
