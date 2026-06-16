@@ -1,25 +1,72 @@
 const User = require("../models/user.model");
 
-// @desc    Get all users
-// @route   GET /api/users
-// @access  Private/Admin
+const publicFields = "fullName email avatarUrl reputationScore verificationStatus accountStatus role";
+
+// @route GET /api/users/me
+const getMyProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @route PUT /api/users/me
+const updateMyProfile = async (req, res) => {
+  try {
+    const { fullName, phone, address, avatarUrl } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { fullName, phone, address, avatarUrl },
+      { new: true, runValidators: true }
+    );
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @route GET /api/users/:id  (public profile)
+const getPublicProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select(publicFields);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @route GET /api/users  (admin)
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
-    res.json({ success: true, count: users.length, users });
+    const { role, status, verificationStatus, page = 1, limit = 20 } = req.query;
+    const filter = {};
+    if (role) filter.role = role;
+    if (status) filter.accountStatus = status;
+    if (verificationStatus) filter.verificationStatus = verificationStatus;
+
+    const skip = (page - 1) * limit;
+    const [users, total] = await Promise.all([
+      User.find(filter).select("-passwordHash").skip(skip).limit(Number(limit)).sort({ createdAt: -1 }),
+      User.countDocuments(filter),
+    ]);
+
+    res.json({ success: true, total, page: Number(page), users });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Get user by ID
-// @route   GET /api/users/:id
-// @access  Private/Admin
+// @route GET /api/users/admin/:id  (admin)
 const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select("-password");
+    const user = await User.findById(req.params.id).select("-passwordHash");
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
     }
     res.json({ success: true, user });
   } catch (error) {
@@ -27,20 +74,18 @@ const getUserById = async (req, res) => {
   }
 };
 
-// @desc    Update user profile
-// @route   PUT /api/users/:id
-// @access  Private
-const updateUser = async (req, res) => {
+// @route PUT /api/users/admin/:id  (admin — đổi role hoặc status)
+const updateUserByAdmin = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { role, accountStatus } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { name, email },
+      { role, accountStatus },
       { new: true, runValidators: true }
-    ).select("-password");
+    ).select("-passwordHash");
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
     }
     res.json({ success: true, user });
   } catch (error) {
@@ -48,19 +93,11 @@ const updateUser = async (req, res) => {
   }
 };
 
-// @desc    Delete user
-// @route   DELETE /api/users/:id
-// @access  Private/Admin
-const deleteUser = async (req, res) => {
-  try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-    res.json({ success: true, message: "User deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+module.exports = {
+  getMyProfile,
+  updateMyProfile,
+  getPublicProfile,
+  getAllUsers,
+  getUserById,
+  updateUserByAdmin,
 };
-
-module.exports = { getAllUsers, getUserById, updateUser, deleteUser };
