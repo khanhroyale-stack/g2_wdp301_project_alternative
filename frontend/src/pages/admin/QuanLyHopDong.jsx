@@ -24,6 +24,7 @@ const QuanLyHopDong = () => {
 
   useEffect(() => {
     fetchRentals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const STATUS_MAP = {

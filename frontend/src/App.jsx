@@ -6,6 +6,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import VerifyOTPPage from "./pages/auth/VerifyOTPPage";
 import XacMinhTaiKhoan from "./pages/auth/XacMinhTaiKhoan";
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
@@ -45,6 +46,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/dang-nhap" element={<LoginPage />} />
           <Route path="/dang-ky" element={<RegisterPage />} />
+          <Route path="/xac-minh-otp" element={<VerifyOTPPage />} />
           <Route path="/xac-minh-tai-khoan" element={<XacMinhTaiKhoan />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/cho-thue" element={<Marketplace />} />

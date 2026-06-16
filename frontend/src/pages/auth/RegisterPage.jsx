@@ -18,8 +18,8 @@ const RegisterPage = () => {
     setError("");
     setLoading(true);
     try {
-      await register({ name: form.name, email: form.email, phone: form.phone, password: form.password });
-      navigate("/xac-minh-tai-khoan");
+      await register({ fullName: form.name, email: form.email, phone: form.phone, password: form.password });
+      navigate("/xac-minh-otp", { state: { email: form.email } });
     } catch (err) {
       setError(err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.");
     } finally {

@@ -41,6 +41,7 @@ const DonHang = () => {
 
   useEffect(() => {
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   const updateStatus = async (id, status) => {

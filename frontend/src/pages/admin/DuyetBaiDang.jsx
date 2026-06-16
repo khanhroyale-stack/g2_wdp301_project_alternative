@@ -31,6 +31,7 @@ const DuyetBaiDang = () => {
 
   useEffect(() => {
     fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   const handleApprove = async (id) => {

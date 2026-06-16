@@ -34,6 +34,7 @@ const ThueMuon = () => {
 
   useEffect(() => {
     fetchRentals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   const updateStatus = async (id, status) => {

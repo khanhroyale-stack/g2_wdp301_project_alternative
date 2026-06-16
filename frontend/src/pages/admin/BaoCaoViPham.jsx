@@ -31,6 +31,7 @@ const BaoCaoViPham = () => {
 
   useEffect(() => {
     fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   const handleResolve = async (id, status) => {

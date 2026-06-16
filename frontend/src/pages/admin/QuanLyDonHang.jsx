@@ -24,6 +24,7 @@ const QuanLyDonHang = () => {
 
   useEffect(() => {
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const STATUS_MAP = {

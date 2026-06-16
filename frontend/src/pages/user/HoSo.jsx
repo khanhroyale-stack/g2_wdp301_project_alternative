@@ -31,6 +31,7 @@ const HoSo = () => {
     if (activeTab === "reputation") {
       fetchReputationHistory();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const fetchReputationHistory = async () => {
