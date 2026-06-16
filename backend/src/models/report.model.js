@@ -2,28 +2,54 @@ const mongoose = require("mongoose");
 
 const reportSchema = new mongoose.Schema(
   {
-    reporter: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    reportedUser: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-    order: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
-    rental: { type: mongoose.Schema.Types.ObjectId, ref: "Rental" },
-    violationType: {
-      type: String,
-      enum: ["Sai mô tả", "Thiếu phụ kiện", "Lừa đảo", "Hư hỏng", "Nội dung không phù hợp", "Khác"],
+    reporterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
-    content: { type: String, required: true },
-    evidenceImages: [{ type: String }],
+    reportedUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    orderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      default: null,
+    },
+    rentalContractId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "RentalContract",
+      default: null,
+    },
+    reportType: {
+      type: String,
+      enum: ["product_issue", "fraud", "damage", "missing_item", "other"],
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
     status: {
       type: String,
-      enum: ["PENDING", "PROCESSING", "RESOLVED", "REJECTED"],
-      default: "PENDING",
+      enum: ["pending", "investigating", "resolved", "dismissed"],
+      default: "pending",
     },
-    adminNote: { type: String, default: "" },
-    resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    resolvedAt: { type: Date },
+    adminId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    adminNote: {
+      type: String,
+      default: null,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    collection: "report",
+  }
 );
 
 module.exports = mongoose.model("Report", reportSchema);

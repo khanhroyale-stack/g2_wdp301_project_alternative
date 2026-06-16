@@ -1,84 +1,171 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
+const { generateOTP, saveOTP, verifyOTP } = require("../utils/otp");
+const { sendOTPEmail } = require("../config/email");
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (id) =>
+  jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
-};
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
+const formatUser = (user) => ({
+  id: user._id,
+  fullName: user.fullName,
+  email: user.email,
+  phone: user.phone,
+  avatarUrl: user.avatarUrl,
+  address: user.address,
+  role: user.role,
+  verificationStatus: user.verificationStatus,
+  reputationScore: user.reputationScore,
+  accountStatus: user.accountStatus,
+});
+
+// @route POST /api/auth/register
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { fullName, email, password, phone } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: "Email already in use" });
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
     }
 
-    const user = await User.create({ name, email, password });
-    const token = generateToken(user._id);
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Email đã được sử dụng" });
+    }
+
+    const user = await User.create({ fullName, email, passwordHash: password, phone });
+
+    const otp = generateOTP();
+    saveOTP(email, otp, "register");
+    await sendOTPEmail(email, otp, "register");
 
     res.status(201).json({
       success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      message: "Đăng ký thành công. Vui lòng kiểm tra email để lấy mã OTP xác thực.",
+      email,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
+// @route POST /api/auth/verify-email
+const verifyEmail = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: "Thiếu email hoặc OTP" });
+    }
+
+    if (!verifyOTP(email, otp, "register")) {
+      return res.status(400).json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản" });
+    }
+
+    const token = generateToken(user._id);
+    res.json({ success: true, token, user: formatUser(user) });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @route POST /api/auth/login
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email }).select("+passwordHash");
     if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ success: false, message: "Invalid email or password" });
+      return res.status(401).json({ success: false, message: "Email hoặc mật khẩu không đúng" });
+    }
+
+    if (user.accountStatus === "banned") {
+      return res.status(403).json({ success: false, message: "Tài khoản đã bị khóa do vi phạm" });
     }
 
     const token = generateToken(user._id);
-
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
+    res.json({ success: true, token, user: formatUser(user) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Get current user
-// @route   GET /api/auth/me
-// @access  Private
-const getMe = async (req, res) => {
-  res.json({
-    success: true,
-    user: {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      role: req.user.role,
-    },
-  });
+// @route POST /api/auth/forgot-password
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Email không tồn tại trong hệ thống" });
+    }
+
+    const otp = generateOTP();
+    saveOTP(email, otp, "reset");
+    await sendOTPEmail(email, otp, "reset");
+
+    res.json({ success: true, message: "OTP đã được gửi đến email của bạn" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-module.exports = { register, login, getMe };
+// @route POST /api/auth/reset-password
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
+    }
+
+    if (!verifyOTP(email, otp, "reset")) {
+      return res.status(400).json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản" });
+    }
+
+    user.passwordHash = newPassword;
+    await user.save();
+
+    res.json({ success: true, message: "Đặt lại mật khẩu thành công" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @route PUT /api/auth/change-password
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
+    }
+
+    const user = await User.findById(req.user._id).select("+passwordHash");
+    if (!(await user.comparePassword(currentPassword))) {
+      return res.status(400).json({ success: false, message: "Mật khẩu hiện tại không đúng" });
+    }
+
+    user.passwordHash = newPassword;
+    await user.save();
+
+    res.json({ success: true, message: "Đổi mật khẩu thành công" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @route GET /api/auth/me
+const getMe = async (req, res) => {
+  res.json({ success: true, user: formatUser(req.user) });
+};
+
+module.exports = { register, verifyEmail, login, forgotPassword, resetPassword, changePassword, getMe };

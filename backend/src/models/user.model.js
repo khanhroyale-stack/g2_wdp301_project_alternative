@@ -3,33 +3,81 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, required: [true, "Họ tên là bắt buộc"], trim: true },
-    email: { type: String, required: [true, "Email là bắt buộc"], unique: true, lowercase: true, trim: true },
-    password: { type: String, required: [true, "Mật khẩu là bắt buộc"], minlength: [6, "Mật khẩu tối thiểu 6 ký tự"], select: false },
-    phone: { type: String, trim: true, default: "" },
-    avatar: { type: String, default: "" },
-    role: { type: String, enum: ["user", "admin", "shipper"], default: "user" },
-    // Xác minh tài khoản
-    accountStatus: { type: String, enum: ["PENDING", "APPROVED", "REJECTED", "BANNED"], default: "PENDING" },
-    rejectedReason: { type: String, default: "" },
-    cccdImage: { type: String, default: "" },    // ảnh CCCD hoặc thẻ sinh viên
-    isEmailVerified: { type: Boolean, default: false },
-    // Điểm uy tín
-    reputationScore: { type: Number, default: 100, min: 0, max: 100 },
-    totalTransactions: { type: Number, default: 0 },
-    averageRating: { type: Number, default: 0 },
+    fullName: {
+      type: String,
+      required: [true, "Full name is required"],
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    passwordHash: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
+      select: false,
+    },
+    phone: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    avatarUrl: {
+      type: String,
+      default: null,
+    },
+    address: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    role: {
+      type: String,
+      enum: ["user", "shipper", "admin"],
+      default: "user",
+    },
+    studentCardUrl: {
+      type: String,
+      default: null,
+    },
+    citizenIdUrl: {
+      type: String,
+      default: null,
+    },
+    verificationStatus: {
+      type: String,
+      enum: ["unverified", "pending", "verified", "rejected"],
+      default: "unverified",
+    },
+    reputationScore: {
+      type: Number,
+      default: 100,
+      min: 0,
+    },
+    accountStatus: {
+      type: String,
+      enum: ["active", "inactive", "banned"],
+      default: "active",
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    collection: "users",
+  }
 );
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 12);
+  if (!this.isModified("passwordHash")) return next();
+  this.passwordHash = await bcrypt.hash(this.passwordHash, 12);
   next();
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  return await bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
 module.exports = mongoose.model("User", userSchema);
