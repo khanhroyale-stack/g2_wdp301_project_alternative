@@ -39,7 +39,11 @@ const register = async (req, res) => {
 
     const otp = generateOTP();
     saveOTP(email, otp, "register");
-    await sendOTPEmail(email, otp, "register");
+    try {
+      await sendOTPEmail(email, otp, "register");
+    } catch (emailErr) {
+      console.error("[Email Error - register]", emailErr.message);
+    }
 
     res.status(201).json({
       success: true,
@@ -107,7 +111,11 @@ const forgotPassword = async (req, res) => {
 
     const otp = generateOTP();
     saveOTP(email, otp, "reset");
-    await sendOTPEmail(email, otp, "reset");
+    try {
+      await sendOTPEmail(email, otp, "reset");
+    } catch (emailErr) {
+      console.error("[Email Error - forgot-password]", emailErr.message);
+    }
 
     res.json({ success: true, message: "OTP đã được gửi đến email của bạn" });
   } catch (error) {
@@ -163,9 +171,30 @@ const changePassword = async (req, res) => {
   }
 };
 
+// @route POST /api/auth/resend-otp
+const resendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Email không tồn tại trong hệ thống" });
+    }
+    const otp = generateOTP();
+    saveOTP(email, otp, "register");
+    try {
+      await sendOTPEmail(email, otp, "register");
+    } catch (emailErr) {
+      console.error("[Email Error - resend-otp]", emailErr.message);
+    }
+    res.json({ success: true, message: "OTP mới đã được gửi đến email của bạn" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @route GET /api/auth/me
 const getMe = async (req, res) => {
   res.json({ success: true, user: formatUser(req.user) });
 };
 
-module.exports = { register, verifyEmail, login, forgotPassword, resetPassword, changePassword, getMe };
+module.exports = { register, verifyEmail, login, forgotPassword, resetPassword, changePassword, getMe, resendOTP };
