@@ -1,6 +1,10 @@
 import api from "./api";
 
 const orderService = {
+  getCheckoutPreview: async (productId) => {
+    const response = await api.get(`/orders/checkout/${productId}`);
+    return response.data;
+  },
   createOrder: async (data) => {
     const response = await api.post("/orders", data);
     return response.data;

@@ -13,8 +13,11 @@ const shipperService = {
     const response = await api.get("/orders/shipper/my-deliveries");
     return response.data;
   },
+  createInspection: async (data) => {
+    const response = await api.post("/orders/shipper/inspections", data);
+    return response.data;
+  },
   updateDeliveryStatus: async (id, status) => {
-    // We can reuse the order update status endpoint
     const response = await api.patch(`/orders/${id}/status`, { status });
     return response.data;
   }

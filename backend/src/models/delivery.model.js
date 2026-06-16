@@ -15,7 +15,7 @@ const deliverySchema = new mongoose.Schema(
     shipperId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
     },
     pickupAddress: {
       type: String,
@@ -37,10 +37,44 @@ const deliverySchema = new mongoose.Schema(
       enum: ["standard", "express"],
       default: "standard",
     },
-    deliveryStatus: {
+    status: {
       type: String,
-      enum: ["pending", "picking_up", "in_transit", "delivered", "failed"],
-      default: "pending",
+      enum: [
+        "WAITING_SHIPPER",
+        "SHIPPER_ACCEPTED",
+        "PICKING_UP",
+        "PICKED_UP",
+        "DELIVERING",
+        "DELIVERED",
+        "COMPLETED",
+        "FAILED",
+      ],
+      default: "WAITING_SHIPPER",
+    },
+    failureReason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    history: {
+      type: [
+        {
+          status: {
+            type: String,
+            required: true,
+          },
+          changedAt: {
+            type: Date,
+            default: Date.now,
+          },
+          note: {
+            type: String,
+            default: "",
+            trim: true,
+          },
+        },
+      ],
+      default: [{ status: "WAITING_SHIPPER" }],
     },
   },
   {

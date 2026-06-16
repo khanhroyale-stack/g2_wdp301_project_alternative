@@ -5,7 +5,6 @@ import Footer from "../../components/Footer";
 import { useAuth } from "../../context/AuthContext";
 import productService from "../../services/product.service";
 import rentalService from "../../services/rental.service";
-import orderService from "../../services/order.service";
 import chatService from "../../services/chat.service";
 import toast from "react-hot-toast";
 
@@ -88,20 +87,7 @@ const ProductDetail = () => {
 
     const handleBuy = async () => {
         if (!user) return navigate("/dang-nhap");
-        if (window.confirm(`Xác nhận đặt mua: ${product.title}?`)) {
-            setIsSubmitting(true);
-            try {
-                const res = await orderService.createOrder({ productId: product._id });
-                if (res.success) {
-                    toast.success("Đặt hàng thành công!");
-                    navigate("/don-hang");
-                }
-            } catch (err) {
-                toast.error(err.response?.data?.message || "Lỗi khi đặt mua");
-            } finally {
-                setIsSubmitting(false);
-            }
-        }
+        navigate(`/don-hang/tao/${product._id}`);
     };
 
     const handleRentSubmit = async () => {

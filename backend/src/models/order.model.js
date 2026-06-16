@@ -42,10 +42,34 @@ const orderSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    orderStatus: {
+    recipientName: {
       type: String,
-      enum: ["pending", "confirmed", "shipping", "delivered", "cancelled", "disputed"],
-      default: "pending",
+      required: true,
+      trim: true,
+    },
+    note: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["COD"],
+      default: "COD",
+    },
+    status: {
+      type: String,
+      enum: [
+        "PENDING",
+        "SELLER_CONFIRMED",
+        "PICKING_UP",
+        "PICKED_UP",
+        "DELIVERING",
+        "DELIVERED",
+        "COMPLETED",
+        "CANCELLED",
+      ],
+      default: "PENDING",
     },
   },
   {

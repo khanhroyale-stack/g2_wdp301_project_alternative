@@ -2,24 +2,12 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 const { generateOTP, saveOTP, verifyOTP } = require("../utils/otp");
 const { sendOTPEmail } = require("../config/email");
+const { formatUser } = require("../utils/serializers");
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
-
-const formatUser = (user) => ({
-  id: user._id,
-  fullName: user.fullName,
-  email: user.email,
-  phone: user.phone,
-  avatarUrl: user.avatarUrl,
-  address: user.address,
-  role: user.role,
-  verificationStatus: user.verificationStatus,
-  reputationScore: user.reputationScore,
-  accountStatus: user.accountStatus,
-});
 
 // @route POST /api/auth/register
 const register = async (req, res) => {

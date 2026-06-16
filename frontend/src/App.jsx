@@ -9,6 +9,7 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import XacMinhTaiKhoan from "./pages/auth/XacMinhTaiKhoan";
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
+import CreateOrder from "./pages/order/CreateOrder";
 
 // User pages
 import HoSo from "./pages/user/HoSo";
@@ -56,6 +57,7 @@ function App() {
           <Route path="/quan-ly/bai-dang" element={<PrivateRoute><QuanLyBaiDang /></PrivateRoute>} />
           <Route path="/dang-tin" element={<PrivateRoute><DangTin /></PrivateRoute>} />
           <Route path="/don-hang" element={<PrivateRoute><DonHang /></PrivateRoute>} />
+          <Route path="/don-hang/tao/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
           <Route path="/thue-muon" element={<PrivateRoute><ThueMuon /></PrivateRoute>} />
           <Route path="/tin-nhan" element={<PrivateRoute><TinNhan /></PrivateRoute>} />
           <Route path="/thong-bao" element={<PrivateRoute><ThongBao /></PrivateRoute>} />

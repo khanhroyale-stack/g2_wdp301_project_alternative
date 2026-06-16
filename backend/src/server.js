@@ -37,6 +37,8 @@ app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/users", require("./routes/user.routes"));
 app.use("/api/verification", require("./routes/verification.routes"));
 app.use("/api/reputation", require("./routes/reputation.routes"));
+app.use("/api/products", require("./routes/product.routes"));
+app.use("/api/orders", require("./routes/order.routes"));
 
 // Health check
 app.get("/api/health", (req, res) => {
