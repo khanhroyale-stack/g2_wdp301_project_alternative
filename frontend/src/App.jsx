@@ -7,6 +7,9 @@ import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import XacMinhTaiKhoan from "./pages/auth/XacMinhTaiKhoan";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
 import CreateOrder from "./pages/order/CreateOrder";
@@ -35,8 +38,6 @@ import ShipperDashboard from "./pages/shipper/ShipperDashboard";
 import DonCanGiao from "./pages/shipper/DonCanGiao";
 import DangGiao from "./pages/shipper/DangGiao";
 
-
-
 function App() {
   return (
     <BrowserRouter>
@@ -47,6 +48,9 @@ function App() {
           <Route path="/dang-nhap" element={<LoginPage />} />
           <Route path="/dang-ky" element={<RegisterPage />} />
           <Route path="/xac-minh-tai-khoan" element={<XacMinhTaiKhoan />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/cho-thue" element={<Marketplace />} />
           <Route path="/san-pham/:id" element={<ProductDetail />} />

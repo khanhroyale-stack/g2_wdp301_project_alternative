@@ -27,8 +27,14 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  // register chỉ tạo tài khoản + gửi OTP, KHÔNG trả token — phải verify-email trước
   const register = async (credentials) => {
     const data = await authService.register(credentials);
+    return data;
+  };
+
+  const verifyEmail = async (credentials) => {
+    const data = await authService.verifyEmail(credentials);
     localStorage.setItem("token", data.token);
     setUser(data.user);
     return data;
@@ -40,7 +46,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyEmail, logout }}>
       {children}
     </AuthContext.Provider>
   );
