@@ -23,18 +23,32 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "User not found" });
     }
 
+    // Check if user is banned or has 0 reputation
+    if (req.user.accountStatus === "BANNED" || req.user.reputationScore === 0) {
+      return res.status(403).json({ success: false, message: "Account is banned due to violations" });
+    }
+
     next();
   } catch (error) {
     return res.status(401).json({ success: false, message: "Not authorized, token failed" });
   }
 };
 
-const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === "admin") {
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: `Role ${req.user ? req.user.role : 'Unknown'} is not authorized to access this route` });
+    }
+    next();
+  };
+};
+
+const requireKyc = (req, res, next) => {
+  if (req.user && req.user.accountStatus === "APPROVED") {
     next();
   } else {
-    res.status(403).json({ success: false, message: "Admin access required" });
+    res.status(403).json({ success: false, message: "KYC verification required to perform this action" });
   }
 };
 
-module.exports = { protect, adminOnly };
+module.exports = { protect, authorize, requireKyc };
