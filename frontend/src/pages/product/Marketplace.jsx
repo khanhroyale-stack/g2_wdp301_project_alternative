@@ -7,6 +7,26 @@ import categoryService from "../../services/category.service";
 
 const CONDITIONS = ["Tất cả", "Mới", "Như mới", "Đã dùng - Còn tốt", "Đã dùng - Có lỗi nhỏ"];
 
+const mapConditionToStatus = (cond) => {
+  switch(cond) {
+    case "Mới": return "new";
+    case "Như mới": return "like_new";
+    case "Đã dùng - Còn tốt": return "good";
+    case "Đã dùng - Có lỗi nhỏ": return "fair";
+    default: return "";
+  }
+};
+
+const mapStatusToCondition = (status) => {
+  switch(status) {
+    case "new": return "Mới";
+    case "like_new": return "Như mới";
+    case "good": return "Đã dùng - Còn tốt";
+    case "fair": return "Đã dùng - Có lỗi nhỏ";
+    default: return "";
+  }
+};
+
 const Marketplace = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -36,12 +56,12 @@ const Marketplace = () => {
       setLoading(true);
       try {
         const params = {
-          listingType: isRentPage ? "cho-thue" : "ban",
+          productType: isRentPage ? "rent" : "sale",
           sort: sortBy
         };
         if (keyword) params.keyword = keyword;
         if (selectedCat !== "Tất cả") params.category = selectedCat;
-        if (selectedCond !== "Tất cả") params.condition = selectedCond;
+        if (selectedCond !== "Tất cả") params.conditionStatus = mapConditionToStatus(selectedCond);
         if (minPrice) params.minPrice = minPrice;
         if (maxPrice) params.maxPrice = maxPrice;
 
@@ -165,11 +185,12 @@ const Marketplace = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {products.map((product) => {
-                const conditionColor = product.condition === "Mới" || product.condition === "Như mới" 
+                const conditionLabel = mapStatusToCondition(product.conditionStatus);
+                const conditionColor = product.conditionStatus === "new" || product.conditionStatus === "like_new" 
                   ? "bg-secondary-container text-on-secondary-container" 
                   : "bg-surface-variant text-on-surface";
                 
-                const displayPrice = isRentPage ? formatPrice(product.rentalPricePerDay) + "/ngày" : formatPrice(product.salePrice);
+                const displayPrice = isRentPage ? formatPrice(product.rentPricePerDay) + "/ngày" : formatPrice(product.salePrice);
 
                 return (
                   <article key={product._id} onClick={() => navigate(`/san-pham/${product._id}`)}
@@ -177,9 +198,9 @@ const Marketplace = () => {
                     <div className="relative aspect-square bg-surface-container-low overflow-hidden">
                       <img alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={getImageUrl(product.images?.[0])} />
                       <span className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${conditionColor}`}>
-                        {product.condition}
+                        {conditionLabel}
                       </span>
-                      {product.listingType === "cho-thue" && (
+                      {product.productType === "rent" && (
                         <span className="absolute top-3 right-3 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary text-on-primary">
                           Thuê
                         </span>

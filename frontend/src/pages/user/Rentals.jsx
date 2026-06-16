@@ -5,13 +5,13 @@ import toast from "react-hot-toast";
 
 const TABS = ["Đồ đang thuê", "Đồ cho thuê"];
 const STATUS_MAP = {
-  PENDING: { label: "Chờ xác nhận", color: "bg-orange-50 text-orange-600 border border-orange-200" },
-  ACCEPTED: { label: "Đã xác nhận", color: "bg-blue-50 text-blue-600 border border-blue-200" },
-  ACTIVE: { label: "Đang thuê", color: "bg-green-50 text-green-600 border border-green-200" },
-  COMPLETED: { label: "Hoàn tất", color: "bg-teal-50 text-teal-600 border border-teal-200" },
-  CANCELLED: { label: "Đã hủy", color: "bg-red-50 text-red-600 border border-red-200" },
-  REJECTED: { label: "Bị từ chối", color: "bg-red-50 text-red-600 border border-red-200" },
-  DISPUTED: { label: "Tranh chấp", color: "bg-purple-50 text-purple-600 border border-purple-200" },
+  pending: { label: "Chờ xác nhận", color: "bg-orange-50 text-orange-600 border border-orange-200" },
+  approved: { label: "Đã xác nhận", color: "bg-blue-50 text-blue-600 border border-blue-200" },
+  active: { label: "Đang thuê", color: "bg-green-50 text-green-600 border border-green-200" },
+  completed: { label: "Hoàn tất", color: "bg-teal-50 text-teal-600 border border-teal-200" },
+  cancelled: { label: "Đã hủy", color: "bg-red-50 text-red-600 border border-red-200" },
+  rejected: { label: "Bị từ chối", color: "bg-red-50 text-red-600 border border-red-200" },
+  disputed: { label: "Tranh chấp", color: "bg-purple-50 text-purple-600 border border-purple-200" },
 };
 
 const Rentals = () => {
@@ -24,7 +24,9 @@ const Rentals = () => {
     setLoading(true);
     try {
       const res = tab === 0 ? await rentalService.getMyRentals() : await rentalService.getMyLends();
-      if (res.success) setRentals(res.data);
+      if (res.success) {
+        setRentals([...(res.data.requests || []), ...(res.data.contracts || [])]);
+      }
     } catch (err) {
       toast.error("Lỗi tải danh sách thuê mượn");
     } finally {
@@ -102,8 +104,9 @@ const Rentals = () => {
           ) : (
             <div className="flex flex-col gap-6">
               {rentals.map((rental) => {
-                const s = STATUS_MAP[rental.status] || { label: rental.status, color: "bg-surface-variant text-on-surface" };
-                const otherPartyName = tab === 0 ? (rental.owner?.name || "N/A") : (rental.renter?.name || "N/A");
+                const status = rental.requestStatus || rental.contractStatus;
+                const s = STATUS_MAP[status] || { label: status, color: "bg-surface-variant text-on-surface" };
+                const otherPartyName = tab === 0 ? (rental.ownerId?.name || "N/A") : (rental.renterId?.name || "N/A");
                 const isProcessing = processingId === rental._id;
 
                 return (
@@ -117,11 +120,11 @@ const Rentals = () => {
                       
                       <div className="flex items-start gap-5 flex-1 w-full">
                         <div className="w-24 h-24 rounded-2xl overflow-hidden bg-surface-container-low flex-shrink-0 shadow-inner p-1 border border-surface-variant/30">
-                          <img src={getImageUrl(rental.product?.images?.[0])} alt="" className="w-full h-full object-cover rounded-xl" />
+                          <img src={getImageUrl(rental.postId?.images?.[0])} alt="" className="w-full h-full object-cover rounded-xl" />
                         </div>
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-3 mb-1">
-                            <h3 className="font-bold text-on-surface text-lg md:text-xl line-clamp-1">{rental.product?.title || "Sản phẩm không xác định"}</h3>
+                            <h3 className="font-bold text-on-surface text-lg md:text-xl line-clamp-1">{rental.postId?.title || "Sản phẩm không xác định"}</h3>
                             <span className={`text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider ${s.color}`}>
                               {s.label}
                             </span>
@@ -133,7 +136,7 @@ const Rentals = () => {
                                <span className="font-semibold text-on-surface">{formatDate(rental.startDate)}</span>
                                <span className="text-xs">→</span>
                                <span className="font-semibold text-on-surface">{formatDate(rental.endDate)}</span>
-                               <span className="bg-surface-container px-2 py-0.5 rounded text-xs ml-1">({rental.totalDays} ngày)</span>
+                               <span className="bg-surface-container px-2 py-0.5 rounded text-xs ml-1">({Math.max(1, Math.ceil((new Date(rental.endDate) - new Date(rental.startDate)) / 86400000))} ngày)</span>
                             </p>
                             <p className="text-sm text-on-surface-variant flex items-center gap-2 mt-1">
                                <span className="material-symbols-outlined text-[16px]">person</span>
@@ -145,10 +148,10 @@ const Rentals = () => {
 
                       <div className="bg-surface-container-low rounded-2xl p-4 w-full lg:w-48 flex flex-col justify-center items-end lg:items-center text-right lg:text-center shrink-0 border border-surface-variant/30">
                          <span className="text-xs text-on-surface-variant mb-1 font-medium">Tổng phí thuê</span>
-                         <p className="font-black text-tertiary text-xl">{formatPrice(rental.totalAmount)}</p>
-                         {rental.product?.depositAmount > 0 && (
+                         <p className="font-black text-tertiary text-xl">{formatPrice((rental.rentalFee || 0) + (rental.depositAmount || 0))}</p>
+                         {rental.depositAmount > 0 && (
                             <p className="text-xs text-on-surface-variant mt-2 border-t border-surface-variant/50 pt-2 w-full">
-                               Cọc: <span className="font-bold">{formatPrice(rental.product.depositAmount)}</span>
+                               Cọc: <span className="font-bold">{formatPrice(rental.depositAmount)}</span>
                             </p>
                          )}
                       </div>
@@ -160,37 +163,31 @@ const Rentals = () => {
                       
                       <div className="flex flex-wrap gap-3">
                         {/* RENTER ACTIONS */}
-                        {tab === 0 && rental.status === "PENDING" && (
-                          <button onClick={() => updateStatus(rental._id, "CANCELLED")} disabled={isProcessing}
+                        {tab === 0 && status === "pending" && (
+                          <button onClick={() => updateStatus(rental._id, "cancelled")} disabled={isProcessing}
                             className="px-5 py-2 text-sm font-bold border-2 border-error/20 text-error rounded-xl hover:bg-error/5 hover:border-error/40 transition-all active:scale-95 disabled:opacity-50">
                             Hủy yêu cầu
                           </button>
                         )}
-                        {tab === 0 && rental.status === "ACTIVE" && (
-                          <button onClick={() => updateStatus(rental._id, "COMPLETED")} disabled={isProcessing}
+                        {tab === 0 && status === "active" && (
+                          <button onClick={() => updateStatus(rental._id, "completed")} disabled={isProcessing}
                             className="px-5 py-2 text-sm font-bold bg-tertiary text-white rounded-xl hover:shadow-lg hover:shadow-tertiary/30 transition-all active:scale-95 disabled:opacity-50">
                             Đã trả đồ (Hoàn tất)
                           </button>
                         )}
 
                         {/* OWNER ACTIONS */}
-                        {tab === 1 && rental.status === "PENDING" && (
+                        {tab === 1 && status === "pending" && (
                           <>
-                            <button onClick={() => updateStatus(rental._id, "REJECTED")} disabled={isProcessing}
+                            <button onClick={() => updateStatus(rental._id, "rejected")} disabled={isProcessing}
                               className="px-5 py-2 text-sm font-bold border-2 border-error/20 text-error rounded-xl hover:bg-error/5 hover:border-error/40 transition-all active:scale-95 disabled:opacity-50">
                               Từ chối
                             </button>
-                            <button onClick={() => updateStatus(rental._id, "ACCEPTED")} disabled={isProcessing}
+                            <button onClick={() => updateStatus(rental._id, "approved")} disabled={isProcessing}
                               className="px-5 py-2 text-sm font-bold bg-tertiary text-white rounded-xl hover:shadow-lg hover:shadow-tertiary/30 transition-all active:scale-95 disabled:opacity-50">
                               Chấp nhận
                             </button>
                           </>
-                        )}
-                        {tab === 1 && rental.status === "ACCEPTED" && (
-                          <button onClick={() => updateStatus(rental._id, "ACTIVE")} disabled={isProcessing}
-                            className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-tertiary to-tertiary-container text-white rounded-xl hover:shadow-lg hover:shadow-tertiary/30 transition-all active:scale-95 disabled:opacity-50">
-                            Đã giao đồ (Bắt đầu thuê)
-                          </button>
                         )}
                       </div>
                     </div>

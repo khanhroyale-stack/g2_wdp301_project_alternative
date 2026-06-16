@@ -54,7 +54,7 @@ const PendingDeliveries = () => {
                 <div key={order._id} className="bg-surface-container-lowest rounded-2xl shadow-apple border border-surface-variant/30 p-5">
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div>
-                      <p className="font-bold text-on-surface">{order.product?.title}</p>
+                      <p className="font-bold text-on-surface">{order.postId?.title}</p>
                       <p className="text-xs text-on-surface-variant mt-1">Mã đơn: {order._id}</p>
                     </div>
                     <span className="text-sm font-bold text-primary">Phí ship: {order.shippingFee?.toLocaleString()}₫</span>
@@ -64,16 +64,16 @@ const PendingDeliveries = () => {
                       <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">store</span>
                       <div>
                         <p className="text-xs text-on-surface-variant">Lấy hàng tại</p>
-                        <p className="text-sm font-medium text-on-surface">{order.seller?.name}</p>
-                        <p className="text-xs text-on-surface-variant">{order.seller?.phone}</p>
+                        <p className="text-sm font-medium text-on-surface">{order.sellerId?.name}</p>
+                        <p className="text-xs text-on-surface-variant">{order.sellerId?.phone}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">location_on</span>
                       <div>
                         <p className="text-xs text-on-surface-variant">Giao đến</p>
-                        <p className="text-sm font-medium text-on-surface">{order.buyer?.name}</p>
-                        <p className="text-xs text-on-surface-variant">{order.buyer?.phone}</p>
+                        <p className="text-sm font-medium text-on-surface">{order.buyerId?.name}</p>
+                        <p className="text-xs text-on-surface-variant">{order.buyerId?.phone}</p>
                       </div>
                     </div>
                   </div>

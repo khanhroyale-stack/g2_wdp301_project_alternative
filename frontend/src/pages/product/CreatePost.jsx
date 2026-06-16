@@ -5,13 +5,13 @@ import productService from "../../services/product.service";
 import uploadService from "../../services/upload.service";
 import categoryService from "../../services/category.service";
 
-const CONDITIONS = ["Mới", "Như mới", "Đã dùng - Còn tốt", "Đã dùng - Có lỗi nhỏ"];
+
 
 const CreatePost = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    title: "", category: "", condition: "", listingType: "ban",
-    salePrice: "", rentalPricePerDay: "", depositAmount: "", location: "Khu vực Hòa Lạc",
+    title: "", categoryId: "", conditionStatus: "", productType: "sale",
+    salePrice: "", rentPricePerDay: "", depositAmount: "", location: "Khu vực Hòa Lạc",
     description: "",
   });
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -104,9 +104,9 @@ const CreatePost = () => {
           <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-apple border border-surface-variant/30">
             <h3 className="font-semibold text-on-surface mb-4">Loại bài đăng</h3>
             <div className="grid grid-cols-2 gap-3">
-              {[{ v: "ban", label: "Bán", icon: "sell" }, { v: "cho-thue", label: "Cho thuê", icon: "handshake" }].map((opt) => (
-                <button key={opt.v} type="button" onClick={() => set("listingType", opt.v)}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${form.listingType === opt.v
+              {[{ v: "sale", label: "Bán", icon: "sell" }, { v: "rent", label: "Cho thuê", icon: "handshake" }].map((opt) => (
+                <button key={opt.v} type="button" onClick={() => set("productType", opt.v)}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${form.productType === opt.v
                       ? "border-primary bg-primary/5 text-primary"
                       : "border-surface-variant text-on-surface-variant hover:border-primary/40"
                     }`}>
@@ -128,16 +128,19 @@ const CreatePost = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Danh mục <span className="text-error">*</span></label>
-                <select className={inputCls} value={form.category} onChange={(e) => set("category", e.target.value)} required>
+                <select className={inputCls} value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)} required>
                   <option value="">Chọn danh mục</option>
                   {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className={labelCls}>Tình trạng <span className="text-error">*</span></label>
-                <select className={inputCls} value={form.condition} onChange={(e) => set("condition", e.target.value)} required>
+                <select className={inputCls} value={form.conditionStatus} onChange={(e) => set("conditionStatus", e.target.value)} required>
                   <option value="">Chọn tình trạng</option>
-                  {CONDITIONS.map((c) => <option key={c}>{c}</option>)}
+                  <option value="new">Mới</option>
+                  <option value="like_new">Như mới</option>
+                  <option value="good">Đã dùng - Còn tốt</option>
+                  <option value="fair">Đã dùng - Có lỗi nhỏ</option>
                 </select>
               </div>
             </div>
@@ -155,7 +158,7 @@ const CreatePost = () => {
           {/* Giá */}
           <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-apple border border-surface-variant/30 flex flex-col gap-4">
             <h3 className="font-semibold text-on-surface">Thông tin giá</h3>
-            {form.listingType === "ban" ? (
+            {form.productType === "sale" ? (
               <div>
                 <label className={labelCls}>Giá bán (VNĐ) <span className="text-error">*</span></label>
                 <input type="number" className={inputCls} placeholder="VD: 15000000" value={form.salePrice}
@@ -165,8 +168,8 @@ const CreatePost = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Giá thuê/ngày (VNĐ) <span className="text-error">*</span></label>
-                  <input type="number" className={inputCls} placeholder="VD: 200000" value={form.rentalPricePerDay}
-                    onChange={(e) => set("rentalPricePerDay", e.target.value)} required />
+                  <input type="number" className={inputCls} placeholder="VD: 200000" value={form.rentPricePerDay}
+                    onChange={(e) => set("rentPricePerDay", e.target.value)} required />
                 </div>
                 <div>
                   <label className={labelCls}>Tiền đặt cọc (VNĐ)</label>

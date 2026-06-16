@@ -1,19 +1,19 @@
 const Order = require("../models/order.model");
-const Product = require("../models/product.model");
+const ProductPost = require("../models/product_post.model");
 const { createNotification } = require("./notification.controller");
 
 const createOrder = async (req, res) => {
   try {
-    const product = await Product.findById(req.body.productId).populate("seller", "name");
-    if (!product || product.status !== "ACTIVE")
+    const product = await ProductPost.findById(req.body.productId).populate("ownerId", "name");
+    if (!product || product.postStatus !== "approved")
       return res.status(400).json({ success: false, message: "Sản phẩm không còn khả dụng" });
 
-    if (product.seller._id.toString() === req.user._id.toString())
+    if (product.ownerId._id.toString() === req.user._id.toString())
       return res.status(400).json({ success: false, message: "Không thể mua sản phẩm của chính mình" });
 
     const order = await Order.create({
       buyer: req.user._id,
-      seller: product.seller._id,
+      seller: product.ownerId._id,
       product: product._id,
       totalAmount: product.salePrice + (req.body.shippingFee || 0),
       shippingFee: req.body.shippingFee || 0,
@@ -24,7 +24,7 @@ const createOrder = async (req, res) => {
 
     // Thông báo cho seller
     await createNotification({
-      recipientId: product.seller._id,
+      recipientId: product.ownerId._id,
       title: "Có đơn hàng mới 🛍️",
       message: `Bạn có đơn hàng mới cho sản phẩm "${product.title}". Vui lòng xác nhận.`,
       type: "NEW_ORDER",
@@ -40,7 +40,7 @@ const createOrder = async (req, res) => {
 const getMyOrders = async (req, res) => {
   try {
     const orders = await Order.find({ buyer: req.user._id })
-      .populate("product", "title images salePrice")
+      .populate("product", "title salePrice")
       .populate("seller", "name avatar phone")
       .populate("shipper", "name phone")
       .sort({ createdAt: -1 });
@@ -53,7 +53,7 @@ const getMyOrders = async (req, res) => {
 const getMySales = async (req, res) => {
   try {
     const orders = await Order.find({ seller: req.user._id })
-      .populate("product", "title images salePrice")
+      .populate("product", "title salePrice")
       .populate("buyer", "name avatar phone")
       .populate("shipper", "name phone")
       .sort({ createdAt: -1 });
@@ -104,7 +104,7 @@ const updateOrderStatus = async (req, res) => {
       });
     }
     if (status === "COMPLETED") {
-      await Product.findByIdAndUpdate(order.product._id || order.product, { status: "SOLD" });
+      await ProductPost.findByIdAndUpdate(order.product._id || order.product, { postStatus: "closed" });
       // Thông báo seller + buyer
       await createNotification({
         recipientId: order.seller._id,
@@ -126,7 +126,7 @@ const updateOrderStatus = async (req, res) => {
 const shipperGetAvailableOrders = async (req, res) => {
   try {
     const orders = await Order.find({ status: "SELLER_CONFIRMED", shipper: { $exists: false } })
-      .populate("product", "title images condition")
+      .populate("product", "title conditionStatus")
       .populate("buyer", "name phone")
       .populate("seller", "name phone")
       .sort({ updatedAt: -1 });
@@ -194,7 +194,7 @@ const shipperUpdateStatus = async (req, res) => {
       });
     }
     if (status === "COMPLETED") {
-      await Product.findByIdAndUpdate(order.product._id || order.product, { status: "SOLD" });
+      await ProductPost.findByIdAndUpdate(order.product._id || order.product, { postStatus: "closed" });
     }
 
     await order.save();
@@ -210,7 +210,7 @@ const shipperGetMyDeliveries = async (req, res) => {
     const filter = { shipper: req.user._id };
     if (status) filter.status = status;
     const orders = await Order.find(filter)
-      .populate("product", "title images condition")
+      .populate("product", "title conditionStatus")
       .populate("buyer", "name phone")
       .populate("seller", "name phone")
       .sort({ updatedAt: -1 });

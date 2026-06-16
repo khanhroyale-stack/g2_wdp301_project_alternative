@@ -4,12 +4,10 @@ import Sidebar from "../../components/Sidebar";
 import productService from "../../services/product.service";
 
 const STATUS = {
-  PENDING: { label: "Chờ duyệt", color: "bg-surface-container text-on-surface-variant" },
-  ACTIVE: { label: "Đang hiển thị", color: "bg-secondary-container text-on-secondary-container" },
-  REJECTED: { label: "Bị từ chối", color: "bg-error-container text-on-error-container" },
-  SOLD: { label: "Đã bán", color: "bg-surface-container-high text-on-surface" },
-  RENTING: { label: "Đang cho thuê", color: "bg-primary-fixed-dim text-on-primary-fixed" },
-  HIDDEN: { label: "Đã ẩn", color: "bg-surface-container-highest text-on-surface-variant" },
+  pending: { label: "Chờ duyệt", color: "bg-surface-container text-on-surface-variant" },
+  approved: { label: "Đang hiển thị", color: "bg-secondary-container text-on-secondary-container" },
+  rejected: { label: "Bị từ chối", color: "bg-error-container text-on-error-container" },
+  closed: { label: "Đã đóng", color: "bg-surface-container-high text-on-surface" },
 };
 
 const MyPosts = () => {
@@ -73,9 +71,9 @@ const MyPosts = () => {
                   </thead>
                   <tbody className="divide-y divide-surface-variant/30">
                     {posts.map((post) => {
-                      const s = STATUS[post.status] || { label: post.status, color: "bg-surface-variant text-on-surface" };
-                      const typeLabel = post.listingType === "cho-thue" ? "Cho thuê" : "Bán";
-                      const displayPrice = post.listingType === "cho-thue" ? `${formatPrice(post.rentalPricePerDay)}/ngày` : formatPrice(post.salePrice);
+                      const s = STATUS[post.postStatus] || { label: post.postStatus, color: "bg-surface-variant text-on-surface" };
+                      const typeLabel = post.productType === "rent" ? "Cho thuê" : "Bán";
+                      const displayPrice = post.productType === "rent" ? `${formatPrice(post.rentPricePerDay)}/ngày` : formatPrice(post.salePrice);
                       
                       return (
                         <tr key={post._id} className="hover:bg-surface-bright/40 transition-colors group">
@@ -89,7 +87,7 @@ const MyPosts = () => {
                               </Link>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-sm text-on-surface-variant">{post.category?.name || "N/A"}</td>
+                          <td className="px-4 py-4 text-sm text-on-surface-variant">{post.categoryId?.name || "N/A"}</td>
                           <td className="px-4 py-4">
                             <span className="text-xs px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant">{typeLabel}</span>
                           </td>

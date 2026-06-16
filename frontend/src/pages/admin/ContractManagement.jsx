@@ -28,13 +28,13 @@ const ContractManagement = () => {
   }, [filter]);
 
   const STATUS_MAP = {
-    PENDING: { label: "Chờ xác nhận", color: "text-orange-500 bg-orange-50" },
-    ACCEPTED: { label: "Đã chấp nhận", color: "text-blue-500 bg-blue-50" },
-    ACTIVE: { label: "Đang thuê", color: "text-green-500 bg-green-50" },
-    COMPLETED: { label: "Hoàn tất", color: "text-green-600 bg-green-100" },
-    CANCELLED: { label: "Đã hủy", color: "text-red-500 bg-red-50" },
-    REJECTED: { label: "Bị từ chối", color: "text-red-600 bg-red-100" },
-    DISPUTED: { label: "Tranh chấp", color: "text-purple-600 bg-purple-100" },
+    pending: { label: "Chờ xác nhận", color: "text-orange-500 bg-orange-50" },
+    approved: { label: "Đã xác nhận", color: "text-blue-500 bg-blue-50" },
+    active: { label: "Đang thuê", color: "text-green-500 bg-green-50" },
+    completed: { label: "Hoàn tất", color: "text-green-600 bg-green-100" },
+    cancelled: { label: "Đã hủy", color: "text-red-500 bg-red-50" },
+    rejected: { label: "Bị từ chối", color: "text-red-600 bg-red-100" },
+    disputed: { label: "Tranh chấp", color: "text-purple-600 bg-purple-100" },
   };
 
   return (
@@ -50,7 +50,7 @@ const ContractManagement = () => {
             <p className="text-on-surface-variant">Theo dõi hoạt động cho thuê trên hệ thống.</p>
           </div>
           <div className="flex flex-wrap bg-surface-container-low rounded-xl p-1 shadow-sm border border-surface-variant/30">
-             {["", "PENDING", "ACTIVE", "COMPLETED", "DISPUTED"].map(st => (
+             {["", "active", "completed", "cancelled", "disputed"].map(st => (
                <button
                  key={st}
                  onClick={() => setFilter(st)}
@@ -89,26 +89,26 @@ const ContractManagement = () => {
                     <tr key={r._id} className="hover:bg-surface-container-lowest/50 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                           {r.product?.images?.[0] ? (
-                             <img src={r.product.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover bg-surface-variant" />
+                           {r.postId?.images?.[0] ? (
+                             <img src={r.postId.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover bg-surface-variant" />
                            ) : (
                              <div className="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center">
                                <span className="material-symbols-outlined text-on-surface-variant">image</span>
                              </div>
                            )}
                            <div className="max-w-[150px]">
-                             <p className="font-semibold text-sm text-on-surface truncate" title={r.product?.title}>{r.product?.title || "Sản phẩm đã xóa"}</p>
-                             <p className="text-xs text-on-surface-variant">{r.totalDays} ngày</p>
+                             <p className="font-semibold text-sm text-on-surface truncate" title={r.postId?.title}>{r.postId?.title || "Sản phẩm đã xóa"}</p>
+                             <p className="text-xs text-on-surface-variant">{Math.max(1, Math.ceil((new Date(r.endDate) - new Date(r.startDate)) / 86400000))} ngày</p>
                            </div>
                         </div>
                       </td>
                       <td className="p-4 text-sm">
-                        <p className="font-medium text-on-surface">{r.owner?.name || "N/A"}</p>
-                        <p className="text-xs text-on-surface-variant">{r.owner?.phone || "N/A"}</p>
+                        <p className="font-medium text-on-surface">{r.ownerId?.name || "N/A"}</p>
+                        <p className="text-xs text-on-surface-variant">{r.ownerId?.phone || "N/A"}</p>
                       </td>
                       <td className="p-4 text-sm">
-                        <p className="font-medium text-on-surface">{r.renter?.name || "N/A"}</p>
-                        <p className="text-xs text-on-surface-variant">{r.renter?.phone || "N/A"}</p>
+                        <p className="font-medium text-on-surface">{r.renterId?.name || "N/A"}</p>
+                        <p className="text-xs text-on-surface-variant">{r.renterId?.phone || "N/A"}</p>
                       </td>
                       <td className="p-4 text-sm text-on-surface-variant">
                          <p>{new Date(r.startDate).toLocaleDateString("vi-VN")}</p>
@@ -116,11 +116,11 @@ const ContractManagement = () => {
                          <p>{new Date(r.endDate).toLocaleDateString("vi-VN")}</p>
                       </td>
                       <td className="p-4 text-sm font-bold text-right text-error">
-                        {r.totalAmount?.toLocaleString()}đ
+                        {((r.rentalFee || 0) + (r.depositAmount || 0)).toLocaleString()}đ
                       </td>
                       <td className="p-4 text-center">
-                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${STATUS_MAP[r.status]?.color || "bg-gray-100 text-gray-600"}`}>
-                           {STATUS_MAP[r.status]?.label || r.status}
+                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${STATUS_MAP[r.contractStatus]?.color || "bg-gray-100 text-gray-600"}`}>
+                           {STATUS_MAP[r.contractStatus]?.label || r.contractStatus}
                          </span>
                       </td>
                     </tr>

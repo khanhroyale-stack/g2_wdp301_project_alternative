@@ -70,7 +70,7 @@ const ProductDetail = () => {
     const totalDays = startDate && endDate
         ? Math.max(0, Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000))
         : 0;
-    const totalFee = totalDays * (product.rentalPricePerDay || 0);
+    const totalFee = totalDays * (product.rentPricePerDay || 0);
 
     const getImageUrl = (img) => {
         if (!img) return "https://placehold.co/800x600?text=No+Image";
@@ -81,9 +81,9 @@ const ProductDetail = () => {
     const formatPrice = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
 
     const images = product.images?.length > 0 ? product.images : [null];
-    const displayPrice = product.listingType === "cho-thue" ? `${formatPrice(product.rentalPricePerDay)}/ngày` : formatPrice(product.salePrice);
+    const displayPrice = product.productType === "rent" ? `${formatPrice(product.rentPricePerDay)}/ngày` : formatPrice(product.salePrice);
     
-    const sellerName = product.seller?.name || "Người dùng ẩn";
+    const sellerName = product.ownerId?.name || "Người dùng ẩn";
     const sellerInitial = sellerName.charAt(0).toUpperCase();
 
     const handleBuy = async () => {
@@ -128,7 +128,7 @@ const ProductDetail = () => {
     const handleChat = async () => {
         if (!user) return navigate("/dang-nhap");
         try {
-            const res = await chatService.getOrCreateChat(product.seller._id, product._id);
+            const res = await chatService.getOrCreateChat(product.ownerId._id, product._id);
             if (res.success) {
                 navigate("/tin-nhan");
             }
@@ -146,8 +146,8 @@ const ProductDetail = () => {
                 <div className="flex items-center gap-2 text-sm text-on-surface-variant mb-8 bg-white/60 backdrop-blur-md px-4 py-2 rounded-full w-fit shadow-sm border border-surface-variant/20">
                     <Link to="/" className="hover:text-primary transition-colors flex items-center"><span className="material-symbols-outlined text-[16px] mr-1">home</span>Trang chủ</Link>
                     <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-                    <Link to={product.listingType === "cho-thue" ? "/cho-thue" : "/marketplace"} className="hover:text-primary transition-colors">
-                        {product.listingType === "cho-thue" ? "Thuê đồ" : "Mua sắm"}
+                    <Link to={product.productType === "rent" ? "/cho-thue" : "/marketplace"} className="hover:text-primary transition-colors">
+                        {product.productType === "rent" ? "Thuê đồ" : "Mua sắm"}
                     </Link>
                     <span className="material-symbols-outlined text-[14px]">chevron_right</span>
                     <span className="text-on-surface font-semibold truncate max-w-[200px]">{product.title}</span>
@@ -161,9 +161,9 @@ const ProductDetail = () => {
                                 className="w-full h-full object-contain rounded-2xl group-hover:scale-105 transition-transform duration-500"
                                 src={getImageUrl(images[activeImg])} />
                             <span className={`absolute top-5 left-5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-sm ${
-                                product.listingType === "cho-thue" ? "bg-primary/90 text-white" : "bg-white/90 text-primary border border-surface-variant/20"
+                                product.productType === "rent" ? "bg-primary/90 text-white" : "bg-white/90 text-primary border border-surface-variant/20"
                             }`}>
-                                {product.listingType === "cho-thue" ? "Cho thuê" : "Đang bán"}
+                                {product.productType === "rent" ? "Cho thuê" : "Đang bán"}
                             </span>
                         </div>
                         {images.length > 1 && (
@@ -185,17 +185,17 @@ const ProductDetail = () => {
                         <div>
                             <div className="flex items-center gap-2 mb-3 flex-wrap">
                                 <span className="px-3 py-1 rounded-full bg-secondary/10 text-secondary text-xs font-bold uppercase tracking-wider">
-                                    {product.category?.name || "Danh mục"}
+                                    {product.categoryId?.name || "Danh mục"}
                                 </span>
                                 <span className="px-3 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs font-semibold">
-                                    {product.condition}
+                                    {product.conditionStatus === 'new' ? 'Mới' : product.conditionStatus === 'like_new' ? 'Như mới' : product.conditionStatus === 'good' ? 'Đã dùng - Còn tốt' : 'Đã dùng - Có lỗi nhỏ'}
                                 </span>
                             </div>
                             <h1 className="text-3xl font-extrabold text-on-surface leading-tight mb-2">{product.title}</h1>
                             <div className="flex items-baseline gap-2 mt-4">
                                 <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-fixed">{displayPrice}</span>
                             </div>
-                            {product.listingType === "cho-thue" && product.depositAmount > 0 && (
+                            {product.productType === "rent" && product.depositAmount > 0 && (
                                 <p className="text-sm text-on-surface-variant mt-2 flex items-center gap-1 bg-surface-container-low w-fit px-3 py-1 rounded-full">
                                     <span className="material-symbols-outlined text-[16px] text-tertiary">lock</span>
                                     Tiền cọc: <span className="font-bold text-on-surface ml-1">{formatPrice(product.depositAmount)}</span>
@@ -213,12 +213,12 @@ const ProductDetail = () => {
 
                         {/* Action buttons */}
                         <div className="flex flex-col gap-3 mt-2">
-                            {product.status === "SOLD" || product.status === "RENTING" ? (
+                            {product.postStatus === "closed" ? (
                                 <button disabled
                                     className="w-full py-4 rounded-2xl bg-surface-container text-on-surface-variant font-bold shadow-none cursor-not-allowed">
-                                    {product.status === "SOLD" ? "Sản phẩm đã bán" : "Sản phẩm đang được thuê"}
+                                    {product.productType === "sale" ? "Sản phẩm đã bán" : "Sản phẩm đang được thuê"}
                                 </button>
-                            ) : product.listingType === "ban" ? (
+                            ) : product.productType === "sale" ? (
                                 <button
                                     onClick={handleBuy} disabled={isSubmitting}
                                     className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-primary-fixed text-white font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98]">
@@ -241,8 +241,8 @@ const ProductDetail = () => {
                             <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">Người đăng</p>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    {product.seller?.avatar ? (
-                                        <img src={product.seller.avatar} alt={sellerName} className="w-12 h-12 rounded-full object-cover" />
+                                    {product.ownerId?.avatar ? (
+                                        <img src={product.ownerId.avatar} alt={sellerName} className="w-12 h-12 rounded-full object-cover" />
                                     ) : (
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-secondary to-tertiary text-white flex items-center justify-center font-bold text-lg shadow-sm">
                                             {sellerInitial}
@@ -253,11 +253,11 @@ const ProductDetail = () => {
                                         <div className="flex items-center gap-2 text-xs text-on-surface-variant mt-1.5 font-medium">
                                             <span className="flex items-center gap-0.5 text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-md">
                                                 <span className="material-symbols-outlined text-[13px]">star</span>
-                                                {product.seller?.averageRating || "0.0"}
+                                                {product.ownerId?.averageRating || "0.0"}
                                             </span>
                                             <span className="flex items-center gap-0.5 text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
                                                 <span className="material-symbols-outlined text-[13px]">verified_user</span>
-                                                Uy tín: {product.seller?.reputationScore || 100}
+                                                Uy tín: {product.ownerId?.reputationScore || 100}
                                             </span>
                                         </div>
                                     </div>

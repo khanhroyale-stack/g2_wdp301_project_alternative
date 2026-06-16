@@ -4,10 +4,10 @@ import shipperService from "../../services/shipper.service";
 import toast from "react-hot-toast";
 
 const STEP_MAP = {
-  PICKING_UP: { label: "Đang lấy hàng", color: "bg-purple-50 text-purple-600 border-purple-200" },
-  PICKED_UP: { label: "Đã lấy hàng", color: "bg-indigo-50 text-indigo-600 border-indigo-200" },
-  DELIVERING: { label: "Đang giao hàng", color: "bg-cyan-50 text-cyan-600 border-cyan-200" },
-  DELIVERED: { label: "Đã giao hàng", color: "bg-teal-50 text-teal-600 border-teal-200" },
+  picking_up: { label: "Đang lấy hàng", color: "bg-purple-50 text-purple-600 border-purple-200" },
+  picked_up: { label: "Đã lấy hàng", color: "bg-indigo-50 text-indigo-600 border-indigo-200" },
+  delivering: { label: "Đang giao hàng", color: "bg-cyan-50 text-cyan-600 border-cyan-200" },
+  delivered: { label: "Đã giao hàng", color: "bg-teal-50 text-teal-600 border-teal-200" },
 };
 
 const DeliveringOrders = () => {
@@ -27,7 +27,7 @@ const DeliveringOrders = () => {
       const res = await shipperService.getMyDeliveries();
       if (res.success) {
         // filter out COMPLETED/CANCELLED
-        const active = res.data.filter(o => ["PICKING_UP", "PICKED_UP", "DELIVERING", "DELIVERED"].includes(o.status));
+        const active = res.data.filter(o => ["picking_up", "picked_up", "delivering", "delivered"].includes(o.orderStatus));
         setOrders(active);
       }
     } catch (err) {
@@ -108,7 +108,7 @@ const DeliveringOrders = () => {
           ) : (
             <div className="flex flex-col gap-6">
               {orders.map((order) => {
-                const s = STEP_MAP[order.status] || { label: order.status, color: "bg-surface-variant text-on-surface" };
+                const s = STEP_MAP[order.orderStatus] || { label: order.orderStatus, color: "bg-surface-variant text-on-surface" };
                 const isProcessing = processingId === order._id;
 
                 return (
@@ -123,7 +123,7 @@ const DeliveringOrders = () => {
                     <div className="p-6 md:p-8 border-b border-surface-variant/30 flex items-start justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-bold text-on-surface text-lg">{order.product?.title}</h3>
+                          <h3 className="font-bold text-on-surface text-lg">{order.postId?.title}</h3>
                           <span className={`text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider border ${s.color}`}>
                             {s.label}
                           </span>
@@ -148,9 +148,9 @@ const DeliveringOrders = () => {
                           </div>
                           <div>
                             <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Điểm lấy hàng</p>
-                            <p className="font-bold text-on-surface text-base">{order.seller?.name}</p>
+                            <p className="font-bold text-on-surface text-base">{order.sellerId?.name}</p>
                             <p className="text-sm text-on-surface-variant mt-1 flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-[16px]">call</span> {order.seller?.phone}
+                              <span className="material-symbols-outlined text-[16px]">call</span> {order.sellerId?.phone}
                             </p>
                           </div>
                         </div>
@@ -161,9 +161,9 @@ const DeliveringOrders = () => {
                           </div>
                           <div>
                             <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Điểm giao hàng</p>
-                            <p className="font-bold text-on-surface text-base">{order.buyer?.name}</p>
+                            <p className="font-bold text-on-surface text-base">{order.buyerId?.name}</p>
                             <p className="text-sm text-on-surface-variant mt-1 flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-[16px]">call</span> {order.buyer?.phone}
+                              <span className="material-symbols-outlined text-[16px]">call</span> {order.buyerId?.phone}
                             </p>
                           </div>
                         </div>
@@ -181,31 +181,31 @@ const DeliveringOrders = () => {
                       </button>
                       
                       <div className="flex gap-3">
-                        {order.status === "PICKING_UP" && (
+                        {order.orderStatus === "picking_up" && (
                           <button
-                            onClick={() => handleUpdateStatus(order._id, "PICKED_UP")} disabled={isProcessing}
+                            onClick={() => handleUpdateStatus(order._id, "picked_up")} disabled={isProcessing}
                             className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50"
                           >
                             Đã lấy hàng thành công
                           </button>
                         )}
-                        {order.status === "PICKED_UP" && (
+                        {order.orderStatus === "picked_up" && (
                           <button
-                            onClick={() => handleUpdateStatus(order._id, "DELIVERING")} disabled={isProcessing}
+                            onClick={() => handleUpdateStatus(order._id, "delivering")} disabled={isProcessing}
                             className="px-6 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-bold hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
                           >
                             Bắt đầu đi giao
                           </button>
                         )}
-                        {order.status === "DELIVERING" && (
+                        {order.orderStatus === "delivering" && (
                           <button
-                            onClick={() => handleUpdateStatus(order._id, "DELIVERED")} disabled={isProcessing}
+                            onClick={() => handleUpdateStatus(order._id, "delivered")} disabled={isProcessing}
                             className="px-6 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
                           >
                             Xác nhận đã giao đến nơi
                           </button>
                         )}
-                        {order.status === "DELIVERED" && (
+                        {order.orderStatus === "delivered" && (
                           <div className="px-6 py-2.5 bg-surface-container text-on-surface-variant rounded-xl text-sm font-bold border border-surface-variant/50">
                             Chờ người mua xác nhận hoàn tất
                           </div>
@@ -225,7 +225,7 @@ const DeliveringOrders = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-xl animate-scale-up border border-surface-variant/20">
             <h3 className="font-extrabold text-on-surface text-2xl mb-1">Biên bản kiểm tra hàng</h3>
-            <p className="text-sm text-on-surface-variant mb-6 pb-4 border-b border-surface-variant/30">{inspectOpen.product?.title}</p>
+            <p className="text-sm text-on-surface-variant mb-6 pb-4 border-b border-surface-variant/30">{inspectOpen.postId?.title}</p>
 
             <div className="grid grid-cols-3 gap-4 mb-6">
               {["Mặt trước", "Mặt sau", "Phụ kiện"].map((label) => (

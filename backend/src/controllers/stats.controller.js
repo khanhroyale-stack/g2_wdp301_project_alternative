@@ -1,7 +1,7 @@
 const User = require("../models/user.model");
-const Product = require("../models/product.model");
+const ProductPost = require("../models/product_post.model");
 const Order = require("../models/order.model");
-const Rental = require("../models/rental.model");
+const RentalContract = require("../models/rental_contract.model");
 const Report = require("../models/report.model");
 
 // GET /api/admin/stats
@@ -34,19 +34,19 @@ const getStats = async (req, res) => {
       User.countDocuments({ accountStatus: "PENDING" }),
       User.countDocuments({ accountStatus: "APPROVED" }),
       User.countDocuments({ accountStatus: "BANNED" }),
-      Product.countDocuments({}),
-      Product.countDocuments({ status: "PENDING" }),
-      Product.countDocuments({ status: "ACTIVE" }),
-      Product.countDocuments({ status: "SOLD" }),
-      Product.countDocuments({ status: "RENTING" }),
+      ProductPost.countDocuments({}),
+      ProductPost.countDocuments({ postStatus: "pending" }),
+      ProductPost.countDocuments({ postStatus: "approved" }),
+      ProductPost.countDocuments({ postStatus: "closed" }),
+      ProductPost.countDocuments({ postStatus: "closed" }), // or renting if added
       Order.countDocuments({}),
       Order.countDocuments({ status: "COMPLETED" }),
       Order.countDocuments({ status: "CANCELLED" }),
       Order.countDocuments({ status: { $in: ["DELIVERING", "PICKING_UP", "PICKED_UP"] } }),
-      Rental.countDocuments({}),
-      Rental.countDocuments({ status: "ACTIVE" }),
-      Rental.countDocuments({ status: "COMPLETED" }),
-      Rental.countDocuments({ status: "DISPUTED" }),
+      RentalContract.countDocuments({}),
+      RentalContract.countDocuments({ contractStatus: "active" }),
+      RentalContract.countDocuments({ contractStatus: "completed" }),
+      RentalContract.countDocuments({ contractStatus: "disputed" }),
       Report.countDocuments({}),
       Report.countDocuments({ status: "PENDING" }),
       Report.countDocuments({ status: "RESOLVED" }),
@@ -72,14 +72,13 @@ const getStats = async (req, res) => {
 // GET /api/admin/orders - Quản lý tất cả đơn hàng
 const getAllOrders = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
-    const filter = status ? { status } : {};
+    const { orderStatus, page = 1, limit = 20 } = req.query;
+    const filter = orderStatus ? { orderStatus } : {};
     const total = await Order.countDocuments(filter);
     const orders = await Order.find(filter)
-      .populate("product", "title images salePrice")
-      .populate("buyer", "name email phone")
-      .populate("seller", "name email phone")
-      .populate("shipper", "name phone")
+      .populate("postId", "title rentPricePerDay salePrice")
+      .populate("buyerId", "name email phone")
+      .populate("sellerId", "name email phone")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
@@ -93,12 +92,12 @@ const getAllOrders = async (req, res) => {
 const getAllRentals = async (req, res) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
-    const filter = status ? { status } : {};
-    const total = await Rental.countDocuments(filter);
-    const rentals = await Rental.find(filter)
-      .populate("product", "title images rentalPricePerDay")
-      .populate("renter", "name email phone")
-      .populate("owner", "name email phone")
+    const filter = status ? { contractStatus: status } : {};
+    const total = await RentalContract.countDocuments(filter);
+    const rentals = await RentalContract.find(filter)
+      .populate("postId", "title rentPricePerDay")
+      .populate("renterId", "name email phone")
+      .populate("ownerId", "name email phone")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));

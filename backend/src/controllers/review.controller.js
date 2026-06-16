@@ -1,6 +1,6 @@
 const Review = require("../models/review.model");
-const Product = require("../models/product.model");
 const User = require("../models/user.model");
+const ProductPost = require("../models/product_post.model");
 
 const createReview = async (req, res) => {
   try {
@@ -13,11 +13,6 @@ const createReview = async (req, res) => {
       rental: rentalId,
       rating, comment, reviewType,
     });
-
-    // Cập nhật trung bình sản phẩm
-    const reviews = await Review.find({ product: productId, isHidden: false });
-    const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
-    await Product.findByIdAndUpdate(productId, { averageRating: avg, reviewCount: reviews.length });
 
     // Cập nhật trung bình người bán
     const sellerReviews = await Review.find({ reviewee: revieweeId, isHidden: false });

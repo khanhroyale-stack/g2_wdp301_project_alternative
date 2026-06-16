@@ -1,41 +1,29 @@
-const Rental = require("../models/rental.model");
-const Product = require("../models/product.model");
+const RentalRequest = require("../models/rental_request.model");
+const RentalContract = require("../models/rental_contract.model");
+const ProductPost = require("../models/product_post.model");
 const { createNotification } = require("./notification.controller");
 
 const createRentalRequest = async (req, res) => {
   try {
-    const product = await Product.findById(req.body.productId).populate("seller", "name");
-    if (!product || product.status !== "ACTIVE" || product.listingType !== "cho-thue")
+    const product = await ProductPost.findById(req.body.productId).populate("ownerId", "name");
+    if (!product || product.postStatus !== "approved" || product.productType === "sale")
       return res.status(400).json({ success: false, message: "Sản phẩm không khả dụng để thuê" });
 
-    if (product.seller._id.toString() === req.user._id.toString())
+    if (product.ownerId._id.toString() === req.user._id.toString())
       return res.status(400).json({ success: false, message: "Không thể thuê sản phẩm của chính mình" });
 
     const start = new Date(req.body.startDate);
     const end = new Date(req.body.endDate);
     if (end <= start) return res.status(400).json({ success: false, message: "Ngày kết thúc phải sau ngày bắt đầu" });
 
-    // Ensure dates don't overlap with existing active rentals
-    const overlapping = await Rental.findOne({
-      product: product._id,
-      status: { $in: ["ACCEPTED", "ACTIVE"] },
-      $or: [
-        { startDate: { $lte: end }, endDate: { $gte: start } }
-      ]
-    });
-
-    if (overlapping) {
-      return res.status(400).json({ success: false, message: "Sản phẩm đã được thuê trong khoảng thời gian này" });
-    }
-
     const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const rentalFee = product.rentalPricePerDay * totalDays;
+    const rentalFee = product.rentPricePerDay * totalDays;
     const depositAmount = product.depositAmount || 0;
 
-    const rental = await Rental.create({
-      renter: req.user._id,
-      owner: product.seller._id,
-      product: product._id,
+    const request = await RentalRequest.create({
+      renterId: req.user._id,
+      ownerId: product.ownerId._id,
+      postId: product._id,
       startDate: start,
       endDate: end,
       totalDays,
@@ -43,17 +31,18 @@ const createRentalRequest = async (req, res) => {
       depositAmount,
       totalAmount: rentalFee + depositAmount,
       note: req.body.note || "",
+      requestStatus: "pending"
     });
 
     await createNotification({
-      recipientId: product.seller._id,
+      recipientId: product.ownerId._id,
       title: "Yêu cầu thuê mới 📅",
       message: `Bạn nhận được yêu cầu thuê sản phẩm "${product.title}" trong ${totalDays} ngày.`,
       type: "NEW_RENTAL_REQUEST",
       link: "/thue-muon",
     });
 
-    res.status(201).json({ success: true, data: rental });
+    res.status(201).json({ success: true, data: request });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -61,11 +50,19 @@ const createRentalRequest = async (req, res) => {
 
 const getRental = async (req, res) => {
   try {
-    const rental = await Rental.findById(req.params.id)
-      .populate("product")
-      .populate("renter", "name avatar phone")
-      .populate("owner", "name avatar phone");
-    if (!rental) return res.status(404).json({ success: false, message: "Không tìm thấy hợp đồng thuê" });
+    let rental = await RentalContract.findById(req.params.id)
+      .populate("postId")
+      .populate("renterId", "name avatar phone")
+      .populate("ownerId", "name avatar phone");
+      
+    if (!rental) {
+      rental = await RentalRequest.findById(req.params.id)
+        .populate("postId")
+        .populate("renterId", "name avatar phone")
+        .populate("ownerId", "name avatar phone");
+    }
+
+    if (!rental) return res.status(404).json({ success: false, message: "Không tìm thấy" });
     res.json({ success: true, data: rental });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -74,11 +71,17 @@ const getRental = async (req, res) => {
 
 const getMyRentals = async (req, res) => {
   try {
-    const rentals = await Rental.find({ renter: req.user._id })
-      .populate("product", "title images rentalPricePerDay")
-      .populate("owner", "name avatar phone")
-      .sort({ createdAt: -1 });
-    res.json({ success: true, data: rentals });
+    const requests = await RentalRequest.find({ renterId: req.user._id })
+      .populate("postId", "title images rentPricePerDay")
+      .populate("ownerId", "name avatar phone")
+      .sort({ createdAt: -1 }).lean();
+      
+    const contracts = await RentalContract.find({ renterId: req.user._id })
+      .populate("postId", "title images rentPricePerDay")
+      .populate("ownerId", "name avatar phone")
+      .sort({ createdAt: -1 }).lean();
+
+    res.json({ success: true, data: { requests, contracts } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -86,11 +89,17 @@ const getMyRentals = async (req, res) => {
 
 const getMyLendings = async (req, res) => {
   try {
-    const rentals = await Rental.find({ owner: req.user._id })
-      .populate("product", "title images")
-      .populate("renter", "name avatar phone")
-      .sort({ createdAt: -1 });
-    res.json({ success: true, data: rentals });
+    const requests = await RentalRequest.find({ ownerId: req.user._id })
+      .populate("postId", "title images")
+      .populate("renterId", "name avatar phone")
+      .sort({ createdAt: -1 }).lean();
+      
+    const contracts = await RentalContract.find({ ownerId: req.user._id })
+      .populate("postId", "title images")
+      .populate("renterId", "name avatar phone")
+      .sort({ createdAt: -1 }).lean();
+
+    res.json({ success: true, data: { requests, contracts } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -99,56 +108,59 @@ const getMyLendings = async (req, res) => {
 const updateRentalStatus = async (req, res) => {
   try {
     const { status, reason, compensationAmount, compensationReason } = req.body;
-    const rental = await Rental.findById(req.params.id)
-      .populate("product", "title")
-      .populate("renter", "_id")
-      .populate("owner", "_id");
-    if (!rental) return res.status(404).json({ success: false, message: "Không tìm thấy" });
+    
+    // First try finding request
+    let request = await RentalRequest.findById(req.params.id)
+      .populate("postId", "title")
+      .populate("renterId", "_id")
+      .populate("ownerId", "_id");
 
-    rental.status = status;
-    if (reason) rental.rejectedReason = reason;
-    if (compensationAmount !== undefined) rental.compensationAmount = compensationAmount;
-    if (compensationReason) rental.compensationReason = compensationReason;
-
-    if (status === "ACCEPTED") {
-      await createNotification({
-        recipientId: rental.renter._id,
-        title: "Yêu cầu thuê được chấp nhận ✅",
-        message: `Yêu cầu thuê "${rental.product?.title}" của bạn đã được chủ đồ chấp nhận.`,
-        type: "RENTAL_ACCEPTED",
-        link: "/thue-muon",
-      });
+    if (request) {
+       // Logic for updating request
+       if (status === "ACCEPTED" || status === "approved") {
+         request.requestStatus = "approved";
+         
+         // Create contract
+         await RentalContract.create({
+            requestId: request._id,
+            postId: request.postId._id,
+            ownerId: request.ownerId._id,
+            renterId: request.renterId._id,
+            startDate: request.startDate,
+            endDate: request.endDate,
+            rentalFee: request.rentalFee,
+            depositAmount: request.depositAmount,
+            handoverMethod: "meet_directly",
+            contractStatus: "active"
+         });
+         
+         await ProductPost.findByIdAndUpdate(request.postId._id, { postStatus: "closed" }); // or renting if we had it
+       } else if (status === "REJECTED" || status === "rejected") {
+         request.requestStatus = "rejected";
+         if (reason) request.note = reason;
+       }
+       await request.save();
+       return res.json({ success: true, data: request });
     }
 
-    if (status === "REJECTED") {
-      await createNotification({
-        recipientId: rental.renter._id,
-        title: "Yêu cầu thuê bị từ chối ❌",
-        message: `Yêu cầu thuê "${rental.product?.title}" bị từ chối. Lý do: ${reason}`,
-        type: "RENTAL_REJECTED",
-        link: "/thue-muon",
-      });
-    }
-
-    if (status === "ACTIVE") {
-      await Product.findByIdAndUpdate(rental.product._id, { status: "RENTING" });
-    }
-    if (["COMPLETED", "CANCELLED"].includes(status)) {
-      await Product.findByIdAndUpdate(rental.product._id, { status: "ACTIVE" });
+    // Otherwise try finding contract
+    let contract = await RentalContract.findById(req.params.id)
+      .populate("postId", "title")
+      .populate("renterId", "_id")
+      .populate("ownerId", "_id");
       
-      if (status === "COMPLETED") {
-        await createNotification({
-          recipientId: rental.renter._id,
-          title: "Hợp đồng thuê hoàn tất 🎉",
-          message: `Quá trình thuê "${rental.product?.title}" đã hoàn tất. Cảm ơn bạn!`,
-          type: "GENERAL",
-          link: "/thue-muon",
-        });
-      }
+    if (!contract) return res.status(404).json({ success: false, message: "Không tìm thấy" });
+
+    contract.contractStatus = status.toLowerCase();
+    if (compensationAmount !== undefined) contract.compensationAmount = compensationAmount;
+    if (compensationReason) contract.accessoriesNote = compensationReason; // Using accessoriesNote as reason for now
+
+    if (["completed", "cancelled"].includes(contract.contractStatus)) {
+      await ProductPost.findByIdAndUpdate(contract.postId._id, { postStatus: "approved" });
     }
 
-    await rental.save();
-    res.json({ success: true, data: rental });
+    await contract.save();
+    res.json({ success: true, data: contract });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -159,32 +171,30 @@ const extendRental = async (req, res) => {
     const { extraDays } = req.body;
     if (!extraDays || extraDays <= 0) return res.status(400).json({ success: false, message: "Số ngày gia hạn không hợp lệ" });
 
-    const rental = await Rental.findById(req.params.id).populate("product");
-    if (!rental || rental.status !== "ACTIVE") {
+    const contract = await RentalContract.findById(req.params.id).populate("postId");
+    if (!contract || contract.contractStatus !== "active") {
       return res.status(400).json({ success: false, message: "Hợp đồng không khả dụng để gia hạn" });
     }
 
-    const currentEnd = new Date(rental.endDate);
+    const currentEnd = new Date(contract.endDate);
     const newEnd = new Date(currentEnd.getTime() + extraDays * 24 * 60 * 60 * 1000);
 
-    const extraFee = rental.product.rentalPricePerDay * extraDays;
+    const extraFee = contract.postId.rentPricePerDay * extraDays;
 
-    rental.endDate = newEnd;
-    rental.totalDays += extraDays;
-    rental.rentalFee += extraFee;
-    rental.totalAmount += extraFee;
+    contract.endDate = newEnd;
+    contract.rentalFee += extraFee;
 
-    await rental.save();
+    await contract.save();
 
     await createNotification({
-      recipientId: rental.owner,
+      recipientId: contract.ownerId,
       title: "Khách hàng gia hạn thuê 📅",
-      message: `Khách hàng vừa gia hạn thuê "${rental.product.title}" thêm ${extraDays} ngày.`,
+      message: `Khách hàng vừa gia hạn thuê "${contract.postId.title}" thêm ${extraDays} ngày.`,
       type: "GENERAL",
       link: "/thue-muon",
     });
 
-    res.json({ success: true, data: rental, message: "Gia hạn thành công" });
+    res.json({ success: true, data: contract, message: "Gia hạn thành công" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -6,14 +6,13 @@ import toast from "react-hot-toast";
 
 const TABS = ["Đơn mua", "Đơn bán"];
 const ORDER_STATUS = {
-  PENDING: { label: "Chờ xác nhận", color: "bg-orange-50 text-orange-600 border border-orange-200" },
-  SELLER_CONFIRMED: { label: "Đã xác nhận", color: "bg-blue-50 text-blue-600 border border-blue-200" },
-  PICKING_UP: { label: "Shipper đang lấy", color: "bg-purple-50 text-purple-600 border border-purple-200" },
-  PICKED_UP: { label: "Shipper đã lấy", color: "bg-indigo-50 text-indigo-600 border border-indigo-200" },
-  DELIVERING: { label: "Đang giao", color: "bg-cyan-50 text-cyan-600 border border-cyan-200" },
-  DELIVERED: { label: "Đã giao", color: "bg-teal-50 text-teal-600 border border-teal-200" },
-  COMPLETED: { label: "Hoàn tất", color: "bg-green-50 text-green-600 border border-green-200" },
-  CANCELLED: { label: "Đã hủy", color: "bg-red-50 text-red-600 border border-red-200" },
+  pending: { label: "Chờ xác nhận", color: "bg-orange-50 text-orange-600 border border-orange-200" },
+  confirmed: { label: "Đã xác nhận", color: "bg-blue-50 text-blue-600 border border-blue-200" },
+  shipping: { label: "Đang giao", color: "bg-cyan-50 text-cyan-600 border border-cyan-200" },
+  delivered: { label: "Đã giao", color: "bg-teal-50 text-teal-600 border border-teal-200" },
+  completed: { label: "Hoàn tất", color: "bg-green-50 text-green-600 border border-green-200" },
+  cancelled: { label: "Đã hủy", color: "bg-red-50 text-red-600 border border-red-200" },
+  disputed: { label: "Tranh chấp", color: "bg-purple-50 text-purple-600 border border-purple-200" }
 };
 
 const MyOrders = () => {
@@ -63,8 +62,8 @@ const MyOrders = () => {
     if (!reviewOpen) return;
     try {
       const res = await reviewService.createReview({
-        product: reviewOpen.product?._id,
-        seller: reviewOpen.seller?._id,
+        postId: reviewOpen.postId?._id,
+        sellerId: reviewOpen.sellerId?._id,
         rating,
         comment
       });
@@ -131,8 +130,8 @@ const MyOrders = () => {
           ) : (
             <div className="flex flex-col gap-6">
               {orders.map((order) => {
-                const s = ORDER_STATUS[order.status] || { label: order.status, color: "bg-surface-variant text-on-surface" };
-                const otherPartyName = tab === 0 ? (order.seller?.name || "N/A") : (order.buyer?.name || "N/A");
+                const s = ORDER_STATUS[order.orderStatus] || { label: order.orderStatus, color: "bg-surface-variant text-on-surface" };
+                const otherPartyName = tab === 0 ? (order.sellerId?.name || "N/A") : (order.buyerId?.name || "N/A");
                 const isProcessing = processingId === order._id;
 
                 return (
@@ -145,11 +144,11 @@ const MyOrders = () => {
                       )}
                       <div className="flex items-start gap-5 flex-1 w-full">
                         <div className="w-24 h-24 rounded-2xl overflow-hidden bg-surface-container-low flex-shrink-0 shadow-inner p-1 border border-surface-variant/30">
-                          <img src={getImageUrl(order.product?.images?.[0])} alt="" className="w-full h-full object-cover rounded-xl" />
+                          <img src={getImageUrl(order.postId?.images?.[0])} alt="" className="w-full h-full object-cover rounded-xl" />
                         </div>
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-3 mb-1">
-                            <h3 className="font-bold text-on-surface text-lg md:text-xl line-clamp-1">{order.product?.title || "Sản phẩm không xác định"}</h3>
+                            <h3 className="font-bold text-on-surface text-lg md:text-xl line-clamp-1">{order.postId?.title || "Sản phẩm không xác định"}</h3>
                             <span className={`text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider ${s.color}`}>
                               {s.label}
                             </span>
@@ -178,19 +177,19 @@ const MyOrders = () => {
                       
                       <div className="flex flex-wrap gap-3">
                         {/* BUYER ACTIONS */}
-                        {tab === 0 && order.status === "PENDING" && (
-                          <button onClick={() => updateStatus(order._id, "CANCELLED")} disabled={isProcessing}
+                        {tab === 0 && order.orderStatus === "pending" && (
+                          <button onClick={() => updateStatus(order._id, "cancelled")} disabled={isProcessing}
                             className="px-5 py-2 text-sm font-bold border-2 border-error/20 text-error rounded-xl hover:bg-error/5 hover:border-error/40 transition-all active:scale-95 disabled:opacity-50">
                             Hủy đơn
                           </button>
                         )}
-                        {tab === 0 && (order.status === "DELIVERING" || order.status === "DELIVERED") && (
-                          <button onClick={() => updateStatus(order._id, "COMPLETED")} disabled={isProcessing}
+                        {tab === 0 && (order.orderStatus === "shipping" || order.orderStatus === "delivered") && (
+                          <button onClick={() => updateStatus(order._id, "completed")} disabled={isProcessing}
                             className="px-5 py-2 text-sm font-bold bg-primary text-white rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50">
                             Đã nhận hàng (Hoàn tất)
                           </button>
                         )}
-                        {tab === 0 && order.status === "COMPLETED" && (
+                        {tab === 0 && order.orderStatus === "completed" && (
                           <button onClick={() => setReviewOpen(order)} 
                             className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-xl hover:shadow-lg hover:shadow-orange-500/30 transition-all active:scale-95 flex items-center gap-1">
                             <span className="material-symbols-outlined text-[16px]">star</span> Đánh giá
@@ -198,20 +197,19 @@ const MyOrders = () => {
                         )}
                         
                         {/* SELLER ACTIONS */}
-                        {tab === 1 && order.status === "PENDING" && (
+                        {tab === 1 && order.orderStatus === "pending" && (
                           <>
-                            <button onClick={() => updateStatus(order._id, "CANCELLED")} disabled={isProcessing}
+                            <button onClick={() => updateStatus(order._id, "cancelled")} disabled={isProcessing}
                               className="px-5 py-2 text-sm font-bold border-2 border-error/20 text-error rounded-xl hover:bg-error/5 hover:border-error/40 transition-all active:scale-95 disabled:opacity-50">
                               Từ chối
                             </button>
-                            <button onClick={() => updateStatus(order._id, "SELLER_CONFIRMED")} disabled={isProcessing}
+                            <button onClick={() => updateStatus(order._id, "confirmed")} disabled={isProcessing}
                               className="px-5 py-2 text-sm font-bold bg-primary text-white rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50">
                               Xác nhận đơn
                             </button>
                           </>
                         )}
-                        {/* NOTE: If shipper picks up, seller doesn't need to manually click 'Giao cho Shipper' in the new flow, Shipper will claim it. But fallback just in case */}
-                        {tab === 1 && order.status === "SELLER_CONFIRMED" && (
+                        {tab === 1 && order.orderStatus === "confirmed" && (
                           <span className="px-4 py-2 bg-surface-container text-on-surface-variant rounded-xl text-sm font-medium border border-surface-variant/30">
                             Chờ Shipper lấy hàng
                           </span>
@@ -234,7 +232,7 @@ const MyOrders = () => {
                <span className="material-symbols-outlined text-3xl">star_rate</span>
             </div>
             <h3 className="font-extrabold text-on-surface text-2xl text-center mb-1">Đánh giá người bán</h3>
-            <p className="text-sm text-on-surface-variant text-center mb-8">{reviewOpen.product?.title}</p>
+            <p className="text-sm text-on-surface-variant text-center mb-8">{reviewOpen.postId?.title}</p>
             
             <div className="flex items-center justify-center gap-3 mb-8">
               {[1, 2, 3, 4, 5].map((star) => (
