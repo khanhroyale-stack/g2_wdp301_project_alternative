@@ -11,6 +11,10 @@ export const authService = {
     return res.data;
   },
 
+  resendOTP: async (data) => {
+    const res = await api.post("/auth/resend-otp", data);
+    return res.data;
+  },
   login: async (data) => {
     const res = await api.post("/auth/login", data);
     return res.data;
@@ -35,4 +39,5 @@ export const authService = {
     const res = await api.get("/auth/me");
     return res.data;
   },
+
 };

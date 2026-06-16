@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  // register chỉ tạo tài khoản + gửi OTP, KHÔNG trả token — phải verify-email trước
   const register = async (credentials) => {
     // Only return data, don't set token here because we need OTP verification
     const data = await authService.register(credentials);

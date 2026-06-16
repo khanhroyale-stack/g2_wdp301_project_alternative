@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
-
 // Public pages
 import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
@@ -10,6 +9,9 @@ import VerifyOTPPage from "./pages/auth/VerifyOTPPage";
 import AccountVerification from './pages/auth/AccountVerification';
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
+
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // User pages
 import Profile from './pages/user/Profile';
@@ -35,8 +37,6 @@ import ShipperDashboard from "./pages/shipper/ShipperDashboard";
 import PendingDeliveries from './pages/shipper/PendingDeliveries';
 import DeliveringOrders from './pages/shipper/DeliveringOrders';
 
-
-
 function App() {
   return (
     <BrowserRouter>
@@ -48,6 +48,8 @@ function App() {
           <Route path="/dang-ky" element={<RegisterPage />} />
           <Route path="/xac-minh-otp" element={<VerifyOTPPage />} />
           <Route path="/xac-minh-tai-khoan" element={<AccountVerification />} />
+          <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
+          <Route path="/dat-lai-mat-khau" element={<ResetPasswordPage />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/cho-thue" element={<Marketplace />} />
           <Route path="/san-pham/:id" element={<ProductDetail />} />
