@@ -10,7 +10,7 @@ const STATUS_MAP = {
   HIDDEN: { label: "Đã ẩn", color: "bg-surface-container-highest text-on-surface-variant" },
 };
 
-const DuyetBaiDang = () => {
+const PostApprovals = () => {
   const [tab, setTab] = useState(0);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -180,4 +180,4 @@ const DuyetBaiDang = () => {
     </div>
   );
 };
-export default DuyetBaiDang;
+export default PostApprovals;

@@ -3,7 +3,7 @@ import Sidebar from "../../components/Sidebar";
 import chatService from "../../services/chat.service";
 import { useAuth } from "../../context/AuthContext";
 
-const TinNhan = () => {
+const Messages = () => {
   const { user } = useAuth();
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
@@ -280,4 +280,4 @@ const TinNhan = () => {
     </div>
   );
 };
-export default TinNhan;
+export default Messages;

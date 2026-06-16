@@ -10,7 +10,7 @@ const STEP_MAP = {
   DELIVERED: { label: "Đã giao hàng", color: "bg-teal-50 text-teal-600 border-teal-200" },
 };
 
-const DangGiao = () => {
+const DeliveringOrders = () => {
   const [orders, setOrders] = useState([]);
   const [inspectOpen, setInspectOpen] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -277,4 +277,4 @@ const DangGiao = () => {
     </div>
   );
 };
-export default DangGiao;
+export default DeliveringOrders;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-const XacMinhTaiKhoan = () => {
+const AccountVerification = () => {
   const [cccdFile, setCccdFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -133,4 +133,4 @@ const XacMinhTaiKhoan = () => {
     </div>
   );
 };
-export default XacMinhTaiKhoan;
+export default AccountVerification;

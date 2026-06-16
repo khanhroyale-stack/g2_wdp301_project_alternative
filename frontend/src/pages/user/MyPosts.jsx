@@ -12,7 +12,7 @@ const STATUS = {
   HIDDEN: { label: "Đã ẩn", color: "bg-surface-container-highest text-on-surface-variant" },
 };
 
-const QuanLyBaiDang = () => {
+const MyPosts = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -122,4 +122,4 @@ const QuanLyBaiDang = () => {
     </div>
   );
 };
-export default QuanLyBaiDang;
+export default MyPosts;

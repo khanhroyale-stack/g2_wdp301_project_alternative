@@ -11,7 +11,7 @@ const STATUS_MAP = {
 };
 const ROLE_MAP = { user: "Người dùng", admin: "Quản trị", shipper: "Shipper" };
 
-const QuanLyNguoiDung = () => {
+const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -198,4 +198,4 @@ const QuanLyNguoiDung = () => {
     </div>
   );
 };
-export default QuanLyNguoiDung;
+export default UserManagement;

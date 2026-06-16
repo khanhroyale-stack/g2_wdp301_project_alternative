@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import shipperService from "../../services/shipper.service";
 
-const DonCanGiao = () => {
+const PendingDeliveries = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -93,4 +93,4 @@ const DonCanGiao = () => {
     </div>
   );
 };
-export default DonCanGiao;
+export default PendingDeliveries;

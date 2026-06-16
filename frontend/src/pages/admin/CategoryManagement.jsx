@@ -10,7 +10,7 @@ const DEMO_CATS = [
   { id: 6, name: "Thể thao", icon: "sports_soccer", count: 78, active: false },
 ];
 
-const QuanLyDanhMuc = () => {
+const CategoryManagement = () => {
   const [cats, setCats] = useState(DEMO_CATS);
   const [showAdd, setShowAdd] = useState(false);
   const [newCat, setNewCat] = useState({ name: "", icon: "category" });
@@ -93,4 +93,4 @@ const QuanLyDanhMuc = () => {
     </div>
   );
 };
-export default QuanLyDanhMuc;
+export default CategoryManagement;

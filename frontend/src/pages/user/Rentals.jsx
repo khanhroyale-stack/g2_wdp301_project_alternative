@@ -14,7 +14,7 @@ const STATUS_MAP = {
   DISPUTED: { label: "Tranh chấp", color: "bg-purple-50 text-purple-600 border border-purple-200" },
 };
 
-const ThueMuon = () => {
+const Rentals = () => {
   const [tab, setTab] = useState(0); // 0: Renter, 1: Owner
   const [rentals, setRentals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -204,4 +204,4 @@ const ThueMuon = () => {
     </div>
   );
 };
-export default ThueMuon;
+export default Rentals;

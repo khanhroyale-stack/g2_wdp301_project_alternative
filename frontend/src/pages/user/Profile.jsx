@@ -11,7 +11,7 @@ const STATUS_MAP = {
   BANNED: { label: "Bị khóa", color: "bg-error text-on-error" },
 };
 
-const HoSo = () => {
+const Profile = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   
@@ -249,4 +249,4 @@ const HoSo = () => {
     </div>
   );
 };
-export default HoSo;
+export default Profile;

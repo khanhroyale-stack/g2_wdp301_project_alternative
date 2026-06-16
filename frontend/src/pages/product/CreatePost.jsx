@@ -7,7 +7,7 @@ import categoryService from "../../services/category.service";
 
 const CONDITIONS = ["Mới", "Như mới", "Đã dùng - Còn tốt", "Đã dùng - Có lỗi nhỏ"];
 
-const DangTin = () => {
+const CreatePost = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     title: "", category: "", condition: "", listingType: "ban",
@@ -214,4 +214,4 @@ const DangTin = () => {
     </div>
   );
 };
-export default DangTin;
+export default CreatePost;

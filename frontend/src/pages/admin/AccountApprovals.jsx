@@ -12,7 +12,7 @@ const STATUS_MAP = {
   BANNED: { label: "Bị khóa", color: "bg-error text-on-error" },
 };
 
-const DuyetTaiKhoan = () => {
+const AccountApprovals = () => {
   const [tab, setTab] = useState(0);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -129,4 +129,4 @@ const DuyetTaiKhoan = () => {
     </div>
   );
 };
-export default DuyetTaiKhoan;
+export default AccountApprovals;

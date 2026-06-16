@@ -16,7 +16,7 @@ const ORDER_STATUS = {
   CANCELLED: { label: "Đã hủy", color: "bg-red-50 text-red-600 border border-red-200" },
 };
 
-const DonHang = () => {
+const MyOrders = () => {
   const [tab, setTab] = useState(0); // 0: Đơn mua, 1: Đơn bán
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -269,4 +269,4 @@ const DonHang = () => {
     </div>
   );
 };
-export default DonHang;
+export default MyOrders;

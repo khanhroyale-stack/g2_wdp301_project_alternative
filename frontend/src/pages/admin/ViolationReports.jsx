@@ -12,7 +12,7 @@ const TYPE_COLORS = {
   "Hư hỏng": "bg-error-container text-on-error-container",
 };
 
-const BaoCaoViPham = () => {
+const ViolationReports = () => {
   const [tab, setTab] = useState(0);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -129,4 +129,4 @@ const BaoCaoViPham = () => {
     </div>
   );
 };
-export default BaoCaoViPham;
+export default ViolationReports;

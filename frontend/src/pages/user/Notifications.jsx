@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import notificationService from "../../services/notification.service";
 
-const ThongBao = () => {
+const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -98,4 +98,4 @@ const ThongBao = () => {
     </div>
   );
 };
-export default ThongBao;
+export default Notifications;

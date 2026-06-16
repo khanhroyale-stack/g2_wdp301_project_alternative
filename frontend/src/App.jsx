@@ -7,33 +7,33 @@ import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import VerifyOTPPage from "./pages/auth/VerifyOTPPage";
-import XacMinhTaiKhoan from "./pages/auth/XacMinhTaiKhoan";
+import AccountVerification from './pages/auth/AccountVerification';
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
 
 // User pages
-import HoSo from "./pages/user/HoSo";
-import QuanLyBaiDang from "./pages/user/QuanLyBaiDang";
-import DangTin from "./pages/product/DangTin";
-import DonHang from "./pages/user/DonHang";
-import ThueMuon from "./pages/user/ThueMuon";
-import TinNhan from "./pages/user/TinNhan";
-import ThongBao from "./pages/user/ThongBao";
+import Profile from './pages/user/Profile';
+import MyPosts from './pages/user/MyPosts';
+import CreatePost from './pages/product/CreatePost';
+import MyOrders from './pages/user/MyOrders';
+import Rentals from './pages/user/Rentals';
+import Messages from './pages/user/Messages';
+import Notifications from './pages/user/Notifications';
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import DuyetTaiKhoan from "./pages/admin/DuyetTaiKhoan";
-import DuyetBaiDang from "./pages/admin/DuyetBaiDang";
-import QuanLyNguoiDung from "./pages/admin/QuanLyNguoiDung";
-import QuanLyDanhMuc from "./pages/admin/QuanLyDanhMuc";
-import BaoCaoViPham from "./pages/admin/BaoCaoViPham";
-import QuanLyDonHang from "./pages/admin/QuanLyDonHang";
-import QuanLyHopDong from "./pages/admin/QuanLyHopDong";
+import AccountApprovals from './pages/admin/AccountApprovals';
+import PostApprovals from './pages/admin/PostApprovals';
+import UserManagement from './pages/admin/UserManagement';
+import CategoryManagement from './pages/admin/CategoryManagement';
+import ViolationReports from './pages/admin/ViolationReports';
+import OrderManagement from './pages/admin/OrderManagement';
+import ContractManagement from './pages/admin/ContractManagement';
 
 // Shipper pages
 import ShipperDashboard from "./pages/shipper/ShipperDashboard";
-import DonCanGiao from "./pages/shipper/DonCanGiao";
-import DangGiao from "./pages/shipper/DangGiao";
+import PendingDeliveries from './pages/shipper/PendingDeliveries';
+import DeliveringOrders from './pages/shipper/DeliveringOrders';
 
 
 
@@ -47,35 +47,35 @@ function App() {
           <Route path="/dang-nhap" element={<LoginPage />} />
           <Route path="/dang-ky" element={<RegisterPage />} />
           <Route path="/xac-minh-otp" element={<VerifyOTPPage />} />
-          <Route path="/xac-minh-tai-khoan" element={<XacMinhTaiKhoan />} />
+          <Route path="/xac-minh-tai-khoan" element={<AccountVerification />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/cho-thue" element={<Marketplace />} />
           <Route path="/san-pham/:id" element={<ProductDetail />} />
           <Route path="/san-pham" element={<ProductDetail />} />
 
           {/* ── Người dùng (cần đăng nhập) ─────────── */}
-          <Route path="/ho-so" element={<PrivateRoute><HoSo /></PrivateRoute>} />
-          <Route path="/quan-ly/bai-dang" element={<PrivateRoute><QuanLyBaiDang /></PrivateRoute>} />
-          <Route path="/dang-tin" element={<PrivateRoute><DangTin /></PrivateRoute>} />
-          <Route path="/don-hang" element={<PrivateRoute><DonHang /></PrivateRoute>} />
-          <Route path="/thue-muon" element={<PrivateRoute><ThueMuon /></PrivateRoute>} />
-          <Route path="/tin-nhan" element={<PrivateRoute><TinNhan /></PrivateRoute>} />
-          <Route path="/thong-bao" element={<PrivateRoute><ThongBao /></PrivateRoute>} />
+          <Route path="/ho-so" element={<PrivateRoute><Profile /></PrivateRoute>} />
+          <Route path="/quan-ly/bai-dang" element={<PrivateRoute><MyPosts /></PrivateRoute>} />
+          <Route path="/dang-tin" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
+          <Route path="/don-hang" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
+          <Route path="/thue-muon" element={<PrivateRoute><Rentals /></PrivateRoute>} />
+          <Route path="/tin-nhan" element={<PrivateRoute><Messages /></PrivateRoute>} />
+          <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />
 
           {/* ── Admin ───────────────────────────────── */}
           <Route path="/admin" element={<PrivateRoute adminOnly><AdminDashboard /></PrivateRoute>} />
-          <Route path="/admin/duyet-tai-khoan" element={<PrivateRoute adminOnly><DuyetTaiKhoan /></PrivateRoute>} />
-          <Route path="/admin/duyet-bai-dang" element={<PrivateRoute adminOnly><DuyetBaiDang /></PrivateRoute>} />
-          <Route path="/admin/nguoi-dung" element={<PrivateRoute adminOnly><QuanLyNguoiDung /></PrivateRoute>} />
-          <Route path="/admin/danh-muc" element={<PrivateRoute adminOnly><QuanLyDanhMuc /></PrivateRoute>} />
-          <Route path="/admin/bao-cao" element={<PrivateRoute adminOnly><BaoCaoViPham /></PrivateRoute>} />
-          <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><QuanLyDonHang /></PrivateRoute>} />
-          <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><QuanLyHopDong /></PrivateRoute>} />
+          <Route path="/admin/duyet-tai-khoan" element={<PrivateRoute adminOnly><AccountApprovals /></PrivateRoute>} />
+          <Route path="/admin/duyet-bai-dang" element={<PrivateRoute adminOnly><PostApprovals /></PrivateRoute>} />
+          <Route path="/admin/nguoi-dung" element={<PrivateRoute adminOnly><UserManagement /></PrivateRoute>} />
+          <Route path="/admin/danh-muc" element={<PrivateRoute adminOnly><CategoryManagement /></PrivateRoute>} />
+          <Route path="/admin/bao-cao" element={<PrivateRoute adminOnly><ViolationReports /></PrivateRoute>} />
+          <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><OrderManagement /></PrivateRoute>} />
+          <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><ContractManagement /></PrivateRoute>} />
 
           {/* ── Shipper ─────────────────────────────── */}
           <Route path="/shipper" element={<PrivateRoute shipperOnly><ShipperDashboard /></PrivateRoute>} />
-          <Route path="/shipper/don-can-giao" element={<PrivateRoute shipperOnly><DonCanGiao /></PrivateRoute>} />
-          <Route path="/shipper/dang-giao" element={<PrivateRoute shipperOnly><DangGiao /></PrivateRoute>} />
+          <Route path="/shipper/don-can-giao" element={<PrivateRoute shipperOnly><PendingDeliveries /></PrivateRoute>} />
+          <Route path="/shipper/dang-giao" element={<PrivateRoute shipperOnly><DeliveringOrders /></PrivateRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
