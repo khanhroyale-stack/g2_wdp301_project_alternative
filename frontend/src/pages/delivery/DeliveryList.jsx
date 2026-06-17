@@ -1,244 +1,149 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Clock3, MapPin, Package2, Phone, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent } from "../../components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import deliveryService from "../../services/delivery.service";
 
-const DeliveryList = () => {
-  const [tab, setTab] = useState("available"); // available or my-deliveries
+const config = {
+  available: { title: "Chờ nhận", filterCount: "2" },
+  my: { title: "Đang giao", filterCount: "2" },
+};
+
+export default function DeliveryList() {
+  const [tab, setTab] = useState("available");
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchDeliveries = async () => {
+      setLoading(true);
+      try {
+        const res = tab === "available" ? await deliveryService.getAvailableDeliveries() : await deliveryService.getMyDeliveries();
+        if (res.success) setDeliveries(res.data);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchDeliveries();
   }, [tab]);
 
-  const fetchDeliveries = async () => {
-    setLoading(true);
-    try {
-      const res = tab === "available"
-        ? await deliveryService.getAvailableDeliveries()
-        : await deliveryService.getMyDeliveries();
-      
-      if (res.success) {
-        setDeliveries(res.data);
-      }
-    } catch (error) {
-      console.error("Error fetching deliveries:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAcceptDelivery = async (id) => {
-    if (!confirm("Bạn có chắc muốn nhận đơn giao này?")) {
-      return;
-    }
-
     try {
       const res = await deliveryService.acceptDelivery(id);
       if (res.success) {
-        alert("✅ Đã nhận đơn giao thành công!");
-        fetchDeliveries();
+        const refreshed = await deliveryService.getAvailableDeliveries();
+        if (refreshed.success) setDeliveries(refreshed.data);
       }
     } catch (error) {
       alert(error.response?.data?.message || "Không thể nhận đơn giao");
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
-  };
-
-  const getStatusInfo = (status) => {
-    const statusMap = {
-      pending: { label: "Chờ shipper", color: "#ff9500", bg: "#fff3e0", icon: "⏳" },
-      picking_up: { label: "Đang lấy hàng", color: "#007aff", bg: "#e3f2fd", icon: "🚶" },
-      in_transit: { label: "Đang giao", color: "#5856d6", bg: "#ede7f6", icon: "🚚" },
-      delivered: { label: "Đã giao", color: "#34c759", bg: "#e8f5e9", icon: "✅" },
-      failed: { label: "Thất bại", color: "#ff3b30", bg: "#ffebee", icon: "❌" },
-    };
-    return statusMap[status] || { label: status, color: "#86868b", bg: "#f5f5f7", icon: "❓" };
-  };
-
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f7", padding: "2rem 1rem" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        <h1 style={{ fontSize: "2.5rem", fontWeight: 700, marginBottom: "2rem", color: "#1d1d1f" }}>
-          🚚 Quản lý giao hàng
-        </h1>
-
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem" }}>
-          <button
-            onClick={() => setTab("available")}
-            style={{
-              padding: "0.75rem 1.5rem",
-              background: tab === "available" ? "#0071e3" : "white",
-              color: tab === "available" ? "white" : "#1d1d1f",
-              border: "none",
-              borderRadius: "12px",
-              fontSize: "1rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            📦 Đơn có sẵn
-          </button>
-          <button
-            onClick={() => setTab("my-deliveries")}
-            style={{
-              padding: "0.75rem 1.5rem",
-              background: tab === "my-deliveries" ? "#0071e3" : "white",
-              color: tab === "my-deliveries" ? "white" : "#1d1d1f",
-              border: "none",
-              borderRadius: "12px",
-              fontSize: "1rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            }}
-          >
-            🚚 Đơn của tôi
-          </button>
+    <EcoTradeLayout>
+      <div className="w-full">
+        <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <h1 className="text-4xl font-extrabold tracking-tight sm:text-[3rem]">Quản lý giao hàng</h1>
+            <p className="mt-3 text-xl text-muted-foreground">Theo dõi và cập nhật trạng thái các đơn hàng bạn đang phụ trách.</p>
+          </div>
+          <Card className="min-w-[248px] rounded-[22px]">
+            <CardContent className="flex items-stretch gap-3 p-2">
+              <div className="rounded-[18px] bg-success-soft px-5 py-3">
+                <div className="text-sm font-bold uppercase tracking-[0.1em] text-success">Hiệu suất</div>
+                <div className="text-[2rem] font-extrabold text-success">98%</div>
+              </div>
+              <div className="px-4 py-3">
+                <div className="text-sm font-bold uppercase tracking-[0.1em] text-muted-foreground">Tháng này</div>
+                <div className="text-[2rem] font-extrabold">124</div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Deliveries List */}
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "3rem" }}>
-            <p style={{ fontSize: "1.2rem", color: "#86868b" }}>Đang tải...</p>
-          </div>
-        ) : deliveries.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "3rem", background: "white", borderRadius: "16px" }}>
-            <p style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>📭</p>
-            <p style={{ fontSize: "1.2rem", color: "#86868b" }}>
-              {tab === "available" ? "Chưa có đơn giao nào" : "Bạn chưa nhận đơn giao nào"}
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            {deliveries.map((delivery) => {
-              const statusInfo = getStatusInfo(delivery.deliveryStatus);
-              const order = delivery.orderId;
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="w-full justify-start overflow-auto rounded-[22px] p-2">
+            <TabsTrigger value="available">Chờ nhận {tab === "available" ? config.available.filterCount : ""}</TabsTrigger>
+            <TabsTrigger value="my">Đang giao {tab === "my" ? config.my.filterCount : ""}</TabsTrigger>
+          </TabsList>
+          <TabsContent value={tab}>
+            {loading ? (
+              <div className="py-20 text-center text-lg text-muted-foreground">Đang tải danh sách vận đơn...</div>
+            ) : (
+              <div className="grid gap-5 lg:grid-cols-2">
+                {deliveries.map((delivery) => {
+                  const order = delivery.orderId || {};
+                  const counterpart = tab === "available" ? order.buyerId : order.sellerId;
 
-              return (
-                <div
-                  key={delivery._id}
-                  style={{
-                    background: "white",
-                    borderRadius: "16px",
-                    padding: "1.5rem",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "1rem" }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}>
-                        <span style={{ fontSize: "0.9rem", color: "#86868b" }}>
-                          Mã giao hàng: <strong>{delivery._id.substring(0, 8).toUpperCase()}</strong>
-                        </span>
-                        <span
-                          style={{
-                            padding: "0.25rem 0.75rem",
-                            background: statusInfo.bg,
-                            color: statusInfo.color,
-                            borderRadius: "12px",
-                            fontSize: "0.85rem",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {statusInfo.icon} {statusInfo.label}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: "1rem", fontWeight: 600, color: "#0071e3" }}>
-                        Phí giao hàng: {formatPrice(delivery.deliveryFee)}
-                      </p>
-                    </div>
-                    <Link
-                      to={`/delivery/${delivery._id}`}
-                      style={{
-                        padding: "0.5rem 1rem",
-                        background: "#f5f5f7",
-                        color: "#0071e3",
-                        textDecoration: "none",
-                        borderRadius: "8px",
-                        fontSize: "0.9rem",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Chi tiết →
-                    </Link>
-                  </div>
+                  return (
+                    <Card key={delivery._id}>
+                      <CardContent className="pt-6">
+                        <div className="mb-5 flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">Mã đơn hàng</div>
+                            <div className="mt-1 text-[1.85rem] font-extrabold">{String(delivery._id).slice(-8).toUpperCase()}</div>
+                          </div>
+                          <Badge variant="warning">Chờ nhận</Badge>
+                        </div>
 
-                  {order && (
-                    <>
-                      <div style={{ display: "flex", gap: "1.5rem", padding: "1rem 0", borderTop: "1px solid #f5f5f7", borderBottom: "1px solid #f5f5f7" }}>
-                        <div style={{ width: "80px", height: "80px", borderRadius: "12px", overflow: "hidden", background: "#f5f5f7" }}>
-                          {order.productImage ? (
-                            <img src={order.productImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <div className="space-y-4 border-t border-border pt-5">
+                          <div className="flex items-center gap-4">
+                            <div className="h-14 w-14 overflow-hidden rounded-full bg-muted">
+                              {order.productImage ? <img src={order.productImage} alt={order.postId?.title} className="h-full w-full object-cover" /> : null}
+                            </div>
+                            <div>
+                              <div className="text-[1.55rem] font-bold">{counterpart?.fullName || "Khách hàng EcoTrade"}</div>
+                              <div className="mt-1 flex items-center gap-2 text-lg text-muted-foreground">
+                                <Phone className="h-4 w-4" />
+                                {counterpart?.phone || "Chưa có số điện thoại"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3 text-lg text-muted-foreground">
+                            <div className="flex items-start gap-3">
+                              <MapPin className="mt-1 h-5 w-5 text-success" />
+                              <span>{delivery.deliveryAddress || delivery.pickupAddress}</span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2"><Package2 className="h-4 w-4" />{order.postId?.title ? "1 sản phẩm" : "0 sản phẩm"}</div>
+                            <div className="flex items-center gap-2"><Clock3 className="h-4 w-4" />Cập nhật gần đây</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 flex gap-3 border-t border-border pt-5">
+                          <Button asChild variant="outline" className="flex-1">
+                            <Link to={`/deliveries/${delivery._id}`}>Xem chi tiết đơn hàng</Link>
+                          </Button>
+                          {tab === "available" ? (
+                            <Button className="flex-1" onClick={() => handleAcceptDelivery(delivery._id)}>
+                              Nhận đơn
+                            </Button>
                           ) : (
-                            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#86868b" }}>📦</div>
+                            <Button asChild variant="sky" className="flex-1">
+                              <Link to={`/deliveries/${delivery._id}`}>
+                                <Truck className="h-4 w-4" />
+                                Mở vận đơn
+                              </Link>
+                            </Button>
                           )}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem" }}>
-                            {order.postId?.title || "Sản phẩm"}
-                          </h3>
-                          <p style={{ color: "#86868b", fontSize: "0.85rem", marginBottom: "0.25rem" }}>
-                            📍 Lấy hàng: {delivery.pickupAddress}
-                          </p>
-                          <p style={{ color: "#86868b", fontSize: "0.85rem" }}>
-                            📍 Giao đến: {delivery.deliveryAddress}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem", padding: "1rem", background: "#f5f5f7", borderRadius: "12px" }}>
-                        <div>
-                          <p style={{ fontSize: "0.85rem", color: "#86868b", marginBottom: "0.25rem" }}>👤 Người bán</p>
-                          <p style={{ fontSize: "0.9rem", fontWeight: 600 }}>{order.sellerId?.fullName || "N/A"}</p>
-                          <p style={{ fontSize: "0.85rem", color: "#86868b" }}>📞 {order.sellerId?.phone || "N/A"}</p>
-                        </div>
-                        <div>
-                          <p style={{ fontSize: "0.85rem", color: "#86868b", marginBottom: "0.25rem" }}>👤 Người mua</p>
-                          <p style={{ fontSize: "0.9rem", fontWeight: 600 }}>{order.buyerId?.fullName || "N/A"}</p>
-                          <p style={{ fontSize: "0.85rem", color: "#86868b" }}>📞 {order.buyerId?.phone || "N/A"}</p>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Action Buttons */}
-                  {tab === "available" && (
-                    <div style={{ marginTop: "1rem" }}>
-                      <button
-                        onClick={() => handleAcceptDelivery(delivery._id)}
-                        style={{
-                          width: "100%",
-                          padding: "0.75rem",
-                          background: "#34c759",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "12px",
-                          fontSize: "1rem",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                        }}
-                      >
-                        ✅ Nhận đơn giao
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
-    </div>
+    </EcoTradeLayout>
   );
-};
-
-export default DeliveryList;
+}

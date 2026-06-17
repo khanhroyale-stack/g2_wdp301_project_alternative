@@ -1,8 +1,16 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { CircleAlert, CreditCard, MapPin, ShieldCheck, Truck } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
 import orderService from "../../services/order.service";
+import { formatDateOnly, formatPrice } from "../../lib/utils";
 
-const CreateOrder = () => {
+export default function CreateOrder() {
   const { productId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -16,33 +24,33 @@ const CreateOrder = () => {
   });
 
   useEffect(() => {
-    fetchCheckoutPreview();
-  }, [productId]);
-
-  const fetchCheckoutPreview = async () => {
-    setLoading(true);
-    try {
-      const res = await orderService.getCheckoutPreview(productId);
-      if (res.success) {
-        setPreview(res.data);
-        setForm({
-          recipientName: res.data.buyer?.fullName || "",
-          buyerPhone: res.data.buyer?.phone || "",
-          buyerAddress: res.data.buyer?.address || "",
-          note: "",
-        });
+    const fetchCheckoutPreview = async () => {
+      setLoading(true);
+      try {
+        const res = await orderService.getCheckoutPreview(productId);
+        if (res.success) {
+          setPreview(res.data);
+          setForm({
+            recipientName: res.data.buyer?.fullName || "",
+            buyerPhone: res.data.buyer?.phone || "",
+            buyerAddress: res.data.buyer?.address || "",
+            note: "",
+          });
+        }
+      } catch (error) {
+        alert(error.response?.data?.message || "Không thể tải thông tin sản phẩm");
+        navigate(-1);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      alert(error.response?.data?.message || "Không thể tải thông tin sản phẩm");
-      navigate(-1);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+    fetchCheckoutPreview();
+  }, [navigate, productId]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (!form.recipientName || !form.buyerPhone || !form.buyerAddress) {
       alert("Vui lòng điền đầy đủ thông tin");
       return;
@@ -50,12 +58,8 @@ const CreateOrder = () => {
 
     setSubmitting(true);
     try {
-      const res = await orderService.createOrder({
-        productId,
-        ...form,
-      });
+      const res = await orderService.createOrder({ productId, ...form });
       if (res.success) {
-        alert("✅ Đặt hàng thành công!");
         navigate("/orders/my-orders");
       }
     } catch (error) {
@@ -65,18 +69,11 @@ const CreateOrder = () => {
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
-  };
-
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f5f7" }}>
-        <p style={{ fontSize: "1.2rem", color: "#86868b" }}>Đang tải...</p>
-      </div>
+      <EcoTradeLayout>
+        <div className="flex min-h-[70vh] items-center justify-center text-lg font-medium text-muted-foreground">Đang tải dữ liệu đơn hàng...</div>
+      </EcoTradeLayout>
     );
   }
 
@@ -85,160 +82,163 @@ const CreateOrder = () => {
   const product = preview.product;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f7", padding: "2rem 1rem" }}>
-      <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-        <button
-          onClick={() => navigate(-1)}
-          style={{ padding: "0.5rem 1rem", background: "white", border: "1px solid #d1d1d6", borderRadius: "8px", cursor: "pointer", marginBottom: "1.5rem" }}
-        >
-          ← Quay lại
-        </button>
+    <EcoTradeLayout>
+      <div className="w-full">
+        <div className="mb-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-[3.2rem]">Xác nhận Đơn hàng</h1>
+            <p className="mt-3 text-xl text-muted-foreground">Vui lòng kiểm tra kỹ thông tin trước khi hoàn tất giao dịch.</p>
+          </div>
+          <div className="flex items-center gap-3 text-sm font-semibold">
+            <span className="text-success">Giỏ hàng</span>
+            <span className="text-muted-foreground">›</span>
+            <span className="text-success">Xác nhận</span>
+            <span className="text-muted-foreground">›</span>
+            <span className="text-muted-foreground">Hoàn tất</span>
+          </div>
+        </div>
 
-        <h1 style={{ fontSize: "2.5rem", fontWeight: 700, marginBottom: "2rem", color: "#1d1d1f" }}>
-          📦 Xác nhận đơn hàng
-        </h1>
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "2rem" }}>
-            {/* Left Column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-              {/* Delivery Info */}
-              <div style={{ background: "white", borderRadius: "16px", padding: "2rem", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-                <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem", color: "#1d1d1f" }}>
-                  📍 Thông tin nhận hàng
-                </h2>
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  <div>
-                    <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>Họ và tên người nhận</label>
-                    <input
-                      type="text"
-                      value={form.recipientName}
-                      onChange={(e) => setForm({ ...form, recipientName: e.target.value })}
-                      required
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d1d6", borderRadius: "8px", fontSize: "1rem" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>Số điện thoại</label>
-                    <input
-                      type="tel"
-                      value={form.buyerPhone}
-                      onChange={(e) => setForm({ ...form, buyerPhone: e.target.value })}
-                      required
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d1d6", borderRadius: "8px", fontSize: "1rem" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>Địa chỉ giao hàng</label>
-                    <textarea
-                      value={form.buyerAddress}
-                      onChange={(e) => setForm({ ...form, buyerAddress: e.target.value })}
-                      required
-                      rows={3}
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d1d6", borderRadius: "8px", fontSize: "1rem", resize: "vertical" }}
-                    />
-                  </div>
+        <form onSubmit={handleSubmit} className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-7">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-[1.95rem]">
+                  <MapPin className="h-6 w-6 text-success" />
+                  Thông tin nhận hàng
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-base font-semibold">Họ và tên người nhận</label>
+                  <Input value={form.recipientName} onChange={(e) => setForm({ ...form, recipientName: e.target.value })} />
                 </div>
-              </div>
-
-              {/* Product Info */}
-              <div style={{ background: "white", borderRadius: "16px", padding: "2rem", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-                <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem", color: "#1d1d1f" }}>
-                  🛍️ Sản phẩm
-                </h2>
-                <div style={{ display: "flex", gap: "1.5rem" }}>
-                  <div style={{ width: "120px", height: "120px", borderRadius: "12px", overflow: "hidden", background: "#f5f5f7" }}>
-                    {product.images && product.images[0] ? (
-                      <img src={product.images[0]} alt={product.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#86868b" }}>📦</div>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: "1.2rem", fontWeight: 600, marginBottom: "0.5rem" }}>{product.title}</h3>
-                    <p style={{ color: "#86868b", marginBottom: "0.5rem" }}>
-                      {product.categoryId?.name || "Khác"} • {product.conditionStatus}
-                    </p>
-                    <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0071e3" }}>
-                      {formatPrice(product.salePrice)}
-                    </p>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-base font-semibold">Số điện thoại</label>
+                  <Input value={form.buyerPhone} onChange={(e) => setForm({ ...form, buyerPhone: e.target.value })} />
                 </div>
-              </div>
-
-              {/* Note */}
-              <div style={{ background: "white", borderRadius: "16px", padding: "2rem", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-                <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>Ghi chú cho người bán (tùy chọn)</label>
-                <textarea
-                  value={form.note}
-                  onChange={(e) => setForm({ ...form, note: e.target.value })}
-                  rows={3}
-                  placeholder="Ví dụ: Gọi trước khi giao..."
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d1d6", borderRadius: "8px", fontSize: "1rem", resize: "vertical" }}
-                />
-              </div>
-            </div>
-
-            {/* Right Column - Order Summary */}
-            <div>
-              <div style={{ background: "white", borderRadius: "16px", padding: "2rem", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", position: "sticky", top: "2rem" }}>
-                <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem", color: "#1d1d1f" }}>
-                  💰 Tổng quan đơn hàng
-                </h2>
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "#86868b" }}>Giá sản phẩm</span>
-                    <span style={{ fontWeight: 600 }}>{formatPrice(preview.subtotal)}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "#86868b" }}>Phí vận chuyển</span>
-                    <span style={{ fontWeight: 600 }}>{formatPrice(preview.shippingFee)}</span>
-                  </div>
-                  <div style={{ height: "1px", background: "#d1d1d6" }}></div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.3rem" }}>
-                    <span style={{ fontWeight: 600 }}>Tổng cộng</span>
-                    <span style={{ fontWeight: 700, color: "#0071e3" }}>{formatPrice(preview.totalAmount)}</span>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-base font-semibold">Địa chỉ giao hàng</label>
+                  <Textarea value={form.buyerAddress} onChange={(e) => setForm({ ...form, buyerAddress: e.target.value })} className="min-h-[120px]" />
                 </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <CircleAlert className="h-4 w-4" />
+                  Vui lòng nhập chính xác để shipper dễ dàng tìm thấy bạn.
+                </div>
+              </CardContent>
+            </Card>
 
-                <div style={{ padding: "1rem", background: "#f5f5f7", borderRadius: "12px", marginBottom: "1.5rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                    <span style={{ fontSize: "1.5rem" }}>💵</span>
-                    <div>
-                      <p style={{ fontWeight: 600, fontSize: "0.95rem" }}>Thanh toán khi nhận hàng (COD)</p>
-                      <p style={{ fontSize: "0.85rem", color: "#86868b" }}>Thanh toán trực tiếp cho shipper</p>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-[1.95rem]">
+                  <ShieldCheck className="h-6 w-6 text-success" />
+                  Chi tiết sản phẩm
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-5 sm:flex-row">
+                  <div className="h-24 w-24 overflow-hidden rounded-[18px] bg-muted">
+                    {product.images?.[0] ? <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" /> : null}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="text-[1.7rem] font-bold leading-tight">{product.title}</h3>
+                        <p className="mt-1 text-base text-muted-foreground">
+                          {product.categoryId?.name || "Điện tử"} / {product.brand || "EcoTrade"}
+                        </p>
+                        <div className="mt-3 flex items-center gap-3">
+                          <Badge variant="muted">{product.conditionStatus || "Mới 95%"}</Badge>
+                          <span className="text-base italic text-muted-foreground">Số lượng: 1</span>
+                        </div>
+                      </div>
+                      <div className="text-right text-[1.9rem] font-extrabold">{formatPrice(product.salePrice)}</div>
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  style={{
-                    width: "100%",
-                    padding: "1rem",
-                    background: submitting ? "#86868b" : "#0071e3",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "12px",
-                    fontSize: "1.1rem",
-                    fontWeight: 600,
-                    cursor: submitting ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {submitting ? "Đang xử lý..." : "✅ Đặt hàng"}
-                </button>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <label className="text-[1.1rem] font-semibold">Ghi chú cho người bán (Không bắt buộc)</label>
+                  <Textarea
+                    value={form.note}
+                    onChange={(e) => setForm({ ...form, note: e.target.value })}
+                    placeholder="Ví dụ: Giao hàng vào giờ hành chính, gọi trước khi đến..."
+                    className="min-h-[126px]"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-                <p style={{ fontSize: "0.85rem", color: "#86868b", marginTop: "1rem", textAlign: "center" }}>
-                  Bằng cách đặt hàng, bạn đồng ý với điều khoản sử dụng
-                </p>
-              </div>
-            </div>
+          <div className="space-y-7 xl:sticky xl:top-[112px] xl:self-start">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[2rem]">Tóm tắt đơn hàng</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4 text-[1.05rem]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Tạm tính (1 sản phẩm)</span>
+                    <span>{formatPrice(preview.subtotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Phí vận chuyển</span>
+                    <span>{formatPrice(preview.shippingFee)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Mã giảm giá</span>
+                    <Badge variant="success">ECONOW</Badge>
+                  </div>
+                </div>
+                <div className="border-t border-dashed border-border pt-5">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <div className="text-[1.1rem] font-bold">Tổng cộng</div>
+                      <div className="text-sm text-muted-foreground">(Đã bao gồm VAT)</div>
+                    </div>
+                    <div className="text-[2.35rem] font-extrabold text-success">{formatPrice(preview.totalAmount)}</div>
+                  </div>
+                </div>
+
+                <div className="rounded-[20px] bg-muted p-4">
+                  <div className="mb-3 text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">Phương thức thanh toán</div>
+                  <div className="flex items-center justify-between rounded-2xl border border-success/50 bg-white px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="h-5 w-5 text-success" />
+                      <div className="text-base font-semibold">Thanh toán khi nhận hàng (COD)</div>
+                    </div>
+                    <span className="text-xl text-muted-foreground">›</span>
+                  </div>
+                </div>
+
+                <Button type="submit" size="lg" className="w-full text-[1.4rem]" disabled={submitting}>
+                  {submitting ? "Đang xử lý..." : "Đặt hàng"}
+                </Button>
+
+                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <ShieldCheck className="mt-0.5 h-4 w-4" />
+                  <span>Bằng việc nhấn đặt hàng, bạn đồng ý với các Điều khoản và Chính sách bảo mật của EcoTrade.</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-success/20 bg-[#f5fdf8]">
+              <CardContent className="flex items-center gap-4 pt-6">
+                <div className="rounded-2xl bg-success-soft p-3 text-success">
+                  <Truck className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-success">Giao hàng dự kiến</div>
+                  <div className="text-base text-muted-foreground">Nhận hàng vào {formatDateOnly(Date.now() + 7 * 24 * 60 * 60 * 1000)}</div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </form>
       </div>
-    </div>
+    </EcoTradeLayout>
   );
-};
-
-export default CreateOrder;
+}

@@ -1,209 +1,211 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Clock3, Package, Printer, ShoppingBag, Truck, UserRound, UserRoundSearch } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
+import { Avatar, AvatarFallback } from "../../components/ui/avatar";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import orderService from "../../services/order.service";
+import { formatDateTime, formatPrice } from "../../lib/utils";
 
-const OrderDetail = () => {
+const statusMap = {
+  pending: { label: "Chờ xác nhận", variant: "warning" },
+  confirmed: { label: "Đã xác nhận", variant: "success" },
+  shipping: { label: "Đang vận chuyển", variant: "success" },
+  delivered: { label: "Đã giao", variant: "sky" },
+  completed: { label: "Hoàn tất", variant: "success" },
+  cancelled: { label: "Đã hủy", variant: "danger" },
+};
+
+function PersonCard({ title, name, subtitle, fallback }) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-4 pt-6">
+        <Avatar className="h-14 w-14">
+          <AvatarFallback>{fallback}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-bold uppercase tracking-[0.14em] text-success">{title}</div>
+          <div className="truncate text-[1.5rem] font-bold">{name}</div>
+          <div className="truncate text-base text-muted-foreground">{subtitle}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    fetchOrder();
-  }, [id]);
-
-  const fetchOrder = async () => {
-    setLoading(true);
-    try {
-      const res = await orderService.getOrderById(id);
-      if (res.success) {
-        setOrder(res.data);
+    const fetchOrder = async () => {
+      setLoading(true);
+      try {
+        const res = await orderService.getOrderById(id);
+        if (res.success) setOrder(res.data);
+      } catch (error) {
+        alert(error.response?.data?.message || "Không thể tải thông tin đơn hàng");
+        navigate(-1);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      alert(error.response?.data?.message || "Không thể tải thông tin đơn hàng");
-      navigate(-1);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
-  };
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const getStatusInfo = (status) => {
-    const statusMap = {
-      pending: { label: "Chờ xác nhận", color: "#ff9500", bg: "#fff3e0", icon: "⏳" },
-      confirmed: { label: "Đã xác nhận", color: "#34c759", bg: "#e8f5e9", icon: "✅" },
-      shipping: { label: "Đang giao", color: "#007aff", bg: "#e3f2fd", icon: "🚚" },
-      delivered: { label: "Đã giao", color: "#5856d6", bg: "#ede7f6", icon: "📦" },
-      completed: { label: "Hoàn thành", color: "#34c759", bg: "#e8f5e9", icon: "🎉" },
-      cancelled: { label: "Đã hủy", color: "#ff3b30", bg: "#ffebee", icon: "❌" },
     };
-    return statusMap[status] || { label: status, color: "#86868b", bg: "#f5f5f7", icon: "❓" };
-  };
+
+    fetchOrder();
+  }, [id, navigate]);
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f5f7" }}>
-        <p style={{ fontSize: "1.2rem", color: "#86868b" }}>Đang tải...</p>
-      </div>
+      <EcoTradeLayout>
+        <div className="flex min-h-[70vh] items-center justify-center text-lg font-medium text-muted-foreground">Đang tải chi tiết đơn hàng...</div>
+      </EcoTradeLayout>
     );
   }
 
   if (!order) return null;
 
-  const statusInfo = getStatusInfo(order.orderStatus);
-  const product = order.postId;
+  const product = order.postId || {};
+  const statusInfo = statusMap[order.orderStatus] || { label: order.orderStatus, variant: "muted" };
+  const delivery = order.delivery;
+  const timeline = [
+    { label: "Chờ người bán xác nhận", active: true, description: "Đơn hàng đã được tạo và đang chờ phản hồi từ cửa hàng.", time: formatDateTime(order.createdAt) },
+    { label: "Người bán đã xác nhận", active: ["confirmed", "shipping", "delivered", "completed"].includes(order.orderStatus), description: "Người bán đã chấp nhận đơn hàng và chuẩn bị hàng.", time: delivery?.updatedAt ? formatDateTime(delivery.updatedAt) : "Đang chờ" },
+    { label: "Chờ shipper", active: !!delivery, description: "Yêu cầu giao hàng đã được gửi đến mạng lưới vận chuyển.", time: delivery?.createdAt ? formatDateTime(delivery.createdAt) : "Đang chờ" },
+    { label: "Shipper đã nhận đơn", active: !!delivery?.shipperId, description: "Shipper đã nhận đơn và bắt đầu hành trình giao hàng.", time: delivery?.shipperId ? "Đã nhận đơn" : "Đang chờ" },
+    { label: "Đã lấy hàng", active: ["shipping", "delivered", "completed"].includes(order.orderStatus), description: "Shipper đã lấy hàng từ người bán.", time: ["shipping", "delivered", "completed"].includes(order.orderStatus) ? "Đang thực hiện" : "Đang chờ" },
+    { label: "Đang giao hàng", active: ["shipping", "delivered", "completed"].includes(order.orderStatus), description: "Đơn hàng đang trên đường tới người nhận.", time: order.orderStatus === "shipping" ? "Đang thực hiện" : "Đang chờ" },
+    { label: "Hoàn tất", active: ["delivered", "completed"].includes(order.orderStatus), description: "Đơn hàng đã bàn giao thành công.", time: ["delivered", "completed"].includes(order.orderStatus) ? "Đã xong" : "Đang chờ" },
+  ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f7", padding: "2rem 1rem" }}>
-      <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-        <button
-          onClick={() => navigate(-1)}
-          style={{ padding: "0.5rem 1rem", background: "white", border: "1px solid #d1d1d6", borderRadius: "8px", cursor: "pointer", marginBottom: "1.5rem" }}
-        >
-          ← Quay lại
-        </button>
+    <EcoTradeLayout>
+      <div className="w-full">
+        <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-4">
+              <h1 className="text-4xl font-extrabold tracking-tight sm:text-[3rem]">Chi tiết đơn hàng #{String(order._id).slice(-6).toUpperCase()}</h1>
+              <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-xl text-muted-foreground">
+              <Clock3 className="h-5 w-5" />
+              Đặt lúc: {formatDateTime(order.createdAt)}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline">
+              <Printer className="h-4 w-4" />
+              In hóa đơn
+            </Button>
+            <Button asChild>
+              <Link to="/products">
+                <ShoppingBag className="h-4 w-4" />
+                Tiếp tục mua sắm
+              </Link>
+            </Button>
+          </div>
+        </div>
 
-        <div style={{ background: "white", borderRadius: "16px", padding: "2rem", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", marginBottom: "1.5rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "1.5rem" }}>
+        <div className="mb-8 grid gap-5 xl:grid-cols-3">
+          <PersonCard title="Người bán" name={order.sellerId?.fullName || "Green Life Store"} subtitle={order.sellerId?.address || "Cửa hàng 4.9★ - TP. Hồ Chí Minh"} fallback="NB" />
+          <PersonCard title="Người mua" name={order.buyerId?.fullName || "Alex Nguyen"} subtitle={order.buyerAddress || "Khách hàng thân thiết"} fallback="NM" />
+          <PersonCard title="Shipper" name={delivery?.shipperId?.fullName || "Đang chờ phân công"} subtitle={delivery?.shipperId?.phone || "Hệ thống sẽ gán ngay khi có người nhận"} fallback="SP" />
+        </div>
+
+        <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_348px]">
+          <div className="space-y-7">
             <div>
-              <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "0.5rem", color: "#1d1d1f" }}>
-                Chi tiết đơn hàng
-              </h1>
-              <p style={{ color: "#86868b" }}>
-                Mã đơn: <strong>{order._id.substring(0, 12).toUpperCase()}</strong>
-              </p>
-            </div>
-            <div
-              style={{
-                padding: "0.75rem 1.5rem",
-                background: statusInfo.bg,
-                color: statusInfo.color,
-                borderRadius: "12px",
-                fontSize: "1.1rem",
-                fontWeight: 600,
-                textAlign: "center",
-              }}
-            >
-              {statusInfo.icon} {statusInfo.label}
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div style={{ padding: "1.5rem", background: "#f5f5f7", borderRadius: "12px", marginBottom: "2rem" }}>
-            <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "1rem" }}>📍 Trạng thái đơn hàng</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#34c759" }}></div>
-                <span style={{ fontSize: "0.9rem" }}>Đơn hàng đã tạo - {formatDate(order.createdAt)}</span>
+              <div className="flex items-center gap-3 text-[2rem] font-extrabold">
+                <Truck className="h-6 w-6 text-success" />
+                Hành trình đơn hàng
               </div>
-              {order.orderStatus !== "pending" && (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#34c759" }}></div>
-                  <span style={{ fontSize: "0.9rem" }}>Người bán đã xác nhận</span>
+              <p className="mt-2 text-xl text-muted-foreground">Theo dõi các cột mốc quan trọng của quy trình vận chuyển</p>
+            </div>
+
+            <Card>
+              <CardContent className="pt-8">
+                <div className="space-y-8">
+                  {timeline.map((step, index) => (
+                    <div key={step.label} className="relative flex gap-4 pl-2">
+                      {index < timeline.length - 1 ? <div className={`absolute left-[21px] top-11 h-[calc(100%+18px)] w-px ${step.active ? "bg-success" : "bg-border"}`} /> : null}
+                      <div className={`relative mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${step.active ? "border-success bg-success text-white" : "border-border bg-white text-muted-foreground"}`}>
+                        <div className={`h-2.5 w-2.5 rounded-full ${step.active ? "bg-white" : "bg-border"}`} />
+                      </div>
+                      <div className="pb-1">
+                        <div className={`flex flex-wrap items-center gap-3 text-[1.15rem] font-bold ${step.active ? "text-foreground" : "text-muted-foreground"}`}>
+                          <span>{step.label}</span>
+                          <Badge variant="outline" className="font-medium normal-case">{step.time}</Badge>
+                        </div>
+                        <p className="mt-1 text-lg text-muted-foreground">{step.description}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-              {(order.orderStatus === "shipping" || order.orderStatus === "delivered" || order.orderStatus === "completed") && (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#007aff" }}></div>
-                  <span style={{ fontSize: "0.9rem" }}>Đang giao hàng</span>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[2rem]">Tóm tắt đơn hàng</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="flex gap-4 border-b border-border pb-5">
+                  <div className="h-16 w-16 overflow-hidden rounded-[18px] bg-muted">
+                    {product.images?.[0] ? <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" /> : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[1.2rem] font-bold">{product.title || "Sản phẩm EcoTrade"}</div>
+                    <div className="text-base text-muted-foreground">SL: 1</div>
+                    <div className="mt-1 text-[1.45rem] font-extrabold text-success">{formatPrice(order.productPrice)}</div>
+                  </div>
                 </div>
-              )}
-              {(order.orderStatus === "delivered" || order.orderStatus === "completed") && (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#5856d6" }}></div>
-                  <span style={{ fontSize: "0.9rem" }}>Đã giao thành công</span>
+                <div className="space-y-3 text-[1.05rem]">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Tạm tính:</span><span>{formatPrice(order.productPrice)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Phí vận chuyển:</span><span>{formatPrice(order.shippingFee)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Khuyến mãi:</span><span>-0 đ</span></div>
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="flex items-center justify-between border-t border-border pt-4">
+                  <span className="text-[1.3rem] font-bold">Tổng cộng:</span>
+                  <span className="text-[2.1rem] font-extrabold text-success">{formatPrice(order.totalAmount)}</span>
+                </div>
+                <Button className="w-full text-[1.25rem]">{order.orderStatus === "pending" ? "Chờ xác nhận" : "Tiếp tục thanh toán"}</Button>
+                <div className="text-center text-xs font-medium uppercase tracking-[0.05em] text-muted-foreground">Đơn hàng của bạn được bảo mật bởi EcoTrade Protection</div>
+              </CardContent>
+            </Card>
 
-          {/* Product Info */}
-          <div style={{ padding: "1.5rem", background: "#f5f5f7", borderRadius: "12px", marginBottom: "2rem" }}>
-            <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "1rem" }}>🛍️ Sản phẩm</h3>
-            <div style={{ display: "flex", gap: "1.5rem" }}>
-              <div style={{ width: "100px", height: "100px", borderRadius: "12px", overflow: "hidden", background: "white" }}>
-                {product?.images && product.images[0] ? (
-                  <img src={product.images[0]} alt={product.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#86868b" }}>📦</div>
-                )}
-              </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "0.5rem" }}>{product?.title || "Sản phẩm"}</h4>
-                <p style={{ color: "#86868b", fontSize: "0.9rem", marginBottom: "0.5rem" }}>
-                  {product?.categoryId?.name || "Khác"} • {product?.conditionStatus || "N/A"}
-                </p>
-                <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "#0071e3" }}>
-                  {formatPrice(order.productPrice)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Delivery Info */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
-            <div style={{ padding: "1.5rem", background: "#f5f5f7", borderRadius: "12px" }}>
-              <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "1rem" }}>📍 Thông tin nhận hàng</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.9rem" }}>
-                <p><strong>Người nhận:</strong> {order.recipientName}</p>
-                <p><strong>Số điện thoại:</strong> {order.buyerPhone}</p>
-                <p><strong>Địa chỉ:</strong> {order.buyerAddress}</p>
-                {order.note && <p><strong>Ghi chú:</strong> {order.note}</p>}
-              </div>
-            </div>
-
-            <div style={{ padding: "1.5rem", background: "#f5f5f7", borderRadius: "12px" }}>
-              <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "1rem" }}>👤 Thông tin liên hệ</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.9rem" }}>
-                <p><strong>Người bán:</strong> {order.sellerId?.fullName || "N/A"}</p>
-                <p><strong>Email:</strong> {order.sellerId?.email || "N/A"}</p>
-                <p><strong>Số điện thoại:</strong> {order.sellerId?.phone || "N/A"}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Price Summary */}
-          <div style={{ padding: "1.5rem", background: "#f5f5f7", borderRadius: "12px" }}>
-            <h3 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "1rem" }}>💰 Thông tin thanh toán</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#86868b" }}>Giá sản phẩm</span>
-                <span style={{ fontWeight: 600 }}>{formatPrice(order.productPrice)}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#86868b" }}>Phí vận chuyển</span>
-                <span style={{ fontWeight: 600 }}>{formatPrice(order.shippingFee)}</span>
-              </div>
-              <div style={{ height: "1px", background: "#d1d1d6", margin: "0.5rem 0" }}></div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.2rem" }}>
-                <span style={{ fontWeight: 600 }}>Tổng cộng</span>
-                <span style={{ fontWeight: 700, color: "#0071e3" }}>{formatPrice(order.totalAmount)}</span>
-              </div>
-              <div style={{ marginTop: "0.5rem", padding: "0.75rem", background: "white", borderRadius: "8px", fontSize: "0.9rem" }}>
-                💵 Thanh toán khi nhận hàng (COD)
-              </div>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-[1.7rem]">
+                  <UserRoundSearch className="h-5 w-5" />
+                  Thông tin nhận hàng
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-[1.02rem]">
+                <div>
+                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">Địa chỉ</div>
+                  <div className="mt-1 leading-7">{order.buyerAddress}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">Số điện thoại</div>
+                  <div className="mt-1">{order.buyerPhone}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">Phương thức thanh toán</div>
+                  <div className="mt-1 flex items-center gap-3">
+                    <span>Ví điện tử EcoPay</span>
+                    <Badge variant="outline">Đã trả</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-    </div>
+    </EcoTradeLayout>
   );
-};
-
-export default OrderDetail;
+}

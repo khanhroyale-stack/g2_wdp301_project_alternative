@@ -19,6 +19,8 @@ import OrderDetail from "./pages/orders/OrderDetail";
 
 // Delivery pages
 import DeliveryList from "./pages/delivery/DeliveryList";
+import DeliveryDetail from "./pages/delivery/DeliveryDetail";
+import DeliveryInspection from "./pages/delivery/DeliveryInspection";
 
 function App() {
   return (
@@ -46,6 +48,9 @@ function App() {
           
           {/* Delivery routes (for shippers) */}
           <Route path="/deliveries" element={<DeliveryList />} />
+          <Route path="/deliveries/:id" element={<DeliveryDetail />} />
+          <Route path="/deliveries/:id/inspection" element={<DeliveryInspection />} />
+          <Route path="/inspections/:id" element={<DeliveryInspection />} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

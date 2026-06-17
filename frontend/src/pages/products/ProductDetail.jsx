@@ -8,10 +8,18 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isCompactLayout, setIsCompactLayout] = useState(() => window.innerWidth < 960);
 
   useEffect(() => {
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    const handleResize = () => setIsCompactLayout(window.innerWidth < 960);
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const fetchProduct = async () => {
     setLoading(true);
@@ -55,8 +63,14 @@ const ProductDetail = () => {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f7", padding: "2rem 1rem" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f5f5f7",
+        padding: "clamp(1rem, 2vw, 2rem) clamp(1rem, 3vw, 2.5rem)",
+      }}
+    >
+      <div style={{ width: "100%" }}>
         <button
           onClick={() => navigate(-1)}
           style={{ padding: "0.5rem 1rem", background: "white", border: "1px solid #d1d1d6", borderRadius: "8px", cursor: "pointer", marginBottom: "1.5rem" }}
@@ -64,11 +78,18 @@ const ProductDetail = () => {
           ← Quay lại
         </button>
 
-        <div style={{ background: "white", borderRadius: "16px", padding: "2rem", boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3rem" }}>
+        <div style={{ background: "white", borderRadius: "16px", padding: "clamp(1rem, 2vw, 2rem)", boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isCompactLayout ? "1fr" : "minmax(0, 1.05fr) minmax(320px, 0.95fr)",
+              gap: "clamp(1.25rem, 3vw, 3rem)",
+              alignItems: "start",
+            }}
+          >
             {/* Images */}
             <div>
-              <div style={{ width: "100%", height: "400px", background: "#f5f5f7", borderRadius: "12px", overflow: "hidden", marginBottom: "1rem" }}>
+              <div style={{ width: "100%", height: isCompactLayout ? "280px" : "clamp(320px, 42vw, 520px)", background: "#f5f5f7", borderRadius: "12px", overflow: "hidden", marginBottom: "1rem" }}>
                 {product.images && product.images[selectedImage] ? (
                   <img
                     src={product.images[selectedImage]}
@@ -82,7 +103,7 @@ const ProductDetail = () => {
                 )}
               </div>
               {product.images && product.images.length > 1 && (
-                <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto" }}>
+                <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem" }}>
                   {product.images.map((img, idx) => (
                     <div
                       key={idx}
@@ -158,7 +179,7 @@ const ProductDetail = () => {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: "flex", gap: "1rem" }}>
+              <div style={{ display: "flex", gap: "1rem", flexDirection: isCompactLayout ? "column" : "row" }}>
                 <button
                   onClick={handleBuyNow}
                   style={{

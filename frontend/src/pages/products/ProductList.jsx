@@ -57,8 +57,14 @@ const ProductList = () => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f7", padding: "2rem 1rem" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f5f5f7",
+        padding: "clamp(1rem, 2vw, 2rem) clamp(1rem, 3vw, 2.5rem)",
+      }}
+    >
+      <div style={{ width: "100%" }}>
         <h1 style={{ fontSize: "2.5rem", fontWeight: 700, marginBottom: "2rem", color: "#1d1d1f" }}>
           🛍️ Chợ đồ cũ sinh viên
         </h1>
@@ -114,14 +120,21 @@ const ProductList = () => {
             <p style={{ fontSize: "1.2rem", color: "#86868b" }}>Không tìm thấy sản phẩm nào</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.5rem" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))",
+              gap: "clamp(1rem, 2vw, 1.5rem)",
+              alignItems: "stretch",
+            }}
+          >
             {products.map((product) => (
               <Link
                 key={product._id}
                 to={`/products/${product._id}`}
                 style={{ textDecoration: "none", color: "inherit" }}
               >
-                <div style={{ background: "white", borderRadius: "12px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", transition: "transform 0.2s, box-shadow 0.2s", cursor: "pointer" }}
+                <div style={{ background: "white", borderRadius: "12px", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", transition: "transform 0.2s, box-shadow 0.2s", cursor: "pointer", height: "100%" }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-4px)";
                     e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.15)";
@@ -142,14 +155,14 @@ const ProductList = () => {
                       <span style={{ color: "#86868b" }}>📦 No Image</span>
                     )}
                   </div>
-                  <div style={{ padding: "1rem" }}>
+                  <div style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem", minHeight: "160px" }}>
                     <h3 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "0.5rem", color: "#1d1d1f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {product.title}
                     </h3>
                     <p style={{ fontSize: "0.9rem", color: "#86868b", marginBottom: "0.75rem" }}>
                       {product.categoryId?.name || "Khác"}
                     </p>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", marginTop: "auto", flexWrap: "wrap" }}>
                       <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "#0071e3" }}>
                         {formatPrice(product.salePrice)}
                       </p>

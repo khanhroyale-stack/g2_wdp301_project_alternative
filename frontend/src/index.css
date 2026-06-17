@@ -1,39 +1,55 @@
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-bg: #f9fafb;
-  --color-surface: #ffffff;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
-  --color-border: #e5e7eb;
-  --color-error: #ef4444;
-  --color-success: #22c55e;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-}
+@layer base {
+  * {
+    @apply border-border;
+  }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  line-height: 1.6;
-}
+  :root {
+    --background: 120 20% 98%;
+    --foreground: 220 18% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 18% 14%;
+    --primary: 142 69% 46%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 120 11% 96%;
+    --secondary-foreground: 220 15% 18%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 14% 45%;
+    --accent: 142 58% 95%;
+    --accent-foreground: 142 62% 33%;
+    --border: 210 18% 91%;
+    --input: 210 18% 85%;
+    --ring: 142 69% 46%;
+    --success: 142 69% 46%;
+    --success-foreground: 0 0% 100%;
+    --success-soft: 142 55% 94%;
+    --warning: 28 95% 56%;
+    --warning-foreground: 25 95% 24%;
+    --warning-soft: 30 100% 95%;
+    --danger: 5 89% 60%;
+    --danger-foreground: 0 0% 100%;
+    --danger-soft: 5 92% 95%;
+    --sky: 201 89% 55%;
+    --sky-foreground: 0 0% 100%;
+    --sky-soft: 203 100% 95%;
+  }
 
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
+  html {
+    @apply scroll-smooth;
+  }
 
-a:hover {
-  text-decoration: underline;
-}
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
 
-button {
-  cursor: pointer;
+  a {
+    @apply text-inherit no-underline;
+  }
+
+  button {
+    @apply disabled:cursor-not-allowed;
+  }
 }
