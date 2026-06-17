@@ -93,6 +93,10 @@ const login = async (req, res) => {
       return res.status(403).json({ success: false, message: "Tài khoản đã bị khóa do vi phạm" });
     }
 
+    // TEMPORARY: Allow login without email verification for development
+    // TODO: Remove this in production
+    console.log(`⚠️  DEV MODE: User ${email} logged in without email verification`);
+
     const token = generateToken(user._id);
     res.json({ success: true, token, user: formatUser(user) });
   } catch (error) {
