@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import ReportModal from "../../components/ReportModal";
 import { useAuth } from "../../context/AuthContext";
 import productService from "../../services/product.service";
 import rentalService from "../../services/rental.service";
@@ -17,10 +18,11 @@ const ProductDetail = () => {
 
     const [activeImg, setActiveImg] = useState(0);
     const [showRentalModal, setShowRentalModal] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -80,10 +82,10 @@ const ProductDetail = () => {
 
     const formatPrice = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
 
-    const images = product.images?.length > 0 ? product.images : [null];
+    const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
     const displayPrice = product.productType === "rent" ? `${formatPrice(product.rentPricePerDay)}/ngày` : formatPrice(product.salePrice);
-    
-    const sellerName = product.ownerId?.name || "Người dùng ẩn";
+
+    const sellerName = product.ownerId?.fullName || product.ownerId?.name || "Người dùng ẩn";
     const sellerInitial = sellerName.charAt(0).toUpperCase();
 
     const handleBuy = async () => {
@@ -128,11 +130,9 @@ const ProductDetail = () => {
     const handleChat = async () => {
         if (!user) return navigate("/dang-nhap");
         try {
-            const res = await chatService.getOrCreateChat(product.ownerId._id, product._id);
-            if (res.success) {
-                navigate("/tin-nhan");
-            }
-        } catch (err) {
+            const res = await chatService.getOrCreateRoom(product.ownerId._id, product._id);
+            if (res.success) navigate("/tin-nhan");
+        } catch {
             toast.error("Lỗi khi mở cuộc trò chuyện");
         }
     };
@@ -157,12 +157,18 @@ const ProductDetail = () => {
                     {/* Left: Images */}
                     <div className="w-full lg:w-3/5 flex flex-col gap-4">
                         <div className="w-full bg-white rounded-3xl overflow-hidden aspect-[4/3] flex items-center justify-center p-2 shadow-sm border border-surface-variant/20 group relative">
-                            <img alt={product.title}
-                                className="w-full h-full object-contain rounded-2xl group-hover:scale-105 transition-transform duration-500"
-                                src={getImageUrl(images[activeImg])} />
-                            <span className={`absolute top-5 left-5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-sm ${
-                                product.productType === "rent" ? "bg-primary/90 text-white" : "bg-white/90 text-primary border border-surface-variant/20"
-                            }`}>
+                            {images.length > 0 && images[activeImg] ? (
+                                <img alt={product.title}
+                                    className="w-full h-full object-contain rounded-2xl group-hover:scale-105 transition-transform duration-500"
+                                    src={getImageUrl(images[activeImg])} />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center gap-3 text-on-surface-variant">
+                                    <span className="material-symbols-outlined text-6xl opacity-30">image</span>
+                                    <p className="text-sm opacity-50">Chưa có ảnh sản phẩm</p>
+                                </div>
+                            )}
+                            <span className={`absolute top-5 left-5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-sm ${product.productType === "rent" ? "bg-primary/90 text-white" : "bg-white/90 text-primary border border-surface-variant/20"
+                                }`}>
                                 {product.productType === "rent" ? "Cho thuê" : "Đang bán"}
                             </span>
                         </div>
@@ -268,7 +274,9 @@ const ProductDetail = () => {
 
                         <div className="flex items-center justify-between text-xs text-on-surface-variant font-medium mt-2">
                             <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px] text-green-500">gpp_good</span>Bảo vệ người mua</span>
-                            <button className="text-error hover:underline flex items-center gap-1">
+                            <button
+                                onClick={() => user ? setShowReportModal(true) : navigate("/dang-nhap")}
+                                className="text-error hover:underline flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[16px]">flag</span>
                                 Báo cáo
                             </button>
@@ -301,7 +309,7 @@ const ProductDetail = () => {
                             <div className="text-center py-10 bg-surface-container-lowest rounded-2xl">
                                 <span className="text-5xl font-black text-on-surface">{product.averageRating}</span>
                                 <div className="flex justify-center text-orange-500 mt-2 mb-2">
-                                    {[1,2,3,4,5].map(i => (
+                                    {[1, 2, 3, 4, 5].map(i => (
                                         <span key={i} className="material-symbols-outlined">{i <= Math.round(product.averageRating) ? "star" : "star_border"}</span>
                                     ))}
                                 </div>
@@ -313,6 +321,16 @@ const ProductDetail = () => {
             </main>
 
             <Footer />
+
+            {/* Report Modal */}
+            {showReportModal && product && (
+                <ReportModal
+                    onClose={() => setShowReportModal(false)}
+                    reportedUserId={product.ownerId?._id}
+                    postId={product._id}
+                    contextLabel={product.title}
+                />
+            )}
 
             {/* Rental Modal */}
             {showRentalModal && (

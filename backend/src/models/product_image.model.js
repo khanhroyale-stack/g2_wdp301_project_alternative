@@ -7,7 +7,7 @@ const productImageSchema = new mongoose.Schema(
       ref: "ProductPost",
       required: true,
     },
-    mediaId: {
+    field: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "MediaFile",
       required: true,
@@ -22,9 +22,11 @@ const productImageSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: { createdAt: true, updatedAt: false },  // chỉ createdAt, không updatedAt
     collection: "product_images",
   }
 );
+
+module.exports = mongoose.model("ProductImage", productImageSchema);
 
 module.exports = mongoose.model("ProductImage", productImageSchema);

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import productService from "../../services/product.service";
 
-const STATUS_FILTER = ["PENDING", "ACTIVE", "REJECTED", "HIDDEN"];
+const STATUS_FILTER = ["pending", "approved", "rejected", "closed"];
 const STATUS_MAP = {
   PENDING: { label: "Chờ duyệt", color: "bg-surface-container text-on-surface-variant" },
   ACTIVE: { label: "Đang hiển thị", color: "bg-secondary-container text-on-secondary-container" },

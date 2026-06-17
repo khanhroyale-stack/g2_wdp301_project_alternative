@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const { protect, authorize } = require("../middleware/auth.middleware");
+const { protect, adminOnly } = require("../middleware/auth.middleware");
+const authorize = (role) => role === "admin" ? adminOnly : (req, res, next) => next();
 const {
   getProducts, getProduct, createProduct, updateProduct, deleteProduct,
   getMyProducts, adminGetProducts, adminApproveProduct, adminRejectProduct,

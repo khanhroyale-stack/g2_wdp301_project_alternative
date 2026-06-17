@@ -1,10 +1,20 @@
 const express = require("express");
 const router = express.Router();
-const { protect, authorize } = require("../middleware/auth.middleware");
-const { createReport, getAdminReports, resolveReport } = require("../controllers/report.controller");
+const { protect, adminOnly } = require("../middleware/auth.middleware");
+const {
+  createReport,
+  getAdminReports,
+  getReportById,
+  getMyReports,
+  resolveReport,
+  addReportEvidence,
+} = require("../controllers/report.controller");
 
 router.post("/", protect, createReport);
-router.get("/", protect, authorize("admin"), getAdminReports);
-router.patch("/:id/resolve", protect, authorize("admin"), resolveReport);
+router.get("/my", protect, getMyReports);
+router.get("/", protect, adminOnly, getAdminReports);
+router.get("/:id", protect, adminOnly, getReportById);
+router.patch("/:id/resolve", protect, adminOnly, resolveReport);
+router.post("/:id/evidence", protect, addReportEvidence);
 
 module.exports = router;

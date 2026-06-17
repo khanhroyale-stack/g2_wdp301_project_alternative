@@ -39,11 +39,11 @@ const register = async (req, res) => {
 
     const otp = generateOTP();
     saveOTP(email, otp, "register");
-    try {
-      await sendOTPEmail(email, otp, "register");
-    } catch (emailErr) {
-      console.error("[Email Error - register]", emailErr.message);
-    }
+
+    // Gửi email KHÔNG await — trả response ngay lập tức
+    sendOTPEmail(email, otp, "register").catch((err) =>
+      console.error("[Email Error - register]", err.message)
+    );
 
     res.status(201).json({
       success: true,
@@ -111,11 +111,9 @@ const forgotPassword = async (req, res) => {
 
     const otp = generateOTP();
     saveOTP(email, otp, "reset");
-    try {
-      await sendOTPEmail(email, otp, "reset");
-    } catch (emailErr) {
-      console.error("[Email Error - forgot-password]", emailErr.message);
-    }
+    sendOTPEmail(email, otp, "reset").catch((err) =>
+      console.error("[Email Error - forgot-password]", err.message)
+    );
 
     res.json({ success: true, message: "OTP đã được gửi đến email của bạn" });
   } catch (error) {
@@ -181,11 +179,9 @@ const resendOTP = async (req, res) => {
     }
     const otp = generateOTP();
     saveOTP(email, otp, "register");
-    try {
-      await sendOTPEmail(email, otp, "register");
-    } catch (emailErr) {
-      console.error("[Email Error - resend-otp]", emailErr.message);
-    }
+    sendOTPEmail(email, otp, "register").catch((err) =>
+      console.error("[Email Error - resend-otp]", err.message)
+    );
     res.json({ success: true, message: "OTP mới đã được gửi đến email của bạn" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

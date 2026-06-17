@@ -20,7 +20,7 @@ const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processingId, setProcessingId] = useState(null);
-  
+
   // Review modal state
   const [reviewOpen, setReviewOpen] = useState(null);
   const [rating, setRating] = useState(5);
@@ -61,19 +61,19 @@ const MyOrders = () => {
   const handleSubmitReview = async () => {
     if (!reviewOpen) return;
     try {
-      const res = await reviewService.createReview({
-        postId: reviewOpen.postId?._id,
-        sellerId: reviewOpen.sellerId?._id,
+      await reviewService.createReview({
+        reviewUserId: reviewOpen.sellerId?._id || reviewOpen.sellerId,
+        postId: reviewOpen.postId?._id || reviewOpen.postId,
+        orderId: reviewOpen._id,
+        reviewType: "seller",
         rating,
-        comment
+        comment,
       });
-      if (res.success) {
-        toast.success("Đã gửi đánh giá thành công!");
-        setReviewOpen(null);
-        setRating(5);
-        setComment("");
-        fetchOrders();
-      }
+      toast.success("Đã gửi đánh giá thành công!");
+      setReviewOpen(null);
+      setRating(5);
+      setComment("");
+      fetchOrders();
     } catch (err) {
       toast.error(err.response?.data?.message || "Lỗi khi gửi đánh giá");
     }
@@ -93,16 +93,16 @@ const MyOrders = () => {
       <Sidebar variant="user" />
       <main className="flex-1 md:ml-64 px-4 md:px-10 py-10">
         <div className="max-w-5xl mx-auto">
-          
+
           <header className="mb-10 flex flex-col md:flex-row justify-between md:items-end gap-6">
             <div>
-               <h1 className="text-3xl md:text-4xl font-extrabold text-on-surface mb-2 flex items-center gap-3">
-                 <span className="material-symbols-outlined text-primary text-4xl">shopping_bag</span>
-                 Quản lý Đơn hàng
-               </h1>
-               <p className="text-on-surface-variant text-base">Theo dõi và cập nhật trạng thái mua bán của bạn.</p>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-on-surface mb-2 flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary text-4xl">shopping_bag</span>
+                Quản lý Đơn hàng
+              </h1>
+              <p className="text-on-surface-variant text-base">Theo dõi và cập nhật trạng thái mua bán của bạn.</p>
             </div>
-            
+
             {/* Tabs */}
             <div className="flex bg-white rounded-full p-1.5 shadow-sm border border-surface-variant/30 w-fit">
               {TABS.map((t, i) => (
@@ -116,13 +116,13 @@ const MyOrders = () => {
           </header>
 
           {loading ? (
-             <div className="flex justify-center items-center py-20">
-                <span className="material-symbols-outlined text-primary text-5xl animate-spin">refresh</span>
-             </div>
+            <div className="flex justify-center items-center py-20">
+              <span className="material-symbols-outlined text-primary text-5xl animate-spin">refresh</span>
+            </div>
           ) : orders.length === 0 ? (
             <div className="bg-white rounded-3xl py-20 text-center border border-surface-variant/20 shadow-sm flex flex-col items-center">
               <div className="w-24 h-24 bg-surface-container-low rounded-full flex items-center justify-center mb-6">
-                 <span className="material-symbols-outlined text-6xl text-primary/50">inbox</span>
+                <span className="material-symbols-outlined text-6xl text-primary/50">inbox</span>
               </div>
               <h3 className="text-xl font-bold text-on-surface mb-2">Chưa có đơn hàng nào</h3>
               <p className="text-on-surface-variant max-w-sm mx-auto">Bạn chưa có giao dịch nào trong mục này. Khám phá ngay các món đồ hấp dẫn trên EcoTrade!</p>
@@ -138,9 +138,9 @@ const MyOrders = () => {
                   <div key={order._id} className="bg-white rounded-3xl shadow-sm hover:shadow-apple transition-all border border-surface-variant/20 overflow-hidden flex flex-col group">
                     <div className="p-6 md:p-8 flex items-start flex-col lg:flex-row justify-between gap-6 relative">
                       {isProcessing && (
-                         <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-primary text-3xl animate-spin">refresh</span>
-                         </div>
+                        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-primary text-3xl animate-spin">refresh</span>
+                        </div>
                       )}
                       <div className="flex items-start gap-5 flex-1 w-full">
                         <div className="w-24 h-24 rounded-2xl overflow-hidden bg-surface-container-low flex-shrink-0 shadow-inner p-1 border border-surface-variant/30">
@@ -164,8 +164,8 @@ const MyOrders = () => {
                       </div>
 
                       <div className="text-left lg:text-right w-full lg:w-auto mt-2 lg:mt-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-surface-variant/30 flex lg:flex-col justify-between items-center lg:items-end">
-                         <span className="text-sm text-on-surface-variant lg:mb-1 block">Tổng thanh toán</span>
-                         <p className="font-black text-primary text-2xl">{formatPrice(order.totalAmount)}</p>
+                        <span className="text-sm text-on-surface-variant lg:mb-1 block">Tổng thanh toán</span>
+                        <p className="font-black text-primary text-2xl">{formatPrice(order.totalAmount)}</p>
                       </div>
                     </div>
 
@@ -174,7 +174,7 @@ const MyOrders = () => {
                       <button className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 transition-all group-hover:translate-x-1">
                         Xem chi tiết <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </button>
-                      
+
                       <div className="flex flex-wrap gap-3">
                         {/* BUYER ACTIONS */}
                         {tab === 0 && order.orderStatus === "pending" && (
@@ -190,12 +190,12 @@ const MyOrders = () => {
                           </button>
                         )}
                         {tab === 0 && order.orderStatus === "completed" && (
-                          <button onClick={() => setReviewOpen(order)} 
+                          <button onClick={() => setReviewOpen(order)}
                             className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-xl hover:shadow-lg hover:shadow-orange-500/30 transition-all active:scale-95 flex items-center gap-1">
                             <span className="material-symbols-outlined text-[16px]">star</span> Đánh giá
                           </button>
                         )}
-                        
+
                         {/* SELLER ACTIONS */}
                         {tab === 1 && order.orderStatus === "pending" && (
                           <>
@@ -229,11 +229,11 @@ const MyOrders = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] px-4">
           <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md animate-scale-up border border-surface-variant/20">
             <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mb-4 mx-auto">
-               <span className="material-symbols-outlined text-3xl">star_rate</span>
+              <span className="material-symbols-outlined text-3xl">star_rate</span>
             </div>
             <h3 className="font-extrabold text-on-surface text-2xl text-center mb-1">Đánh giá người bán</h3>
             <p className="text-sm text-on-surface-variant text-center mb-8">{reviewOpen.postId?.title}</p>
-            
+
             <div className="flex items-center justify-center gap-3 mb-8">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button key={star} onClick={() => setRating(star)} className="hover:scale-110 transition-transform">

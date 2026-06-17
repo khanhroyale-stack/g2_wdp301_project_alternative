@@ -50,27 +50,27 @@ const ContractManagement = () => {
             <p className="text-on-surface-variant">Theo dõi hoạt động cho thuê trên hệ thống.</p>
           </div>
           <div className="flex flex-wrap bg-surface-container-low rounded-xl p-1 shadow-sm border border-surface-variant/30">
-             {["", "active", "completed", "cancelled", "disputed"].map(st => (
-               <button
-                 key={st}
-                 onClick={() => setFilter(st)}
-                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filter === st ? "bg-white text-primary shadow" : "text-on-surface-variant hover:text-on-surface"}`}
-               >
-                 {st === "" ? "Tất cả" : STATUS_MAP[st]?.label || st}
-               </button>
-             ))}
+            {["", "active", "completed", "cancelled", "disputed"].map(st => (
+              <button
+                key={st}
+                onClick={() => setFilter(st)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filter === st ? "bg-white text-primary shadow" : "text-on-surface-variant hover:text-on-surface"}`}
+              >
+                {st === "" ? "Tất cả" : STATUS_MAP[st]?.label || st}
+              </button>
+            ))}
           </div>
         </header>
 
         <div className="bg-surface-container-lowest rounded-2xl shadow-apple border border-surface-variant/30 overflow-hidden">
           {loading ? (
-             <div className="p-10 flex justify-center text-primary">
-                <span className="material-symbols-outlined animate-spin text-4xl">refresh</span>
-             </div>
+            <div className="p-10 flex justify-center text-primary">
+              <span className="material-symbols-outlined animate-spin text-4xl">refresh</span>
+            </div>
           ) : rentals.length === 0 ? (
-             <div className="p-10 text-center text-on-surface-variant">
-               Không có hợp đồng nào.
-             </div>
+            <div className="p-10 text-center text-on-surface-variant">
+              Không có hợp đồng nào.
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -89,39 +89,39 @@ const ContractManagement = () => {
                     <tr key={r._id} className="hover:bg-surface-container-lowest/50 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                           {r.postId?.images?.[0] ? (
-                             <img src={r.postId.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover bg-surface-variant" />
-                           ) : (
-                             <div className="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center">
-                               <span className="material-symbols-outlined text-on-surface-variant">image</span>
-                             </div>
-                           )}
-                           <div className="max-w-[150px]">
-                             <p className="font-semibold text-sm text-on-surface truncate" title={r.postId?.title}>{r.postId?.title || "Sản phẩm đã xóa"}</p>
-                             <p className="text-xs text-on-surface-variant">{Math.max(1, Math.ceil((new Date(r.endDate) - new Date(r.startDate)) / 86400000))} ngày</p>
-                           </div>
+                          {r.postId?.images?.[0] ? (
+                            <img src={r.postId.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover bg-surface-variant" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center">
+                              <span className="material-symbols-outlined text-on-surface-variant">image</span>
+                            </div>
+                          )}
+                          <div className="max-w-[150px]">
+                            <p className="font-semibold text-sm text-on-surface truncate" title={r.postId?.title}>{r.postId?.title || "Sản phẩm đã xóa"}</p>
+                            <p className="text-xs text-on-surface-variant">{Math.max(1, Math.ceil((new Date(r.endDate) - new Date(r.startDate)) / 86400000))} ngày</p>
+                          </div>
                         </div>
                       </td>
                       <td className="p-4 text-sm">
-                        <p className="font-medium text-on-surface">{r.ownerId?.name || "N/A"}</p>
+                        <p className="font-medium text-on-surface">{r.ownerId?.fullName || "N/A"}</p>
                         <p className="text-xs text-on-surface-variant">{r.ownerId?.phone || "N/A"}</p>
                       </td>
                       <td className="p-4 text-sm">
-                        <p className="font-medium text-on-surface">{r.renterId?.name || "N/A"}</p>
+                        <p className="font-medium text-on-surface">{r.renterId?.fullName || "N/A"}</p>
                         <p className="text-xs text-on-surface-variant">{r.renterId?.phone || "N/A"}</p>
                       </td>
                       <td className="p-4 text-sm text-on-surface-variant">
-                         <p>{new Date(r.startDate).toLocaleDateString("vi-VN")}</p>
-                         <p className="text-xs font-semibold">→</p>
-                         <p>{new Date(r.endDate).toLocaleDateString("vi-VN")}</p>
+                        <p>{new Date(r.startDate).toLocaleDateString("vi-VN")}</p>
+                        <p className="text-xs font-semibold">→</p>
+                        <p>{new Date(r.endDate).toLocaleDateString("vi-VN")}</p>
                       </td>
                       <td className="p-4 text-sm font-bold text-right text-error">
                         {((r.rentalFee || 0) + (r.depositAmount || 0)).toLocaleString()}đ
                       </td>
                       <td className="p-4 text-center">
-                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${STATUS_MAP[r.contractStatus]?.color || "bg-gray-100 text-gray-600"}`}>
-                           {STATUS_MAP[r.contractStatus]?.label || r.contractStatus}
-                         </span>
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${STATUS_MAP[r.contractStatus]?.color || "bg-gray-100 text-gray-600"}`}>
+                          {STATUS_MAP[r.contractStatus]?.label || r.contractStatus}
+                        </span>
                       </td>
                     </tr>
                   ))}

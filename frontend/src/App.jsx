@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
+import { Toaster } from "react-hot-toast";
 // Public pages
 import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
@@ -41,6 +42,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
           {/* ── Công khai ──────────────────────────── */}
           <Route path="/" element={<Home />} />

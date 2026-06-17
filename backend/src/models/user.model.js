@@ -58,6 +58,12 @@ const userSchema = new mongoose.Schema(
       default: 100,
       min: 0,
     },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
     accountStatus: {
       type: String,
       enum: ["active", "inactive", "banned"],

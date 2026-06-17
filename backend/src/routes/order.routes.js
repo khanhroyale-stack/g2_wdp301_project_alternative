@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { protect, authorize } = require("../middleware/auth.middleware");
-const { 
+const { protect, adminOnly, shipperOnly } = require("../middleware/auth.middleware");
+const authorize = (role) => role === "admin" ? adminOnly : role === "shipper" ? shipperOnly : (req, res, next) => next();
+const {
   createOrder, getMyOrders, getMySales, getOrder, updateOrderStatus,
   shipperGetAvailableOrders, shipperAcceptOrder, shipperGetMyDeliveries
 } = require("../controllers/order.controller");

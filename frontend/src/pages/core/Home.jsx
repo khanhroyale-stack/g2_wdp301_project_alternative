@@ -60,7 +60,7 @@ const Home = () => {
         <div className="relative z-10">
           <p className="text-xs font-bold text-primary uppercase tracking-widest mb-4 inline-block bg-primary/10 px-3 py-1 rounded-full border border-primary/20">Khu vực Hòa Lạc</p>
           <h1 className="text-5xl md:text-7xl font-extrabold text-on-surface tracking-tight mb-6 leading-tight">
-            Khám phá mọi thứ tại <br className="hidden md:block"/>
+            Khám phá mọi thứ tại <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-tertiary">EcoTrade</span>
           </h1>
           <p className="text-on-surface-variant text-lg md:text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
@@ -134,40 +134,51 @@ const Home = () => {
           </div>
 
           {loading ? (
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[...Array(4)].map((_, i) => (
-                   <div key={i} className="animate-pulse bg-surface-container-low rounded-3xl h-80"></div>
-                ))}
-             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-surface-container-low rounded-3xl h-80"></div>
+              ))}
+            </div>
           ) : featuredProducts.length === 0 ? (
             <div className="text-center text-on-surface-variant py-10 bg-surface-container-low rounded-3xl">
               Chưa có sản phẩm nào
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredProducts.map((product) => (
-                <Link key={product._id} to={`/san-pham/${product._id}`}
-                  className="bg-white rounded-3xl overflow-hidden shadow-sm border border-surface-variant/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col">
-                  <div className="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
-                    <img src={product.images[0] || "https://placehold.co/600x400?text=No+Image"} alt={product.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md ${
-                      product.listingType === "cho-thue" ? "bg-primary/90 text-white" : "bg-white/90 text-primary"
-                    }`}>
-                      {product.listingType === "cho-thue" ? "Cho thuê" : "Bán"}
-                    </span>
-                  </div>
-                  <div className="p-5 flex flex-col flex-grow">
-                    <h3 className="font-bold text-on-surface text-lg leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors">{product.title}</h3>
-                    <div className="mt-auto flex justify-between items-end">
-                       <span className="text-primary font-black text-xl">
-                          {product.listingType === "cho-thue" ? `${product.rentalPricePerDay?.toLocaleString()}đ/ngày` : `${product.salePrice?.toLocaleString()}đ`}
-                       </span>
-                       <span className="text-xs text-on-surface-variant bg-surface-container-low px-2 py-1 rounded-md">{product.condition}</span>
+              {featuredProducts.map((product) => {
+                const isRent = product.productType === "rent" || product.productType === "both";
+                const price = isRent
+                  ? `${product.rentPricePerDay?.toLocaleString()}đ/ngày`
+                  : `${product.salePrice?.toLocaleString()}đ`;
+                const conditionLabel = {
+                  new: "Mới", like_new: "Như mới", good: "Còn tốt", fair: "Trung bình", poor: "Cũ",
+                };
+                return (
+                  <Link key={product._id} to={`/san-pham/${product._id}`}
+                    className="bg-white rounded-3xl overflow-hidden shadow-sm border border-surface-variant/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                      <img
+                        src={product.thumbnailUrl || "https://placehold.co/600x400?text=No+Image"}
+                        alt={product.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md ${isRent ? "bg-primary/90 text-white" : "bg-white/90 text-primary"
+                        }`}>
+                        {isRent ? "Cho thuê" : "Bán"}
+                      </span>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                    <div className="p-5 flex flex-col flex-grow">
+                      <h3 className="font-bold text-on-surface text-lg leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors">{product.title}</h3>
+                      <div className="mt-auto flex justify-between items-end">
+                        <span className="text-primary font-black text-xl">{price}</span>
+                        <span className="text-xs text-on-surface-variant bg-surface-container-low px-2 py-1 rounded-md">
+                          {conditionLabel[product.conditionStatus] || product.conditionStatus}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
@@ -203,7 +214,7 @@ const Home = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-primary to-tertiary opacity-95"></div>
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&q=80')] bg-cover bg-center mix-blend-overlay opacity-20"></div>
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6 leading-tight">Đừng để đồ dùng của bạn <br/> lãng phí trong góc phòng</h2>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6 leading-tight">Đừng để đồ dùng của bạn <br /> lãng phí trong góc phòng</h2>
           <p className="text-white/80 text-lg md:text-xl mb-10 max-w-2xl mx-auto leading-relaxed">Đăng tin miễn phí ngay hôm nay. Bán hoặc cho thuê những vật dụng bạn không cần dùng đến, giúp ích cho cộng đồng và tạo ra thu nhập.</p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link to="/dang-tin"

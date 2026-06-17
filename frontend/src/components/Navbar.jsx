@@ -3,12 +3,15 @@ import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, unreadCount } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate("/"); setUserMenuOpen(false); };
+
+  // Backend trả về fullName, không phải name
+  const displayName = user?.fullName || user?.name || "";
 
   const linkClass = ({ isActive }) =>
     isActive
@@ -55,12 +58,17 @@ const Navbar = () => {
             </Link>
           )}
 
-          {/* Notification */}
+          {/* Notification bell với unread badge */}
           <button
             onClick={() => user && navigate("/thong-bao")}
             className="relative text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-low"
           >
             <span className="material-symbols-outlined">notifications</span>
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-error text-on-error text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </button>
 
           {/* User menu */}
@@ -71,10 +79,10 @@ const Navbar = () => {
                 className="flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-surface-variant hover:bg-surface-container-low transition-colors"
               >
                 <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-on-primary text-xs font-bold flex-shrink-0">
-                  {user.name?.charAt(0).toUpperCase()}
+                  {displayName.charAt(0).toUpperCase() || "U"}
                 </div>
                 <span className="hidden md:block text-sm font-medium text-on-surface max-w-[90px] truncate">
-                  {user.name}
+                  {displayName}
                 </span>
                 <span className="material-symbols-outlined text-[15px] text-on-surface-variant">expand_more</span>
               </button>
@@ -83,7 +91,7 @@ const Navbar = () => {
                 <div className="absolute right-0 top-12 bg-surface-container-lowest rounded-xl shadow-apple-md border border-surface-variant w-56 py-2 z-50">
                   {/* User info */}
                   <div className="px-4 py-3 border-b border-surface-variant/50">
-                    <p className="font-semibold text-on-surface text-sm truncate">{user.name}</p>
+                    <p className="font-semibold text-on-surface text-sm truncate">{displayName}</p>
                     <p className="text-xs text-on-surface-variant mt-0.5">{roleLabel[user.role] || "Người dùng"}</p>
                   </div>
                   {user.role !== "admin" && (

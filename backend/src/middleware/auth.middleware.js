@@ -52,4 +52,11 @@ const verifiedOnly = (req, res, next) => {
   next();
 };
 
-module.exports = { protect, adminOnly, shipperOnly, activeOnly, verifiedOnly };
+// Generic role-based authorization middleware factory
+const authorize = (requiredRole) => (req, res, next) => {
+  // Allow the required role or admin to access
+  if (req.user?.role === requiredRole || req.user?.role === "admin") return next();
+  return res.status(403).json({ success: false, message: "Bạn không có quyền truy cập" });
+};
+
+module.exports = { protect, adminOnly, shipperOnly, activeOnly, verifiedOnly, authorize };

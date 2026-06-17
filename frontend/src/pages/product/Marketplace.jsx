@@ -8,7 +8,7 @@ import categoryService from "../../services/category.service";
 const CONDITIONS = ["Tất cả", "Mới", "Như mới", "Đã dùng - Còn tốt", "Đã dùng - Có lỗi nhỏ"];
 
 const mapConditionToStatus = (cond) => {
-  switch(cond) {
+  switch (cond) {
     case "Mới": return "new";
     case "Như mới": return "like_new";
     case "Đã dùng - Còn tốt": return "good";
@@ -18,7 +18,7 @@ const mapConditionToStatus = (cond) => {
 };
 
 const mapStatusToCondition = (status) => {
-  switch(status) {
+  switch (status) {
     case "new": return "Mới";
     case "like_new": return "Như mới";
     case "good": return "Đã dùng - Còn tốt";
@@ -32,7 +32,7 @@ const Marketplace = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isRentPage = location.pathname === "/cho-thue";
-  
+
   const [categories, setCategories] = useState([]);
   const [selectedCat, setSelectedCat] = useState("Tất cả");
   const [selectedCond, setSelectedCond] = useState("Tất cả");
@@ -42,7 +42,7 @@ const Marketplace = () => {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const keyword = searchParams.get("q") || "";
 
   useEffect(() => {
@@ -78,11 +78,11 @@ const Marketplace = () => {
 
   const inputCls = "w-full bg-surface-bright border border-surface-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:border-primary outline-none transition-all";
 
-  // Helper to get image URL correctly
-  const getImageUrl = (img) => {
-    if (!img) return "https://via.placeholder.com/500x500?text=No+Image";
-    if (img.startsWith("http")) return img;
-    return `http://localhost:5000${img}`; // Assuming backend runs on 5000
+  // Helper to get image URL — thumbnailUrl từ Cloudinary/upload đã là full URL
+  const getImageUrl = (url) => {
+    if (!url) return null; // Dùng null để hiển thị placeholder đẹp
+    if (url.startsWith("http")) return url;
+    return `http://localhost:5000${url}`;
   };
 
   const formatPrice = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
@@ -186,17 +186,28 @@ const Marketplace = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {products.map((product) => {
                 const conditionLabel = mapStatusToCondition(product.conditionStatus);
-                const conditionColor = product.conditionStatus === "new" || product.conditionStatus === "like_new" 
-                  ? "bg-secondary-container text-on-secondary-container" 
+                const conditionColor = product.conditionStatus === "new" || product.conditionStatus === "like_new"
+                  ? "bg-secondary-container text-on-secondary-container"
                   : "bg-surface-variant text-on-surface";
-                
+
                 const displayPrice = isRentPage ? formatPrice(product.rentPricePerDay) + "/ngày" : formatPrice(product.salePrice);
 
                 return (
                   <article key={product._id} onClick={() => navigate(`/san-pham/${product._id}`)}
                     className="bg-surface-container-lowest rounded-2xl shadow-apple overflow-hidden flex flex-col hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group border border-transparent hover:border-surface-variant">
                     <div className="relative aspect-square bg-surface-container-low overflow-hidden">
-                      <img alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={getImageUrl(product.images?.[0])} />
+                      {getImageUrl(product.thumbnailUrl) ? (
+                        <img
+                          alt={product.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          src={getImageUrl(product.thumbnailUrl)}
+                          onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+                        />
+                      ) : null}
+                      <div className={`absolute inset-0 flex items-center justify-center bg-surface-container-low flex-col gap-2 ${getImageUrl(product.thumbnailUrl) ? "hidden" : "flex"}`}>
+                        <span className="material-symbols-outlined text-4xl text-on-surface-variant/30">image</span>
+                        <span className="text-xs text-on-surface-variant/50">Chưa có ảnh</span>
+                      </div>
                       <span className={`absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${conditionColor}`}>
                         {conditionLabel}
                       </span>

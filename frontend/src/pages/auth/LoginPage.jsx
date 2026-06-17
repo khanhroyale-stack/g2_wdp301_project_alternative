@@ -14,8 +14,11 @@ const LoginPage = () => {
     setError("");
     setLoading(true);
     try {
-      await login(form);
-      navigate("/");
+      const data = await login(form);
+      // Route theo role
+      if (data.user.role === "admin") navigate("/admin");
+      else if (data.user.role === "shipper") navigate("/shipper");
+      else navigate("/ho-so");
     } catch (err) {
       setError(err.response?.data?.message || "Email hoặc mật khẩu không đúng.");
     } finally {

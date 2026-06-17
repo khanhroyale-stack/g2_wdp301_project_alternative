@@ -38,17 +38,17 @@ const CreatePost = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      let uploadedImageUrls = [];
+      let mediaIds = [];
       if (imageFiles.length > 0) {
         const uploadRes = await uploadService.uploadImages(imageFiles);
         if (uploadRes.success) {
-          uploadedImageUrls = uploadRes.urls;
+          mediaIds = uploadRes.mediaIds || [];
         }
       }
 
       const productData = {
         ...form,
-        images: uploadedImageUrls
+        mediaIds,
       };
 
       await productService.createProduct(productData);
@@ -107,8 +107,8 @@ const CreatePost = () => {
               {[{ v: "sale", label: "Bán", icon: "sell" }, { v: "rent", label: "Cho thuê", icon: "handshake" }].map((opt) => (
                 <button key={opt.v} type="button" onClick={() => set("productType", opt.v)}
                   className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${form.productType === opt.v
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-surface-variant text-on-surface-variant hover:border-primary/40"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-surface-variant text-on-surface-variant hover:border-primary/40"
                     }`}>
                   <span className="material-symbols-outlined text-[20px]">{opt.icon}</span>
                   {opt.label}

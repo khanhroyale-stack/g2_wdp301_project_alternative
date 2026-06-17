@@ -1,5 +1,26 @@
 const ProductPost = require("../models/product_post.model");
-const Category = require("../models/category.model");
+const ProductImage = require("../models/product_image.model");
+
+// Helper: gắn thumbnail URL vào mảng products
+const attachThumbnails = async (products) => {
+  const ids = products.map((p) => p._id);
+  const images = await ProductImage.find({ postId: { $in: ids } })
+    .populate("field", "publicUrl")
+    .sort({ isThumbnail: -1, sortOrder: 1 });
+
+  // Map: postId → publicUrl đầu tiên
+  const thumbMap = {};
+  for (const img of images) {
+    const key = img.postId.toString();
+    if (!thumbMap[key] && img.field?.publicUrl) {
+      thumbMap[key] = img.field.publicUrl;
+    }
+  }
+  return products.map((p) => ({
+    ...p.toObject(),
+    thumbnailUrl: thumbMap[p._id.toString()] || null,
+  }));
+};
 
 // GET /api/products — public, có filter/search/sort
 const getProducts = async (req, res) => {
@@ -11,13 +32,13 @@ const getProducts = async (req, res) => {
     const filter = { postStatus: "approved" };
     if (keyword) filter.$text = { $search: keyword };
     if (category) filter.categoryId = category;
-    
+
     if (listingType) {
       if (listingType === "ban") filter.productType = "sale";
       else if (listingType === "cho-thue") filter.productType = "rent";
       else filter.productType = listingType;
     }
-    
+
     if (condition) filter.conditionStatus = condition;
     if (minPrice || maxPrice) {
       filter.$or = [
@@ -35,13 +56,15 @@ const getProducts = async (req, res) => {
 
     const total = await ProductPost.countDocuments(filter);
     const products = await ProductPost.find(filter)
-      .populate("ownerId", "name avatar reputationScore averageRating totalTransactions")
+      .populate("ownerId", "fullName avatarUrl reputationScore averageRating")
       .populate("categoryId", "name icon")
       .sort(sortQuery)
       .skip((page - 1) * limit)
       .limit(limit);
 
-    res.json({ success: true, data: products, total, page, totalPages: Math.ceil(total / limit) });
+    const productsWithThumbs = await attachThumbnails(products);
+
+    res.json({ success: true, data: productsWithThumbs, total, page, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -51,10 +74,17 @@ const getProducts = async (req, res) => {
 const getProduct = async (req, res) => {
   try {
     const product = await ProductPost.findById(req.params.id)
-      .populate("ownerId", "name avatar reputationScore averageRating totalTransactions phone")
+      .populate("ownerId", "fullName avatarUrl reputationScore averageRating phone")
       .populate("categoryId", "name icon");
     if (!product) return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
-    res.json({ success: true, data: product });
+
+    // Lấy toàn bộ ảnh của sản phẩm
+    const images = await ProductImage.find({ postId: product._id })
+      .populate("field", "publicUrl fileType")
+      .sort({ isThumbnail: -1, sortOrder: 1 });
+    const imageUrls = images.map((img) => img.field?.publicUrl).filter(Boolean);
+
+    res.json({ success: true, data: { ...product.toObject(), imageUrls, thumbnailUrl: imageUrls[0] || null } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -66,7 +96,26 @@ const createProduct = async (req, res) => {
     if (req.user.accountStatus !== "APPROVED" && req.user.accountStatus !== "active") {
       return res.status(403).json({ success: false, message: "Tài khoản chưa được xác minh. Vui lòng đợi Admin duyệt." });
     }
-    const product = await ProductPost.create({ ...req.body, ownerId: req.user._id, postStatus: "pending" });
+
+    // Tách mediaIds ra, không lưu vào ProductPost schema
+    const { mediaIds, images, ...postData } = req.body;
+    const product = await ProductPost.create({ ...postData, ownerId: req.user._id, postStatus: "pending" });
+
+    // Lưu ProductImage records raw (tránh Mongoose thêm updatedAt/__v vi phạm Atlas schema)
+    const ids = Array.isArray(mediaIds) ? mediaIds : [];
+    if (ids.length > 0) {
+      const { Int32, ObjectId } = require("mongodb");
+      const db = require("mongoose").connection.db;
+      const imageDocs = ids.map((fieldId, idx) => ({
+        postId: product._id,
+        field: typeof fieldId === "string" ? new ObjectId(fieldId) : fieldId,
+        isThumbnail: idx === 0,
+        sortOrder: new Int32(idx),
+        createdAt: new Date(),
+      }));
+      await db.collection("product_images").insertMany(imageDocs);
+    }
+
     res.status(201).json({ success: true, data: product });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -80,7 +129,7 @@ const updateProduct = async (req, res) => {
     if (!product) return res.status(404).json({ success: false, message: "Không tìm thấy" });
     if (product.ownerId.toString() !== req.user._id.toString())
       return res.status(403).json({ success: false, message: "Không có quyền" });
-    
+
     Object.assign(product, req.body);
     product.postStatus = "pending"; // cần duyệt lại sau khi sửa
     await product.save();
@@ -140,15 +189,18 @@ const adminApproveProduct = async (req, res) => {
       { postStatus: "approved", approvedBy: req.user._id, approvedAt: new Date() },
       { new: true }
     );
-    
+
+    const io = req.app.get("io");
     const { createNotification } = require("./notification.controller");
     await createNotification({
       recipientId: product.ownerId,
+      type: "system",
       title: "Bài đăng đã được duyệt ✅",
-      message: `Bài đăng "${product.title}" của bạn đã được duyệt và đang hiển thị.`,
-      type: "POST_APPROVED",
+      content: `Bài đăng "${product.title}" của bạn đã được duyệt và đang hiển thị.`,
+      relatedType: "order",
+      relatedId: product._id,
       link: `/san-pham/${product._id}`,
-    });
+    }, io);
 
     res.json({ success: true, data: product });
   } catch (err) {
@@ -165,14 +217,15 @@ const adminRejectProduct = async (req, res) => {
       { new: true }
     );
 
+    const io = req.app.get("io");
     const { createNotification } = require("./notification.controller");
     await createNotification({
       recipientId: product.ownerId,
+      type: "system",
       title: "Bài đăng bị từ chối ❌",
-      message: `Bài đăng "${product.title}" của bạn bị từ chối. Lý do: ${reason || "Không đạt yêu cầu"}`,
-      type: "POST_REJECTED",
+      content: `Bài đăng "${product.title}" bị từ chối. Lý do: ${reason || "Không đạt yêu cầu"}`,
       link: "/quan-ly/bai-dang",
-    });
+    }, io);
 
     res.json({ success: true, data: product });
   } catch (err) {

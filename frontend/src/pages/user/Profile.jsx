@@ -2,248 +2,252 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
 import userService from "../../services/user.service";
-import toast from "react-hot-toast";
+import { authService } from "../../services/auth.service";
 
-const STATUS_MAP = {
-  PENDING: { label: "Chờ xác minh", color: "bg-surface-container text-on-surface-variant" },
-  APPROVED: { label: "Đã xác minh", color: "bg-secondary-container text-on-secondary-container" },
-  REJECTED: { label: "Bị từ chối", color: "bg-error-container text-on-error-container" },
-  BANNED: { label: "Bị khóa", color: "bg-error text-on-error" },
+const VER_BADGE = {
+  unverified: { label: "Chưa xác minh", cls: "bg-surface-container text-on-surface-variant" },
+  pending: { label: "Chờ duyệt KYC", cls: "bg-surface-container-high text-on-surface" },
+  verified: { label: "Đã xác minh", cls: "bg-white text-primary" },
+  rejected: { label: "Bị từ chối", cls: "bg-error text-on-error" },
 };
 
 const Profile = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  
+
   // Password state
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
-  const [isChangingPass, setIsChangingPass] = useState(false);
+  const [passLoading, setPassLoading] = useState(false);
+  const [passMsg, setPassMsg] = useState(null); // { type: "success"|"error", text }
 
-  // Reputation history state
+  // Reputation history
   const [history, setHistory] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [histLoading, setHistLoading] = useState(false);
 
-  const isBanned = user?.reputationScore === 0;
-  const currentStatus = isBanned ? "BANNED" : (user?.accountStatus || "PENDING");
-  const status = STATUS_MAP[currentStatus] || STATUS_MAP.PENDING;
+  const displayName = user?.fullName || user?.name || "";
+  const verBadge = VER_BADGE[user?.verificationStatus] || VER_BADGE.unverified;
 
   useEffect(() => {
-    if (activeTab === "reputation") {
-      fetchReputationHistory();
-    }
+    if (activeTab === "reputation" && user) fetchHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const fetchReputationHistory = async () => {
-    if (!user) return;
-    setLoadingHistory(true);
+  const fetchHistory = async () => {
+    setHistLoading(true);
     try {
-      const res = await userService.getReputationHistory(user._id);
-      if (res.success) setHistory(res.data);
-    } catch (err) {
-      toast.error("Lỗi lấy lịch sử uy tín");
-    } finally {
-      setLoadingHistory(false);
-    }
+      const res = await userService.getReputationHistory(user._id || user.id);
+      if (res.success) setHistory(res.logs || res.data || []);
+    } catch { setHistory([]); }
+    finally { setHistLoading(false); }
   };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (passwords.newPass !== passwords.confirm) return toast.error("Mật khẩu xác nhận không khớp");
-    setIsChangingPass(true);
-    try {
-      const res = await userService.changePassword(user._id, {
-        currentPassword: passwords.current,
-        newPassword: passwords.newPass
-      });
-      if (res.success) {
-        toast.success("Đổi mật khẩu thành công!");
-        setPasswords({ current: "", newPass: "", confirm: "" });
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Lỗi khi đổi mật khẩu");
-    } finally {
-      setIsChangingPass(false);
+    setPassMsg(null);
+    if (passwords.newPass !== passwords.confirm) {
+      setPassMsg({ type: "error", text: "Mật khẩu xác nhận không khớp." });
+      return;
     }
+    setPassLoading(true);
+    try {
+      await authService.changePassword({ currentPassword: passwords.current, newPassword: passwords.newPass });
+      setPassMsg({ type: "success", text: "Đổi mật khẩu thành công!" });
+      setPasswords({ current: "", newPass: "", confirm: "" });
+    } catch (err) {
+      setPassMsg({ type: "error", text: err.response?.data?.message || "Lỗi khi đổi mật khẩu." });
+    } finally { setPassLoading(false); }
   };
 
+  const TABS = [
+    { key: "overview", label: "Tổng quan", icon: "person" },
+    { key: "security", label: "Bảo mật", icon: "lock" },
+    { key: "reputation", label: "Lịch sử uy tín", icon: "history" },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-[#F5F5F7] font-sans">
+    <div className="flex min-h-screen bg-[#F5F5F7]">
       <Sidebar variant="user" />
-      <main className="flex-1 md:ml-64 px-4 md:px-10 py-10 w-full max-w-6xl mx-auto">
-        
-        {/* Header section with gradient */}
-        <div className="relative bg-gradient-to-r from-primary to-primary-fixed rounded-3xl p-8 md:p-10 mb-8 overflow-hidden shadow-lg">
-          <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
-          <div className="absolute bottom-[-10%] left-[10%] w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
-          
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded-full bg-white/20 border-4 border-white/30 p-1 backdrop-blur-sm shadow-xl">
-                {user?.avatar ? (
-                  <img src={user.avatar} alt={user?.name} className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-white text-primary flex items-center justify-center text-3xl font-black">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </div>
-                )}
+      <main className="flex-1 md:ml-64 px-4 md:px-10 py-10">
+        <div className="max-w-4xl mx-auto">
+
+          {/* Hero card */}
+          <div className="relative bg-gradient-to-r from-primary to-primary-fixed rounded-2xl p-8 mb-8 overflow-hidden shadow-lg">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <div className="w-20 h-20 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-white text-3xl font-black shadow-lg flex-shrink-0">
+                  {user?.avatarUrl
+                    ? <img src={user.avatarUrl} alt={displayName} className="w-full h-full rounded-full object-cover" />
+                    : displayName.charAt(0).toUpperCase() || "U"}
+                </div>
+                <div>
+                  <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-1">Hồ sơ cá nhân</p>
+                  <h1 className="text-2xl md:text-3xl font-black text-white leading-tight">{displayName}</h1>
+                  <p className="text-white/70 text-sm mt-0.5">{user?.email}</p>
+                  <span className={`mt-2 px-3 py-1 rounded-full text-xs font-bold inline-block ${verBadge.cls}`}>
+                    {verBadge.label}
+                  </span>
+                </div>
               </div>
+              {/* Reputation score */}
+              <div className="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-5 text-center min-w-[140px]">
+                <p className="text-white/70 text-xs font-medium mb-1">Điểm uy tín</p>
+                <p className="text-4xl font-black text-white">{user?.reputationScore ?? 100}</p>
+                <div className="mt-2 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                  <div className="h-full bg-white rounded-full"
+                    style={{ width: `${Math.min(user?.reputationScore ?? 100, 100)}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Warning chưa xác minh */}
+          {user?.verificationStatus === "unverified" && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-8 flex items-start gap-3">
+              <span className="material-symbols-outlined text-orange-500 flex-shrink-0">warning</span>
               <div>
-                <p className="text-white/80 font-medium mb-1 uppercase tracking-wider text-sm">Hồ sơ của tôi</p>
-                <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2">{user?.name}</h1>
-                <span className={`px-4 py-1.5 rounded-full text-xs font-bold inline-block shadow-sm ${
-                  currentStatus === "APPROVED" ? "bg-white text-primary" :
-                  currentStatus === "PENDING" ? "bg-yellow-400 text-yellow-900" : "bg-red-500 text-white"
-                }`}>
-                  {status.label}
-                </span>
-              </div>
-            </div>
-            
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 text-center min-w-[160px] shadow-lg">
-              <p className="text-white/80 text-sm font-medium mb-1">Điểm uy tín</p>
-              <div className="text-4xl font-black text-white">{user?.reputationScore || 100}</div>
-              <div className="mt-3 w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full bg-white rounded-full shadow-[0_0_10px_white]" style={{ width: `${Math.min(user?.reputationScore || 100, 100)}%` }} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Warning nếu chưa xác minh */}
-        {user?.accountStatus === "PENDING" && (
-          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mb-8 flex items-start gap-4 shadow-sm animate-pulse-slow">
-            <span className="material-symbols-outlined text-orange-500 text-3xl">warning</span>
-            <div>
-              <p className="font-bold text-orange-900 text-lg">Tài khoản chưa được xác minh</p>
-              <p className="text-orange-800 mt-1">
-                Bạn cần <a href="/xac-minh-tai-khoan" className="text-primary font-bold underline decoration-primary/40 underline-offset-4">tải lên giấy tờ xác minh</a> để đăng bài và mua bán.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Navigation Tabs */}
-        <div className="flex bg-surface-container-lowest p-1.5 rounded-2xl mb-8 shadow-sm border border-surface-variant/30 w-fit">
-          <button onClick={() => setActiveTab("overview")} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === "overview" ? "bg-white text-primary shadow" : "text-on-surface-variant hover:text-on-surface"}`}>
-            Tổng quan
-          </button>
-          <button onClick={() => setActiveTab("security")} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === "security" ? "bg-white text-primary shadow" : "text-on-surface-variant hover:text-on-surface"}`}>
-            Bảo mật
-          </button>
-          <button onClick={() => setActiveTab("reputation")} className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === "reputation" ? "bg-white text-primary shadow" : "text-on-surface-variant hover:text-on-surface"}`}>
-            Lịch sử uy tín
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="bg-surface-container-lowest rounded-3xl shadow-apple border border-surface-variant/30 overflow-hidden">
-          {activeTab === "overview" && (
-            <div>
-              <div className="p-6 md:p-8 border-b border-surface-variant/30 bg-surface-bright/30">
-                <h2 className="text-xl font-bold text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary">person</span>
-                  Thông tin liên hệ
-                </h2>
-              </div>
-              <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Họ và tên</label>
-                  <div className="px-4 py-3 bg-surface-container-lowest border border-surface-variant/50 rounded-xl text-on-surface font-medium">{user?.name}</div>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Email</label>
-                  <div className="px-4 py-3 bg-surface-container-lowest border border-surface-variant/50 rounded-xl text-on-surface font-medium">{user?.email}</div>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Số điện thoại</label>
-                  <div className="px-4 py-3 bg-surface-container-lowest border border-surface-variant/50 rounded-xl text-on-surface font-medium">{user?.phone || "Chưa cập nhật"}</div>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Vai trò</label>
-                  <div className="px-4 py-3 bg-surface-container-lowest border border-surface-variant/50 rounded-xl text-on-surface font-medium">
-                    {{ admin: "Quản trị viên", shipper: "Shipper", user: "Người dùng" }[user?.role]}
-                  </div>
-                </div>
+                <p className="font-semibold text-orange-900">Tài khoản chưa xác minh</p>
+                <p className="text-sm text-orange-800 mt-0.5">
+                  Vui lòng <a href="/xac-minh-tai-khoan" className="font-bold underline">tải lên giấy tờ</a> để bắt đầu giao dịch.
+                </p>
               </div>
             </div>
           )}
 
-          {activeTab === "security" && (
-            <div>
-              <div className="p-6 md:p-8 border-b border-surface-variant/30 bg-surface-bright/30">
-                <h2 className="text-xl font-bold text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined text-tertiary">lock</span>
-                  Đổi mật khẩu
-                </h2>
-              </div>
-              <form onSubmit={handleChangePassword} className="p-6 md:p-8 max-w-xl">
-                <div className="space-y-5 mb-8">
-                  <div>
-                    <label className="text-sm font-bold text-on-surface mb-2 block">Mật khẩu hiện tại</label>
-                    <input type="password" required value={passwords.current} onChange={e => setPasswords({...passwords, current: e.target.value})}
-                      className="w-full px-4 py-3 bg-surface-container-lowest border border-surface-variant/50 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-on-surface mb-2 block">Mật khẩu mới</label>
-                    <input type="password" required minLength="6" value={passwords.newPass} onChange={e => setPasswords({...passwords, newPass: e.target.value})}
-                      className="w-full px-4 py-3 bg-surface-container-lowest border border-surface-variant/50 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-on-surface mb-2 block">Xác nhận mật khẩu mới</label>
-                    <input type="password" required minLength="6" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})}
-                      className="w-full px-4 py-3 bg-surface-container-lowest border border-surface-variant/50 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-                  </div>
-                </div>
-                <button type="submit" disabled={isChangingPass}
-                  className="px-8 py-3.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-xl font-bold shadow-md hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50">
-                  {isChangingPass ? "Đang xử lý..." : "Cập nhật mật khẩu"}
-                </button>
-              </form>
-            </div>
-          )}
+          {/* Tabs */}
+          <div className="flex bg-surface-container-lowest p-1 rounded-xl mb-6 shadow-sm border border-surface-variant/30 w-fit gap-0.5">
+            {TABS.map((t) => (
+              <button key={t.key} onClick={() => setActiveTab(t.key)}
+                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${activeTab === t.key
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
+                  }`}>
+                <span className="material-symbols-outlined text-[16px]">{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-          {activeTab === "reputation" && (
-            <div>
-              <div className="p-6 md:p-8 border-b border-surface-variant/30 bg-surface-bright/30">
-                <h2 className="text-xl font-bold text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined text-secondary">history</span>
-                  Lịch sử điểm uy tín
-                </h2>
-              </div>
-              <div className="p-0">
-                {loadingHistory ? (
-                  <div className="p-10 flex justify-center text-primary"><span className="material-symbols-outlined animate-spin text-4xl">refresh</span></div>
-                ) : history.length === 0 ? (
-                  <div className="p-10 text-center text-on-surface-variant flex flex-col items-center">
-                    <div className="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center mb-4">
-                       <span className="material-symbols-outlined text-3xl">verified</span>
+          {/* Tab content */}
+          <div className="bg-surface-container-lowest rounded-2xl shadow-apple border border-surface-variant/30 overflow-hidden">
+
+            {/* Overview */}
+            {activeTab === "overview" && (
+              <div>
+                <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
+                  <h2 className="font-bold text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-[20px]">person</span>
+                    Thông tin liên hệ
+                  </h2>
+                </div>
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {[
+                    { label: "Họ và tên", value: displayName },
+                    { label: "Email", value: user?.email },
+                    { label: "Số điện thoại", value: user?.phone || "Chưa cập nhật" },
+                    { label: "Địa chỉ", value: user?.address || "Chưa cập nhật" },
+                    { label: "Vai trò", value: { admin: "Quản trị viên", shipper: "Shipper", user: "Người dùng" }[user?.role] || "Người dùng" },
+                    { label: "Trạng thái TK", value: user?.accountStatus === "active" ? "Đang hoạt động" : "Bị khóa" },
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block">
+                        {item.label}
+                      </label>
+                      <div className="px-4 py-3 bg-surface-container-low border border-surface-variant/30 rounded-xl text-on-surface text-sm font-medium">
+                        {item.value}
+                      </div>
                     </div>
-                    <p className="font-medium">Bạn chưa từng bị trừ điểm uy tín.</p>
-                    <p className="text-sm mt-1">Hãy tiếp tục giữ phong độ tốt nhé!</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Security */}
+            {activeTab === "security" && (
+              <div>
+                <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
+                  <h2 className="font-bold text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[20px]">lock</span>
+                    Đổi mật khẩu
+                  </h2>
+                </div>
+                <form onSubmit={handleChangePassword} className="p-6 max-w-md">
+                  {passMsg && (
+                    <div className={`flex items-center gap-2 p-3.5 rounded-xl text-sm mb-5 border ${passMsg.type === "success"
+                        ? "bg-secondary-container/30 text-on-secondary-container border-secondary-container"
+                        : "bg-error-container/30 text-error border-error/20"
+                      }`}>
+                      <span className="material-symbols-outlined text-[16px]">
+                        {passMsg.type === "success" ? "check_circle" : "error"}
+                      </span>
+                      {passMsg.text}
+                    </div>
+                  )}
+                  {[
+                    { key: "current", label: "Mật khẩu hiện tại", ph: "••••••••" },
+                    { key: "newPass", label: "Mật khẩu mới", ph: "Tối thiểu 6 ký tự" },
+                    { key: "confirm", label: "Xác nhận mật khẩu", ph: "Nhập lại mật khẩu mới" },
+                  ].map((f) => (
+                    <div key={f.key} className="mb-4">
+                      <label className="block text-sm font-medium text-on-surface mb-1.5">{f.label}</label>
+                      <input type="password" required minLength={6} placeholder={f.ph}
+                        value={passwords[f.key]}
+                        onChange={(e) => setPasswords({ ...passwords, [f.key]: e.target.value })}
+                        className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" />
+                    </div>
+                  ))}
+                  <button type="submit" disabled={passLoading}
+                    className="mt-2 px-7 py-3 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60">
+                    {passLoading ? "Đang cập nhật..." : "Cập nhật mật khẩu"}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Reputation history */}
+            {activeTab === "reputation" && (
+              <div>
+                <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
+                  <h2 className="font-bold text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[20px]">history</span>
+                    Lịch sử điểm uy tín
+                  </h2>
+                </div>
+                {histLoading ? (
+                  <div className="p-10 flex justify-center">
+                    <span className="material-symbols-outlined animate-spin text-2xl text-primary">refresh</span>
+                  </div>
+                ) : history.length === 0 ? (
+                  <div className="p-12 text-center flex flex-col items-center gap-3 text-on-surface-variant">
+                    <span className="material-symbols-outlined text-5xl opacity-30">verified</span>
+                    <p className="font-medium text-on-surface">Chưa từng bị trừ điểm uy tín.</p>
+                    <p className="text-sm">Hãy tiếp tục duy trì phong độ tốt!</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-surface-variant/30">
                     {history.map((h, i) => (
-                      <div key={i} className="p-6 flex items-start gap-4 hover:bg-surface-bright/40 transition-colors">
-                        <div className="w-12 h-12 rounded-full bg-error/10 text-error flex items-center justify-center font-black flex-shrink-0">
-                          -{h.pointsDeducted}
+                      <div key={i} className="px-6 py-5 flex items-start gap-4">
+                        <div className="w-11 h-11 rounded-full bg-error/10 text-error flex items-center justify-center font-black text-sm flex-shrink-0">
+                          {h.changeAmount}
                         </div>
-                        <div>
-                          <p className="font-bold text-on-surface mb-1">{h.reason}</p>
-                          <div className="flex gap-4 text-xs text-on-surface-variant">
-                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">calendar_today</span>{new Date(h.createdAt).toLocaleDateString("vi-VN")}</span>
-                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">admin_panel_settings</span>Xử lý bởi: {h.processedBy?.name || "Admin"}</span>
+                        <div className="flex-1">
+                          <p className="font-semibold text-on-surface text-sm">{h.reason}</p>
+                          <div className="flex flex-wrap gap-4 text-xs text-on-surface-variant mt-1.5">
+                            <span>{new Date(h.createdAt).toLocaleDateString("vi-VN")}</span>
+                            <span>Bởi: {h.changedBy?.fullName || "Admin"}</span>
+                            <span className="font-medium text-on-surface">
+                              Mức vi phạm: {h.violationLevel}
+                            </span>
                           </div>
-                          <p className="mt-2 text-sm text-on-surface bg-surface-container-low px-3 py-1.5 rounded-lg inline-block font-medium">Điểm sau khi trừ: <strong className="text-primary">{h.scoreAfter}</strong></p>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+
+          </div>
         </div>
       </main>
     </div>
