@@ -3,38 +3,44 @@ const Order = require("../models/order.model");
 const DeliveryInspection = require("../models/delivery_inspection.model");
 const ProductImage = require("../models/product_image.model");
 
-/**
- * @desc    Get available deliveries for shippers (not assigned yet)
- * @route   GET /api/deliveries/available
- * @access  Private (Shipper only)
- */
+const appendDeliveryHistory = (delivery, status, note) => {
+  delivery.history.push({
+    status,
+    note,
+    timestamp: new Date(),
+  });
+};
+
+const hydrateProductImage = async (delivery) => {
+  if (delivery.orderId?.postId?._id) {
+    const image = await ProductImage.findOne({
+      productPostId: delivery.orderId.postId._id,
+    })
+      .select("imageUrl")
+      .lean();
+    delivery.orderId.productImage = image?.imageUrl || null;
+  }
+};
+
 const getAvailableDeliveries = async (req, res) => {
   try {
-    const deliveries = await Delivery.find({ 
-      shipperId: null, 
-      deliveryStatus: "pending" 
+    const deliveries = await Delivery.find({
+      shipperId: null,
+      deliveryStatus: "pending",
     })
       .populate({
         path: "orderId",
         populate: [
           { path: "buyerId", select: "fullName phone" },
           { path: "sellerId", select: "fullName phone address" },
-          { path: "postId", select: "title salePrice" }
-        ]
+          { path: "postId", select: "title salePrice" },
+        ],
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // Get product images
-    for (let delivery of deliveries) {
-      if (delivery.orderId && delivery.orderId.postId) {
-        const image = await ProductImage.findOne({ 
-          productPostId: delivery.orderId.postId._id 
-        })
-          .select("imageUrl")
-          .lean();
-        delivery.orderId.productImage = image?.imageUrl || null;
-      }
+    for (const delivery of deliveries) {
+      await hydrateProductImage(delivery);
     }
 
     res.json({ success: true, data: deliveries });
@@ -43,33 +49,28 @@ const getAvailableDeliveries = async (req, res) => {
   }
 };
 
-/**
- * @desc    Accept delivery (shipper accepts the delivery)
- * @route   POST /api/deliveries/:id/accept
- * @access  Private (Shipper only)
- */
 const acceptDelivery = async (req, res) => {
   try {
     const delivery = await Delivery.findById(req.params.id);
 
     if (!delivery) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn giao hàng" });
+      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
     }
 
     if (delivery.shipperId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Đơn này đã có shipper nhận" 
+      return res.status(400).json({
+        success: false,
+        message: "Don nay da co shipper nhan",
       });
     }
 
     delivery.shipperId = req.user._id;
-    delivery.deliveryStatus = "picking_up";
+    delivery.deliveryStatus = "accepted";
+    appendDeliveryHistory(delivery, "accepted", "Shipper da nhan don giao hang.");
     await delivery.save();
 
-    // Update order status
     await Order.findByIdAndUpdate(delivery.orderId, {
-      orderStatus: "shipping"
+      orderStatus: "shipping",
     });
 
     const updatedDelivery = await Delivery.findById(delivery._id)
@@ -79,30 +80,24 @@ const acceptDelivery = async (req, res) => {
         populate: [
           { path: "buyerId", select: "fullName phone" },
           { path: "sellerId", select: "fullName phone address" },
-          { path: "postId", select: "title salePrice" }
-        ]
+          { path: "postId", select: "title salePrice" },
+        ],
       })
       .lean();
 
-    res.json({ 
-      success: true, 
-      message: "Đã nhận đơn giao hàng",
-      data: updatedDelivery 
+    res.json({
+      success: true,
+      message: "Da nhan don giao hang",
+      data: updatedDelivery,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-/**
- * @desc    Get my deliveries (shipper's assigned deliveries)
- * @route   GET /api/deliveries/my-deliveries
- * @access  Private (Shipper only)
- */
 const getMyDeliveries = async (req, res) => {
   try {
     const { status } = req.query;
-    
     const filter = { shipperId: req.user._id };
     if (status) {
       filter.deliveryStatus = status;
@@ -114,22 +109,14 @@ const getMyDeliveries = async (req, res) => {
         populate: [
           { path: "buyerId", select: "fullName phone address" },
           { path: "sellerId", select: "fullName phone address" },
-          { path: "postId", select: "title salePrice" }
-        ]
+          { path: "postId", select: "title salePrice" },
+        ],
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // Get product images
-    for (let delivery of deliveries) {
-      if (delivery.orderId && delivery.orderId.postId) {
-        const image = await ProductImage.findOne({ 
-          productPostId: delivery.orderId.postId._id 
-        })
-          .select("imageUrl")
-          .lean();
-        delivery.orderId.productImage = image?.imageUrl || null;
-      }
+    for (const delivery of deliveries) {
+      await hydrateProductImage(delivery);
     }
 
     res.json({ success: true, data: deliveries });
@@ -138,11 +125,6 @@ const getMyDeliveries = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get delivery by ID
- * @route   GET /api/deliveries/:id
- * @access  Private
- */
 const getDeliveryById = async (req, res) => {
   try {
     const delivery = await Delivery.findById(req.params.id)
@@ -152,41 +134,38 @@ const getDeliveryById = async (req, res) => {
         populate: [
           { path: "buyerId", select: "fullName phone address email" },
           { path: "sellerId", select: "fullName phone address email" },
-          { path: "postId" }
-        ]
+          { path: "postId" },
+        ],
       })
       .lean();
 
     if (!delivery) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn giao hàng" });
+      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
     }
 
-    // Check permission
     const isShipper = String(delivery.shipperId?._id) === String(req.user._id);
     const isBuyer = delivery.orderId && String(delivery.orderId.buyerId._id) === String(req.user._id);
     const isSeller = delivery.orderId && String(delivery.orderId.sellerId._id) === String(req.user._id);
-    
     if (!isShipper && !isBuyer && !isSeller && req.user.role !== "admin") {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Bạn không có quyền xem đơn giao hàng này" 
+      return res.status(403).json({
+        success: false,
+        message: "Ban khong co quyen xem don giao hang nay",
       });
     }
 
-    // Get product images
-    if (delivery.orderId && delivery.orderId.postId) {
-      const images = await ProductImage.find({ 
-        productPostId: delivery.orderId.postId._id 
+    if (delivery.orderId?.postId?._id) {
+      const images = await ProductImage.find({
+        productPostId: delivery.orderId.postId._id,
       })
         .select("imageUrl displayOrder")
         .sort({ displayOrder: 1 })
         .lean();
-      delivery.orderId.postId.images = images.map(img => img.imageUrl);
+      delivery.orderId.postId.images = images.map((img) => img.imageUrl);
     }
 
-    // Get inspection reports
     const inspections = await DeliveryInspection.find({ deliveryId: delivery._id })
       .populate("shipperId", "fullName phone")
+      .sort({ createdAt: -1 })
       .lean();
     delivery.inspections = inspections;
 
@@ -196,52 +175,78 @@ const getDeliveryById = async (req, res) => {
   }
 };
 
-/**
- * @desc    Update delivery status
- * @route   PATCH /api/deliveries/:id/status
- * @access  Private (Shipper only)
- */
 const updateDeliveryStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, note, failureReason } = req.body;
     const delivery = await Delivery.findById(req.params.id);
 
     if (!delivery) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn giao hàng" });
+      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
     }
 
     if (String(delivery.shipperId) !== String(req.user._id)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Bạn không có quyền cập nhật đơn này" 
+      return res.status(403).json({
+        success: false,
+        message: "Ban khong co quyen cap nhat don nay",
       });
     }
 
     const validTransitions = {
-      "picking_up": ["in_transit", "failed"],
-      "in_transit": ["delivered", "failed"],
-      "delivered": [] // Cannot change from delivered
+      accepted: ["picking_up", "failed"],
+      picking_up: ["picked_up", "failed"],
+      picked_up: ["in_transit", "failed"],
+      in_transit: ["delivered", "failed"],
+      delivered: [],
+      completed: [],
+      failed: [],
+      pending: [],
     };
 
     const currentStatus = delivery.deliveryStatus;
     if (!validTransitions[currentStatus] || !validTransitions[currentStatus].includes(status)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Không thể chuyển sang trạng thái này" 
+      return res.status(400).json({
+        success: false,
+        message: "Khong the chuyen sang trang thai nay",
       });
     }
 
+    if (status === "in_transit") {
+      const latestInspection = await DeliveryInspection.findOne({ deliveryId: delivery._id }).sort({ createdAt: -1 }).lean();
+      if (!latestInspection || latestInspection.result !== "passed") {
+        return res.status(400).json({
+          success: false,
+          message: "Can co bien ban kiem tra hop le truoc khi bat dau giao hang",
+        });
+      }
+    }
+
     delivery.deliveryStatus = status;
+    if (status === "failed") {
+      delivery.failureReason = (failureReason || note || "").trim() || "Shipper bao cao giao hang that bai.";
+    }
+    appendDeliveryHistory(
+      delivery,
+      status,
+      status === "picking_up"
+        ? note || "Shipper dang di den diem lay hang."
+        : status === "picked_up"
+          ? note || "Shipper da nhan hang tu seller va cho kiem tra."
+          : status === "in_transit"
+            ? note || "Shipper bat dau giao hang den buyer."
+            : status === "delivered"
+              ? note || "Shipper xac nhan da giao hang thanh cong."
+              : delivery.failureReason || note || "Delivery gap su co va duoc danh dau that bai."
+    );
     await delivery.save();
 
-    // Update order status accordingly
     if (status === "delivered") {
       await Order.findByIdAndUpdate(delivery.orderId, {
-        orderStatus: "delivered"
+        orderStatus: "delivered",
       });
     } else if (status === "failed") {
       await Order.findByIdAndUpdate(delivery.orderId, {
-        orderStatus: "cancelled"
+        orderStatus: "cancelled",
+        cancelReason: delivery.failureReason,
       });
     }
 
@@ -252,15 +257,15 @@ const updateDeliveryStatus = async (req, res) => {
         populate: [
           { path: "buyerId", select: "fullName phone" },
           { path: "sellerId", select: "fullName phone" },
-          { path: "postId", select: "title" }
-        ]
+          { path: "postId", select: "title" },
+        ],
       })
       .lean();
 
-    res.json({ 
-      success: true, 
-      message: "Cập nhật trạng thái thành công",
-      data: updatedDelivery 
+    res.json({
+      success: true,
+      message: "Cap nhat trang thai thanh cong",
+      data: updatedDelivery,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -272,5 +277,5 @@ module.exports = {
   acceptDelivery,
   getMyDeliveries,
   getDeliveryById,
-  updateDeliveryStatus
+  updateDeliveryStatus,
 };

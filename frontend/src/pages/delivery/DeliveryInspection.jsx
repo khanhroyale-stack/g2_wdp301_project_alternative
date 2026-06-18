@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Camera, CircleAlert, ImagePlus, Info, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CircleAlert, Info, ShieldCheck } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import { Badge } from "../../components/ui/badge";
@@ -11,6 +11,20 @@ import deliveryService from "../../services/delivery.service";
 import inspectionService from "../../services/inspection.service";
 import { formatPrice } from "../../lib/utils";
 
+function CheckRow({ label, checked, onChange, disabled }) {
+  return (
+    <div className="rounded-[24px] bg-muted p-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-[1.15rem] font-bold">{label}</div>
+        <div className="flex items-center gap-4">
+          <span className="text-lg font-extrabold">{checked ? "DAT" : "KHONG DAT"}</span>
+          <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DeliveryInspection() {
   const { id } = useParams();
   const location = useLocation();
@@ -19,10 +33,14 @@ export default function DeliveryInspection() {
   const [submitting, setSubmitting] = useState(false);
   const [delivery, setDelivery] = useState(null);
   const [inspection, setInspection] = useState(null);
-  const [files, setFiles] = useState([]);
   const [form, setForm] = useState({
-    isMatchDescription: true,
+    isCorrectProduct: true,
+    isCorrectImage: true,
+    isCorrectModel: true,
+    isCorrectCondition: true,
+    isAccessoriesEnough: true,
     conditionNote: "",
+    result: "passed",
   });
 
   useEffect(() => {
@@ -34,8 +52,13 @@ export default function DeliveryInspection() {
           if (inspectionRes.success) {
             setInspection(inspectionRes.data);
             setForm({
-              isMatchDescription: inspectionRes.data.isMatchDescription !== false,
+              isCorrectProduct: inspectionRes.data.isCorrectProduct !== false,
+              isCorrectImage: inspectionRes.data.isCorrectImage !== false,
+              isCorrectModel: inspectionRes.data.isCorrectModel !== false,
+              isCorrectCondition: inspectionRes.data.isCorrectCondition !== false,
+              isAccessoriesEnough: inspectionRes.data.isAccessoriesEnough !== false,
               conditionNote: inspectionRes.data.conditionNote || "",
+              result: inspectionRes.data.result || "passed",
             });
 
             const deliveryId = inspectionRes.data.deliveryId?._id || inspectionRes.data.deliveryId;
@@ -49,7 +72,7 @@ export default function DeliveryInspection() {
           if (res.success) setDelivery(res.data);
         }
       } catch (error) {
-        alert(error.response?.data?.message || "Không thể tải biên bản kiểm tra");
+        alert(error.response?.data?.message || "Khong the tai bien ban kiem tra");
         navigate(-1);
       } finally {
         setLoading(false);
@@ -58,12 +81,6 @@ export default function DeliveryInspection() {
 
     fetchSource();
   }, [id, location.pathname, navigate]);
-
-  const handleFileChange = (event) => {
-    const selected = Array.from(event.target.files || []).slice(0, 4);
-    const nextFiles = selected.map((file) => ({ file, preview: URL.createObjectURL(file) }));
-    setFiles(nextFiles);
-  };
 
   const handleSubmit = async () => {
     if (inspection) {
@@ -77,11 +94,18 @@ export default function DeliveryInspection() {
         deliveryId: id,
         inspectionType: "pickup",
         conditionNote: form.conditionNote,
-        isMatchDescription: form.isMatchDescription,
+        isMatchDescription: form.result === "passed",
+        isDamagedByShipper: form.result === "failed_shipper_fault",
+        isCorrectProduct: form.isCorrectProduct,
+        isCorrectImage: form.isCorrectImage,
+        isCorrectModel: form.isCorrectModel,
+        isCorrectCondition: form.isCorrectCondition,
+        isAccessoriesEnough: form.isAccessoriesEnough,
+        result: form.result,
       });
       if (res.success) navigate(`/deliveries/${id}`);
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể lưu biên bản");
+      alert(error.response?.data?.message || "Khong the luu bien ban");
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +114,7 @@ export default function DeliveryInspection() {
   if (loading) {
     return (
       <EcoTradeLayout>
-        <div className="flex min-h-[70vh] items-center justify-center text-lg font-medium text-muted-foreground">Đang tải biên bản kiểm tra...</div>
+        <div className="flex min-h-[70vh] items-center justify-center text-lg font-medium text-muted-foreground">Dang tai bien ban kiem tra...</div>
       </EcoTradeLayout>
     );
   }
@@ -99,6 +123,7 @@ export default function DeliveryInspection() {
 
   const order = delivery.orderId || {};
   const product = order.postId || {};
+  const readOnly = Boolean(inspection);
 
   return (
     <EcoTradeLayout>
@@ -109,17 +134,17 @@ export default function DeliveryInspection() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-4xl font-extrabold tracking-tight sm:text-[2.9rem]">Biên Bản Kiểm Tra</h1>
+              <h1 className="text-4xl font-extrabold tracking-tight sm:text-[2.9rem]">Bien ban kiem tra</h1>
               <div className="mt-2 flex flex-wrap items-center gap-3 text-lg text-muted-foreground">
                 <Badge variant="outline">#{String(id).slice(-6).toUpperCase()}</Badge>
                 <span>•</span>
-                <span>Đang kiểm tra hiện trạng bàn giao</span>
+                <span>Kiem tra san pham sau khi da lay hang tu seller</span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2 text-lg">
             <Info className="h-5 w-5" />
-            Yêu cầu tối thiểu 2 ảnh
+            Inspection la buoc bat buoc truoc khi giao
           </div>
         </div>
 
@@ -129,10 +154,10 @@ export default function DeliveryInspection() {
               {product.images?.[0] ? <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" /> : null}
             </div>
             <div className="flex-1">
-              <div className="text-[1.55rem] font-extrabold text-success">{product.title || "Sản phẩm EcoTrade"}</div>
+              <div className="text-[1.55rem] font-extrabold text-success">{product.title || "San pham EcoTrade"}</div>
               <div className="mt-1 flex flex-wrap gap-5 text-base text-muted-foreground">
-                <span>Người bán: {order.sellerId?.fullName || "Minh Trần"}</span>
-                <span>Phí vận chuyển: {formatPrice(delivery.deliveryFee)}</span>
+                <span>Nguoi ban: {order.sellerId?.fullName || "Seller"}</span>
+                <span>Phi van chuyen: {formatPrice(delivery.deliveryFee)}</span>
               </div>
             </div>
           </CardContent>
@@ -140,71 +165,57 @@ export default function DeliveryInspection() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-[2rem]">Chi tiết kiểm định</CardTitle>
-            <p className="text-lg text-muted-foreground">Vui lòng xác nhận tình trạng thực tế của sản phẩm trước khi giao.</p>
+            <CardTitle className="text-[2rem]">Chi tiet kiem dinh</CardTitle>
+            <p className="text-lg text-muted-foreground">Shipper can xac nhan dung san pham, dung hinh anh, dung model, dung tinh trang va du phu kien.</p>
           </CardHeader>
           <CardContent className="space-y-7">
-            <div className="rounded-[24px] bg-muted p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="text-[1.35rem] font-bold">Khớp với mô tả người bán</div>
-                  <div className="mt-1 text-base text-muted-foreground">Sản phẩm không có hư hỏng ngoài mô tả ban đầu.</div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xl font-extrabold">{form.isMatchDescription ? "ĐÚNG" : "KHÔNG"}</span>
-                  <Switch checked={form.isMatchDescription} onCheckedChange={(checked) => setForm({ ...form, isMatchDescription: checked })} />
-                </div>
+            <CheckRow label="Dung san pham?" checked={form.isCorrectProduct} onChange={(value) => setForm((prev) => ({ ...prev, isCorrectProduct: value }))} disabled={readOnly} />
+            <CheckRow label="Dung hinh anh?" checked={form.isCorrectImage} onChange={(value) => setForm((prev) => ({ ...prev, isCorrectImage: value }))} disabled={readOnly} />
+            <CheckRow label="Dung model?" checked={form.isCorrectModel} onChange={(value) => setForm((prev) => ({ ...prev, isCorrectModel: value }))} disabled={readOnly} />
+            <CheckRow label="Dung tinh trang?" checked={form.isCorrectCondition} onChange={(value) => setForm((prev) => ({ ...prev, isCorrectCondition: value }))} disabled={readOnly} />
+            <CheckRow label="Du phu kien?" checked={form.isAccessoriesEnough} onChange={(value) => setForm((prev) => ({ ...prev, isAccessoriesEnough: value }))} disabled={readOnly} />
+
+            <div className="space-y-3">
+              <label className="text-[1.1rem] font-semibold">Ket luan inspection</label>
+              <div className="grid gap-3 md:grid-cols-3">
+                {[
+                  { value: "passed", label: "Passed", variant: "success" },
+                  { value: "failed_seller_fault", label: "Failed do seller", variant: "warning" },
+                  { value: "failed_shipper_fault", label: "Failed do shipper", variant: "danger" },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => setForm((prev) => ({ ...prev, result: option.value }))}
+                    className={`rounded-[20px] border px-4 py-4 text-left transition ${
+                      form.result === option.value ? "border-success bg-success-soft" : "border-border bg-white"
+                    } ${readOnly ? "cursor-default" : "cursor-pointer"}`}
+                  >
+                    <Badge variant={option.variant}>{option.label}</Badge>
+                  </button>
+                ))}
               </div>
             </div>
 
             <div className="space-y-3">
-              <label className="text-[1.1rem] font-semibold">Ghi chú tình trạng sản phẩm</label>
+              <label className="text-[1.1rem] font-semibold">Ghi chu tinh trang san pham</label>
               <Textarea
                 value={form.conditionNote}
                 onChange={(e) => setForm({ ...form, conditionNote: e.target.value })}
-                placeholder="Ví dụ: Sản phẩm có vết xước nhẹ ở chân trái, đóng gói cẩn thận bằng xốp nổ..."
+                placeholder="Mo ta tinh trang thuc te, loi neu co, cac diem can luu y khi giao."
                 className="min-h-[120px]"
+                disabled={readOnly}
               />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <label className="text-[1.1rem] font-semibold">Ảnh chụp hiện trạng (Tối thiểu 2 ảnh)</label>
-                <div className="text-sm italic text-muted-foreground">Yêu cầu ảnh rõ nét, đủ sáng</div>
-              </div>
-              <label className="block cursor-pointer">
-                <input type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {["Mặt trước", "Mặt sau", "Chi tiết lỗi", "Góc nghiêng"].map((slot, index) => {
-                    const current = files[index];
-                    return (
-                      <div key={slot} className="relative flex h-[140px] flex-col items-center justify-center overflow-hidden rounded-[22px] border border-dashed border-border bg-white">
-                        {current ? <img src={current.preview} alt={slot} className="absolute inset-0 h-full w-full object-cover" /> : null}
-                        <div className={`absolute inset-x-0 bottom-0 px-3 py-2 text-center text-sm font-semibold ${current ? "bg-black/55 text-white" : "text-muted-foreground"}`}>
-                          {current ? slot : null}
-                        </div>
-                        {!current ? (
-                          <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                            <div className="rounded-full bg-muted p-4">
-                              <Camera className="h-6 w-6" />
-                            </div>
-                            <span>{slot}</span>
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </label>
             </div>
 
             <div className="border-t border-border pt-6">
               <div className="mb-5 flex items-start justify-center gap-3 text-sm text-muted-foreground">
                 <CircleAlert className="mt-0.5 h-4 w-4" />
-                Bằng việc nhấn "Lưu biên bản", bạn xác nhận đã kiểm tra kỹ sản phẩm.
+                Bang viec luu bien ban, shipper xac nhan ket qua inspection va chap nhan tiep tuc hoac dung luong giao.
               </div>
               <Button size="lg" className="w-full text-[1.25rem]" onClick={handleSubmit} disabled={submitting}>
-                {inspection ? "Quay lại vận đơn" : submitting ? "Đang lưu..." : "Lưu Biên Bản"}
+                {inspection ? "Quay lai van don" : submitting ? "Dang luu..." : "Luu bien ban kiem tra"}
               </Button>
             </div>
           </CardContent>
@@ -213,10 +224,10 @@ export default function DeliveryInspection() {
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <Card>
             <CardContent className="flex items-start gap-4 pt-6">
-              <div className="rounded-full bg-success-soft p-3 text-success"><ImagePlus className="h-5 w-5" /></div>
+              <div className="rounded-full bg-success-soft p-3 text-success"><ShieldCheck className="h-5 w-5" /></div>
               <div>
-                <div className="text-[1.35rem] font-bold">Chụp ảnh rõ nét</div>
-                <div className="mt-1 text-base leading-7 text-muted-foreground">Luôn đảm bảo ảnh chụp không bị rung mờ để bảo vệ quyền lợi của bạn khi có khiếu nại.</div>
+                <div className="text-[1.35rem] font-bold">Khi inspection dat</div>
+                <div className="mt-1 text-base leading-7 text-muted-foreground">Shipper se duoc phep quay lai van don va chuyen tiep sang buoc bat dau giao hang.</div>
               </div>
             </CardContent>
           </Card>
@@ -224,8 +235,8 @@ export default function DeliveryInspection() {
             <CardContent className="flex items-start gap-4 pt-6">
               <div className="rounded-full bg-sky-soft p-3 text-sky"><Info className="h-5 w-5" /></div>
               <div>
-                <div className="text-[1.35rem] font-bold">Báo cáo bất thường</div>
-                <div className="mt-1 text-base leading-7 text-muted-foreground">Nếu sản phẩm hư hỏng nặng, hãy liên hệ ngay với bộ phận hỗ trợ trước khi tiếp tục giao.</div>
+                <div className="text-[1.35rem] font-bold">Khi inspection that bai</div>
+                <div className="mt-1 text-base leading-7 text-muted-foreground">He thong se dung delivery va dong bo trang thai order de buyer/seller nhin thay ngay tren man chi tiet.</div>
               </div>
             </CardContent>
           </Card>

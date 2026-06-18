@@ -16,6 +16,7 @@ import ProductDetail from "./pages/products/ProductDetail";
 import CreateOrder from "./pages/orders/CreateOrder";
 import OrderList from "./pages/orders/OrderList";
 import OrderDetail from "./pages/orders/OrderDetail";
+import MySales from "./pages/orders/MySales";
 
 // Delivery pages
 import DeliveryList from "./pages/delivery/DeliveryList";
@@ -44,6 +45,7 @@ function App() {
           {/* Order routes */}
           <Route path="/orders/create/:productId" element={<CreateOrder />} />
           <Route path="/orders/my-orders" element={<OrderList />} />
+          <Route path="/orders/my-sales" element={<MySales />} />
           <Route path="/orders/:id" element={<OrderDetail />} />
           
           {/* Delivery routes (for shippers) */}

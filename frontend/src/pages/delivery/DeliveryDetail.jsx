@@ -1,13 +1,20 @@
-import { useEffect, useState } from "react";
-import { ChevronDown, Clock3, MapPin, ShieldCheck, Truck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Clock3, MapPin, Package2, ShieldCheck, Truck } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import { Avatar, AvatarFallback } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import deliveryService from "../../services/delivery.service";
+import { getDeliveryStatusInfo } from "../../lib/orderFlow";
 import { formatDateTime, formatPrice } from "../../lib/utils";
+import deliveryService from "../../services/delivery.service";
+
+const nextActionMap = {
+  accepted: { label: "Dang den lay hang", nextStatus: "picking_up", variant: "sky" },
+  picking_up: { label: "Da lay hang", nextStatus: "picked_up", variant: "default" },
+  in_transit: { label: "Da giao thanh cong", nextStatus: "delivered", variant: "success" },
+};
 
 export default function DeliveryDetail() {
   const { id } = useParams();
@@ -16,42 +23,49 @@ export default function DeliveryDetail() {
   const [delivery, setDelivery] = useState(null);
   const [updating, setUpdating] = useState(false);
 
+  const fetchDelivery = async () => {
+    setLoading(true);
+    try {
+      const res = await deliveryService.getDeliveryById(id);
+      if (res.success) setDelivery(res.data);
+    } catch (error) {
+      alert(error.response?.data?.message || "Khong the tai van don");
+      navigate(-1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDelivery = async () => {
-      setLoading(true);
-      try {
-        const res = await deliveryService.getDeliveryById(id);
-        if (res.success) setDelivery(res.data);
-      } catch (error) {
-        alert(error.response?.data?.message || "Không thể tải vận đơn");
-        navigate(-1);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDelivery();
-  }, [id, navigate]);
+  }, [id]);
 
-  const updateStatus = async (status) => {
+  const updateStatus = async (status, extra = {}) => {
     setUpdating(true);
     try {
-      const res = await deliveryService.updateDeliveryStatus(id, status);
+      const res = await deliveryService.updateDeliveryStatus(id, status, extra);
       if (res.success) {
-        const refreshed = await deliveryService.getDeliveryById(id);
-        if (refreshed.success) setDelivery(refreshed.data);
+        await fetchDelivery();
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể cập nhật trạng thái");
+      alert(error.response?.data?.message || "Khong the cap nhat trang thai");
     } finally {
       setUpdating(false);
     }
   };
 
+  const handleFail = async () => {
+    const reason = window.prompt("Nhap ly do giao that bai / bao cao su co", "");
+    if (reason === null) return;
+    await updateStatus("failed", { failureReason: reason });
+  };
+
+  const history = useMemo(() => delivery?.history || [], [delivery]);
+
   if (loading) {
     return (
       <EcoTradeLayout>
-        <div className="flex min-h-[70vh] items-center justify-center text-lg font-medium text-muted-foreground">Đang tải chi tiết vận đơn...</div>
+        <div className="flex min-h-[70vh] items-center justify-center text-lg font-medium text-muted-foreground">Dang tai chi tiet van don...</div>
       </EcoTradeLayout>
     );
   }
@@ -60,10 +74,10 @@ export default function DeliveryDetail() {
 
   const order = delivery.orderId || {};
   const product = order.postId || {};
-  const status = delivery.deliveryStatus;
-  const canStartTransit = status === "picking_up";
-  const canComplete = status === "in_transit";
-  const inspectionId = delivery.inspections?.[0]?._id;
+  const statusInfo = getDeliveryStatusInfo(delivery.deliveryStatus);
+  const nextAction = nextActionMap[delivery.deliveryStatus];
+  const pickupInspection = delivery.inspections?.find((item) => item.inspectionType === "pickup");
+  const mustInspect = delivery.deliveryStatus === "picked_up";
 
   return (
     <EcoTradeLayout>
@@ -75,20 +89,33 @@ export default function DeliveryDetail() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-4xl font-extrabold tracking-tight sm:text-[2.7rem]">Vận đơn #{String(delivery._id).slice(-8).toUpperCase()}</h1>
-                <Badge variant="success">{status === "delivered" ? "Đã hoàn tất" : "Đã nhận đơn"}</Badge>
+                <h1 className="text-4xl font-extrabold tracking-tight sm:text-[2.7rem]">Van don #{String(delivery._id).slice(-8).toUpperCase()}</h1>
+                <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
               </div>
-              <div className="mt-2 text-xl text-muted-foreground">Tạo lúc: {formatDateTime(delivery.createdAt)}</div>
+              <div className="mt-2 text-xl text-muted-foreground">Tao luc: {formatDateTime(delivery.createdAt)}</div>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            {canStartTransit ? (
-              <Button variant="sky" size="lg" onClick={() => updateStatus("in_transit")} disabled={updating}>Bắt đầu giao hàng</Button>
+            {mustInspect ? (
+              <Button asChild size="lg">
+                <Link to={pickupInspection ? `/inspections/${pickupInspection._id}` : `/deliveries/${delivery._id}/inspection`}>
+                  Mo bien ban kiem tra
+                </Link>
+              </Button>
             ) : null}
-            {canComplete ? (
-              <Button size="lg" onClick={() => updateStatus("delivered")} disabled={updating}>Đã giao thành công</Button>
+            {nextAction ? (
+              <Button
+                variant={nextAction.variant === "default" ? undefined : nextAction.variant}
+                size="lg"
+                onClick={() => updateStatus(nextAction.nextStatus)}
+                disabled={updating}
+              >
+                {updating ? "Dang xu ly..." : nextAction.label}
+              </Button>
             ) : null}
-            <Button variant="outline" size="lg">Hỗ trợ</Button>
+            <Button variant="danger" size="lg" onClick={handleFail} disabled={updating || ["delivered", "completed", "failed"].includes(delivery.deliveryStatus)}>
+              Bao cao su co
+            </Button>
           </div>
         </div>
 
@@ -96,19 +123,19 @@ export default function DeliveryDetail() {
           <Card className="border-t-[3px] border-t-warning">
             <CardContent className="pt-8">
               <div className="mb-4 flex items-center justify-between">
-                <Badge variant="warning">Điểm Lấy Hàng</Badge>
-                <span className="text-sm font-semibold text-muted-foreground">Xem bản đồ</span>
+                <Badge variant="warning">Diem lay hang</Badge>
+                <span className="text-sm font-semibold text-muted-foreground">Seller</span>
               </div>
               <div className="mb-5 flex items-center gap-4">
                 <Avatar className="h-14 w-14"><AvatarFallback>NB</AvatarFallback></Avatar>
                 <div>
-                  <div className="text-[1.5rem] font-bold">{order.sellerId?.fullName || "Người bán"}</div>
-                  <div className="text-lg text-muted-foreground">{order.sellerId?.phone || "Chưa có số điện thoại"}</div>
+                  <div className="text-[1.5rem] font-bold">{order.sellerId?.fullName || "Nguoi ban"}</div>
+                  <div className="text-lg text-muted-foreground">{order.sellerId?.phone || "Chua co so dien thoai"}</div>
                 </div>
               </div>
               <div className="rounded-[24px] border border-dashed border-border px-5 py-5">
-                <div className="mb-2 text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">Địa chỉ chi tiết</div>
-                <div className="text-[1.18rem] font-semibold leading-8">{delivery.pickupAddress || order.sellerId?.address || "Chưa cập nhật"}</div>
+                <div className="mb-2 text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">Dia chi chi tiet</div>
+                <div className="text-[1.18rem] font-semibold leading-8">{delivery.pickupAddress || order.sellerId?.address || "Chua cap nhat"}</div>
               </div>
             </CardContent>
           </Card>
@@ -116,19 +143,19 @@ export default function DeliveryDetail() {
           <Card className="border-t-[3px] border-t-success">
             <CardContent className="pt-8">
               <div className="mb-4 flex items-center justify-between">
-                <Badge variant="success">Điểm Giao Hàng</Badge>
-                <span className="text-sm font-semibold text-muted-foreground">Xem bản đồ</span>
+                <Badge variant="success">Diem giao hang</Badge>
+                <span className="text-sm font-semibold text-muted-foreground">Buyer</span>
               </div>
               <div className="mb-5 flex items-center gap-4">
                 <Avatar className="h-14 w-14"><AvatarFallback>NM</AvatarFallback></Avatar>
                 <div>
-                  <div className="text-[1.5rem] font-bold">{order.buyerId?.fullName || "Người mua"}</div>
-                  <div className="text-lg text-muted-foreground">{order.buyerId?.phone || "Chưa có số điện thoại"}</div>
+                  <div className="text-[1.5rem] font-bold">{order.buyerId?.fullName || "Nguoi mua"}</div>
+                  <div className="text-lg text-muted-foreground">{order.buyerId?.phone || "Chua co so dien thoai"}</div>
                 </div>
               </div>
               <div className="rounded-[24px] border border-dashed border-border px-5 py-5">
-                <div className="mb-2 text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">Địa chỉ chi tiết</div>
-                <div className="text-[1.18rem] font-semibold leading-8">{delivery.deliveryAddress || order.buyerId?.address || "Chưa cập nhật"}</div>
+                <div className="mb-2 text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground">Dia chi chi tiet</div>
+                <div className="text-[1.18rem] font-semibold leading-8">{delivery.deliveryAddress || order.buyerId?.address || "Chua cap nhat"}</div>
               </div>
             </CardContent>
           </Card>
@@ -141,90 +168,110 @@ export default function DeliveryDetail() {
                 <ShieldCheck className="h-6 w-6" />
               </div>
               <div>
-                <div className="text-[1.8rem] font-extrabold text-success">Yêu cầu kiểm định hàng hóa</div>
-                <div className="mt-1 max-w-2xl text-lg text-muted-foreground">Để đảm bảo quyền lợi, vui lòng thực hiện kiểm tra tình trạng sản phẩm và chụp ảnh xác nhận trước khi rời điểm lấy hàng.</div>
+                <div className="text-[1.8rem] font-extrabold text-success">Inspection truoc khi giao</div>
+                <div className="mt-1 max-w-2xl text-lg text-muted-foreground">
+                  Sau khi da lay hang, shipper phai lap bien ban kiem tra. Chi khi inspection dat, he thong moi cho phep bat dau giao hang.
+                </div>
               </div>
             </div>
             <Button asChild size="lg" className="min-w-[220px]">
-              <Link to={inspectionId ? `/inspections/${inspectionId}` : `/deliveries/${delivery._id}/inspection`}>Mở Biên Bản Kiểm Định</Link>
+              <Link to={pickupInspection ? `/inspections/${pickupInspection._id}` : `/deliveries/${delivery._id}/inspection`}>
+                {pickupInspection ? "Xem bien ban" : "Mo bien ban"}
+              </Link>
             </Button>
           </CardContent>
         </Card>
 
-        <div className="mt-8 space-y-6">
-          <div className="flex items-center gap-3 text-[2rem] font-extrabold">
-            <Package2 className="h-6 w-6 text-muted-foreground" />
-            Chi tiết đơn hàng
-          </div>
+        <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 text-[2rem] font-extrabold">
+              <Package2 className="h-6 w-6 text-muted-foreground" />
+              Chi tiet don hang
+            </div>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="text-[1.5rem] font-bold">Danh sách sản phẩm</div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline">Khối lượng: ~4.5kg</Badge>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </div>
-
-              <div className="mt-5 divide-y divide-border">
-                <div className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center">
                   <div className="h-16 w-16 overflow-hidden rounded-[18px] bg-muted">
                     {product.images?.[0] ? <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" /> : null}
                   </div>
                   <div className="flex-1">
-                    <div className="text-[1.3rem] font-bold">{product.title || "Sản phẩm EcoTrade"}</div>
-                    <div className="text-base text-muted-foreground">{product.conditionStatus || "Tình trạng tốt"}</div>
+                    <div className="text-[1.3rem] font-bold">{product.title || "San pham EcoTrade"}</div>
+                    <div className="text-base text-muted-foreground">{product.conditionStatus || "Tinh trang tot"}</div>
                     <div className="mt-1 text-base font-semibold text-success">SL: 1</div>
                   </div>
-                  <div className="text-right text-[1.7rem] font-extrabold">{formatPrice(order.productPrice)}</div>
+                  <div className="text-right text-[1.7rem] font-extrabold">{formatPrice(order.totalAmount || order.productPrice)}</div>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              <div className="mt-4 flex items-center justify-between border-t border-border pt-5">
-                <span className="text-xl text-muted-foreground">Tổng giá trị đơn hàng (Tạm tính):</span>
-                <span className="text-[2rem] font-extrabold">{formatPrice(order.totalAmount || order.productPrice)}</span>
-              </div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[1.7rem]">Tien do van chuyen</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-7">
+                {history.length === 0 ? (
+                  <div className="text-muted-foreground">Chua co lich su trang thai.</div>
+                ) : history.map((item, index) => {
+                  const itemInfo = getDeliveryStatusInfo(item.status);
+                  return (
+                    <div key={`${item.status}-${index}`} className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="rounded-full bg-success-soft p-3 text-success"><Clock3 className="h-5 w-5" /></div>
+                        <div>
+                          <div className="text-[1.25rem] font-bold">{itemInfo.label}</div>
+                          <div className="text-base text-muted-foreground">{item.note || "Cap nhat delivery"}</div>
+                          <div className="mt-1 text-sm text-muted-foreground">{formatDateTime(item.timestamp)}</div>
+                        </div>
+                      </div>
+                      <Badge variant={itemInfo.variant}>{itemInfo.label}</Badge>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-[1.7rem]">Tiến độ vận chuyển</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-7">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="rounded-full bg-success-soft p-3 text-success"><ShieldCheck className="h-5 w-5" /></div>
+          <div className="space-y-6">
+            {pickupInspection ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[1.6rem]">Ket qua inspection</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Ket qua</span><span className="font-semibold">{pickupInspection.result}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Dung san pham</span><span>{pickupInspection.isCorrectProduct ? "Co" : "Khong"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Dung hinh anh</span><span>{pickupInspection.isCorrectImage ? "Co" : "Khong"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Dung model</span><span>{pickupInspection.isCorrectModel ? "Co" : "Khong"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Dung tinh trang</span><span>{pickupInspection.isCorrectCondition ? "Co" : "Khong"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Du phu kien</span><span>{pickupInspection.isAccessoriesEnough ? "Co" : "Khong"}</span></div>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {delivery.failureReason ? (
+              <Card className="border-danger/20 bg-danger-soft/40">
+                <CardContent className="flex items-start gap-4 pt-6">
+                  <div className="rounded-full bg-danger-soft p-3 text-danger"><AlertTriangle className="h-5 w-5" /></div>
                   <div>
-                    <div className="text-[1.25rem] font-bold">Shipper xác nhận nhận đơn</div>
-                    <div className="text-base text-muted-foreground">{formatDateTime(delivery.createdAt)}</div>
+                    <div className="text-[1.2rem] font-bold text-danger">Ly do that bai</div>
+                    <div className="mt-1 text-sm text-danger">{delivery.failureReason}</div>
                   </div>
-                </div>
-                <Badge variant="outline">Hoàn tất</Badge>
-              </div>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="rounded-full bg-muted p-3 text-muted-foreground"><Clock3 className="h-5 w-5" /></div>
-                  <div>
-                    <div className="text-[1.25rem] font-bold">Đã lấy hàng & Kiểm định</div>
-                    <div className="text-base text-muted-foreground">Dự kiến: 15:00</div>
-                  </div>
-                </div>
-                <Badge variant={inspectionId ? "success" : "sky"}>{inspectionId ? "Hoàn tất" : "Đang thực hiện"}</Badge>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="rounded-full bg-muted p-3 text-muted-foreground"><Truck className="h-5 w-5" /></div>
-                <div>
-                  <div className="text-[1.25rem] font-bold">Đang giao đến người mua</div>
-                  <div className="text-base text-muted-foreground">Dự kiến: 16:00</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[1.6rem]">Thong tin nhanh</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                <div className="flex items-start gap-3"><MapPin className="mt-0.5 h-4 w-4 text-success" /><span>{delivery.pickupAddress}</span></div>
+                <div className="flex items-start gap-3"><Truck className="mt-0.5 h-4 w-4 text-sky" /><span>{delivery.deliveryAddress}</span></div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        <div className="mt-10 text-right text-[1.15rem] font-bold text-danger">Hủy đơn / Trả lại đơn</div>
       </div>
     </EcoTradeLayout>
   );

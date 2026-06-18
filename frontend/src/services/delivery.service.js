@@ -27,8 +27,8 @@ const deliveryService = {
   },
 
   // Update delivery status
-  updateDeliveryStatus: async (id, status) => {
-    const response = await api.patch(`/deliveries/${id}/status`, { status });
+  updateDeliveryStatus: async (id, status, extra = {}) => {
+    const response = await api.patch(`/deliveries/${id}/status`, { status, ...extra });
     return response.data;
   },
 };

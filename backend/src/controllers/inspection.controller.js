@@ -1,50 +1,101 @@
 const DeliveryInspection = require("../models/delivery_inspection.model");
 const Delivery = require("../models/delivery.model");
+const Order = require("../models/order.model");
 const InspectionImage = require("../models/inspection_image.model");
 
-/**
- * @desc    Create inspection report
- * @route   POST /api/inspections
- * @access  Private (Shipper only)
- */
 const createInspection = async (req, res) => {
   try {
-    const { 
-      deliveryId, 
-      inspectionType, 
-      conditionNote, 
+    const {
+      deliveryId,
+      inspectionType,
+      conditionNote,
       isMatchDescription,
-      isDamagedByShipper 
+      isDamagedByShipper,
+      isCorrectProduct,
+      isCorrectImage,
+      isCorrectModel,
+      isCorrectCondition,
+      isAccessoriesEnough,
+      result,
     } = req.body;
 
-    if (!deliveryId || !inspectionType) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Vui lòng điền đầy đủ thông tin" 
+    if (!deliveryId || !inspectionType || !result) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui long dien day du thong tin",
       });
     }
 
-    // Check delivery exists and shipper owns it
     const delivery = await Delivery.findById(deliveryId);
     if (!delivery) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn giao hàng" });
+      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
     }
 
     if (String(delivery.shipperId) !== String(req.user._id)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Bạn không có quyền tạo biên bản cho đơn này" 
+      return res.status(403).json({
+        success: false,
+        message: "Ban khong co quyen tao bien ban cho don nay",
+      });
+    }
+
+    if (!["picked_up", "in_transit"].includes(delivery.deliveryStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Chi co the lap bien ban sau khi da lay hang",
+      });
+    }
+
+    const existingInspection = await DeliveryInspection.findOne({
+      deliveryId,
+      inspectionType,
+    }).lean();
+    if (existingInspection) {
+      return res.status(400).json({
+        success: false,
+        message: "Bien ban kiem tra cho buoc nay da ton tai",
       });
     }
 
     const inspection = await DeliveryInspection.create({
       deliveryId,
       shipperId: req.user._id,
-      inspectionType, // "pickup" or "receive"
+      inspectionType,
       conditionNote: conditionNote || "",
       isMatchDescription: isMatchDescription !== false,
-      isDamagedByShipper: isDamagedByShipper || false
+      isDamagedByShipper: !!isDamagedByShipper,
+      isCorrectProduct: isCorrectProduct !== false,
+      isCorrectImage: isCorrectImage !== false,
+      isCorrectModel: isCorrectModel !== false,
+      isCorrectCondition: isCorrectCondition !== false,
+      isAccessoriesEnough: isAccessoriesEnough !== false,
+      result,
     });
+
+    if (result === "passed") {
+      if (delivery.deliveryStatus !== "picked_up") {
+        return res.status(400).json({
+          success: false,
+          message: "Delivery phai o trang thai da lay hang truoc khi xac nhan inspection dat",
+        });
+      }
+    } else {
+      delivery.deliveryStatus = "failed";
+      delivery.failureReason =
+        result === "failed_seller_fault"
+          ? "San pham khong dung mo ta cua seller."
+          : "San pham bi hu hong trong qua trinh xu ly cua shipper.";
+      delivery.history.push({
+        status: "failed",
+        note: delivery.failureReason,
+        timestamp: new Date(),
+      });
+      await delivery.save();
+
+      await Order.findByIdAndUpdate(delivery.orderId, {
+        orderStatus: "cancelled",
+        cancelReason: delivery.failureReason,
+      });
+    }
 
     const populatedInspection = await DeliveryInspection.findById(inspection._id)
       .populate("shipperId", "fullName phone")
@@ -52,39 +103,33 @@ const createInspection = async (req, res) => {
         path: "deliveryId",
         populate: {
           path: "orderId",
-          populate: { path: "postId", select: "title" }
-        }
+          populate: { path: "postId", select: "title" },
+        },
       })
       .lean();
 
-    res.status(201).json({ 
-      success: true, 
-      message: "Tạo biên bản kiểm tra thành công",
-      data: populatedInspection 
+    res.status(201).json({
+      success: true,
+      message: "Tao bien ban kiem tra thanh cong",
+      data: populatedInspection,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-/**
- * @desc    Get inspections for a delivery
- * @route   GET /api/inspections/delivery/:deliveryId
- * @access  Private
- */
 const getInspectionsByDelivery = async (req, res) => {
   try {
-    const inspections = await DeliveryInspection.find({ 
-      deliveryId: req.params.deliveryId 
+    const inspections = await DeliveryInspection.find({
+      deliveryId: req.params.deliveryId,
     })
       .populate("shipperId", "fullName phone")
       .sort({ createdAt: -1 })
       .lean();
 
-    // Get images for each inspection
-    for (let inspection of inspections) {
-      const images = await InspectionImage.find({ 
-        inspectionId: inspection._id 
+    for (const inspection of inspections) {
+      const images = await InspectionImage.find({
+        inspectionId: inspection._id,
       })
         .select("imageUrl description")
         .lean();
@@ -97,11 +142,6 @@ const getInspectionsByDelivery = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get inspection by ID
- * @route   GET /api/inspections/:id
- * @access  Private
- */
 const getInspectionById = async (req, res) => {
   try {
     const inspection = await DeliveryInspection.findById(req.params.id)
@@ -114,18 +154,17 @@ const getInspectionById = async (req, res) => {
             populate: [
               { path: "buyerId", select: "fullName phone" },
               { path: "sellerId", select: "fullName phone" },
-              { path: "postId", select: "title salePrice" }
-            ]
-          }
-        ]
+              { path: "postId", select: "title salePrice" },
+            ],
+          },
+        ],
       })
       .lean();
 
     if (!inspection) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy biên bản kiểm tra" });
+      return res.status(404).json({ success: false, message: "Khong tim thay bien ban kiem tra" });
     }
 
-    // Get images
     const images = await InspectionImage.find({ inspectionId: inspection._id })
       .select("imageUrl description")
       .lean();
@@ -137,11 +176,6 @@ const getInspectionById = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get my inspections (shipper's inspections)
- * @route   GET /api/inspections/my-inspections
- * @access  Private (Shipper only)
- */
 const getMyInspections = async (req, res) => {
   try {
     const inspections = await DeliveryInspection.find({ shipperId: req.user._id })
@@ -149,14 +183,13 @@ const getMyInspections = async (req, res) => {
         path: "deliveryId",
         populate: {
           path: "orderId",
-          populate: { path: "postId", select: "title" }
-        }
+          populate: { path: "postId", select: "title" },
+        },
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // Get images
-    for (let inspection of inspections) {
+    for (const inspection of inspections) {
       const images = await InspectionImage.find({ inspectionId: inspection._id })
         .select("imageUrl description")
         .lean();
@@ -173,5 +206,5 @@ module.exports = {
   createInspection,
   getInspectionsByDelivery,
   getInspectionById,
-  getMyInspections
+  getMyInspections,
 };
