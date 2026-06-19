@@ -144,7 +144,7 @@ const MyOrders = () => {
             <div className="flex flex-col gap-6">
               {orders.map((order) => {
                 const s = ORDER_STATUS[order.orderStatus] || { label: order.orderStatus, color: "bg-surface-variant text-on-surface" };
-                const otherPartyName = tab === 0 ? (order.sellerId?.name || "N/A") : (order.buyerId?.name || "N/A");
+                const otherPartyName = tab === 0 ? (order.sellerId?.fullName || "N/A") : (order.buyerId?.fullName || "N/A");
                 const isProcessing = processingId === order._id;
 
                 return (
@@ -157,7 +157,7 @@ const MyOrders = () => {
                       )}
                       <div className="flex items-start gap-5 flex-1 w-full">
                         <div className="w-24 h-24 rounded-2xl overflow-hidden bg-surface-container-low flex-shrink-0 shadow-inner p-1 border border-surface-variant/30">
-                          <img src={getImageUrl(order.postId?.images?.[0])} alt="" className="w-full h-full object-cover rounded-xl" />
+                          <img src={getImageUrl(order.postId?.thumbnailUrl)} alt="" className="w-full h-full object-cover rounded-xl" />
                         </div>
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-3 mb-1">
@@ -280,10 +280,10 @@ const MyOrders = () => {
 
       {/* Order Detail Popup */}
       {showOrderDetail && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] px-4 overflow-y-auto py-8">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl border border-surface-variant/20">
-            <div className="p-8">
-              <div className="flex items-start justify-between gap-6 mb-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-[100] px-4 overflow-y-auto py-8">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl border border-surface-variant/20 my-8">
+            <div className="sticky top-0 bg-white p-6 md:p-8 border-b border-surface-variant/30 z-10 rounded-t-3xl">
+              <div className="flex items-start justify-between gap-6">
                 <div>
                   <h2 className="text-2xl font-extrabold text-on-surface mb-2">
                     Chi tiết đơn hàng #{showOrderDetail._id.slice(-6).toUpperCase()}
@@ -296,7 +296,9 @@ const MyOrders = () => {
                   <span className="material-symbols-outlined text-2xl">close</span>
                 </button>
               </div>
+            </div>
 
+            <div className="p-6 md:p-8 overflow-y-auto max-h-[calc(100vh-240px)]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {/* Người bán */}
                 <div className="p-4 bg-surface-container-low rounded-2xl border border-surface-variant/20">
@@ -380,7 +382,7 @@ const MyOrders = () => {
               </div>
             </div>
 
-            <div className="px-8 pb-8 pt-4 border-t border-surface-variant/20 flex justify-end">
+            <div className="px-8 pb-8 pt-4 border-t border-surface-variant/30 flex justify-end">
               <button onClick={() => setShowOrderDetail(null)}
                 className="px-6 py-2.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all text-on-surface-variant">
                 Đóng

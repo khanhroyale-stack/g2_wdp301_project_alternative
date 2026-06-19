@@ -81,6 +81,8 @@ const DeliveringOrders = () => {
       });
       if (res.success) {
         toast.success("Đã lưu biên bản kiểm tra!");
+        // After inspection, update to picked_up
+        await handleUpdateStatus(inspectOpen._id, "picked_up");
         setInspectOpen(null);
         setForm({
           isCorrectProduct: true,
@@ -208,13 +210,21 @@ const DeliveringOrders = () => {
                         {/* Actions */}
                         <div className="flex flex-wrap gap-4 items-center justify-between">
                           {delivery.deliveryStatus === "picking_up" && (
-                            <button
-                              onClick={() => setInspectOpen(delivery)}
-                              className="flex items-center gap-1.5 px-5 py-2.5 bg-surface-container text-on-surface rounded-xl text-sm font-bold hover:bg-surface-variant transition-all"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">fact_check</span>
-                              Tạo biên bản kiểm tra
-                            </button>
+                            <div className="flex gap-3 flex-wrap">
+                              <button
+                                onClick={() => setInspectOpen(delivery)}
+                                className="flex items-center gap-1.5 px-5 py-2.5 bg-surface-container text-on-surface rounded-xl text-sm font-bold hover:bg-surface-variant transition-all"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">fact_check</span>
+                                Tạo biên bản kiểm tra
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(delivery._id, "picked_up")} disabled={isProcessing}
+                                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                              >
+                                Đã lấy hàng (bỏ qua biên bản)
+                              </button>
+                            </div>
                           )}
 
                           <div className="flex gap-3 flex-wrap">

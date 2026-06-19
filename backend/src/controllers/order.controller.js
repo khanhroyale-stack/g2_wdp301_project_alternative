@@ -88,7 +88,7 @@ const createOrder = async (req, res) => {
 const getMyOrders = async (req, res) => {
   try {
     const orders = await Order.find({ buyerId: req.user._id })
-      .populate("postId", "title salePrice")
+      .populate("postId", "title salePrice thumbnailUrl")
       .populate("sellerId", "fullName avatar phone address")
       .populate("buyerId", "fullName phone")
       .sort({ createdAt: -1 });
@@ -101,7 +101,7 @@ const getMyOrders = async (req, res) => {
 const getMySales = async (req, res) => {
   try {
     const orders = await Order.find({ sellerId: req.user._id })
-      .populate("postId", "title salePrice")
+      .populate("postId", "title salePrice thumbnailUrl")
       .populate("buyerId", "fullName avatar phone address")
       .populate("sellerId", "fullName phone")
       .sort({ createdAt: -1 });
