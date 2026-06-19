@@ -6,7 +6,7 @@ const shipperService = {
     return response.data;
   },
   acceptOrder: async (id) => {
-    const response = await api.post(`/deliveries/${id}/accept");
+    const response = await api.post(`/deliveries/${id}/accept`);
     return response.data;
   },
   getMyDeliveries: async () => {
