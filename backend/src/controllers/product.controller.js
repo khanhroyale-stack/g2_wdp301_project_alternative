@@ -247,7 +247,6 @@ const adminChangeStatus = async (req, res) => {
     if (status === "approved") {
       updateData.approvedBy = req.user._id;
       updateData.approvedAt = new Date();
-      updateData.rejectReason = null;
     } else if (status === "rejected") {
       updateData.rejectReason = reason || "Không đạt yêu cầu";
     } else if (status === "pending") {
@@ -256,16 +255,22 @@ const adminChangeStatus = async (req, res) => {
       updateData.rejectReason = null;
     }
 
-    const product = await ProductPost.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const product = await ProductPost.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
     if (!product) return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
 
+    // Send notifications if approved/rejected/pending
     const io = req.app.get("io");
     const { createNotification } = require("./notification.controller");
     if (status === "approved") {
       await createNotification({
         recipientId: product.ownerId,
         type: "system",
-        title: "Bài đăng đã được duyệt",
+        title: "Bài đăng đã được duyệt ✅",
         content: `Bài đăng "${product.title}" của bạn đã được duyệt và đang hiển thị.`,
         relatedType: "order",
         relatedId: product._id,
@@ -275,7 +280,7 @@ const adminChangeStatus = async (req, res) => {
       await createNotification({
         recipientId: product.ownerId,
         type: "system",
-        title: "Bài đăng bị từ chối",
+        title: "Bài đăng bị từ chối ❌",
         content: `Bài đăng "${product.title}" bị từ chối. Lý do: ${reason || "Không đạt yêu cầu"}`,
         link: "/quan-ly/bai-dang",
       }, io);
@@ -283,8 +288,8 @@ const adminChangeStatus = async (req, res) => {
       await createNotification({
         recipientId: product.ownerId,
         type: "system",
-        title: "Bài đăng đang được xem xét lại",
-        content: `Bài đăng "${product.title}" đã được đưa về trạng thái chờ duyệt.`,
+        title: "Bài đăng đang được xem xét lại ⏳",
+        content: `Bài đăng "${product.title}" đã được đưa về trạng thái chờ duyệt để xem xét lại tính minh bạch.`,
         link: "/quan-ly/bai-dang",
       }, io);
     }
