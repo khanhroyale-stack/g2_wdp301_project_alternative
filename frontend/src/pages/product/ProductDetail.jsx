@@ -9,6 +9,11 @@ import rentalService from "../../services/rental.service";
 import orderService from "../../services/order.service";
 import chatService from "../../services/chat.service";
 import toast from "react-hot-toast";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import { formatPrice } from "../../lib/utils";
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -19,9 +24,20 @@ const ProductDetail = () => {
     const [activeImg, setActiveImg] = useState(0);
     const [showRentalModal, setShowRentalModal] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
+    const [showOrderModal, setShowOrderModal] = useState(false);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Order form state
+    const [orderPreview, setOrderPreview] = useState(null);
+    const [orderForm, setOrderForm] = useState({
+        recipientName: "",
+        buyerPhone: "",
+        buyerAddress: "",
+        note: "",
+    });
+    const [orderLoading, setOrderLoading] = useState(false);
 
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -90,7 +106,49 @@ const ProductDetail = () => {
 
     const handleBuy = async () => {
         if (!user) return navigate("/dang-nhap");
-        navigate(`/dat-hang/${product._id}`);
+        setShowOrderModal(true);
+        setOrderLoading(true);
+        try {
+            const res = await orderService.getCheckoutPreview(id);
+            if (res.success) {
+                setOrderPreview(res.data);
+                setOrderForm({
+                    recipientName: res.data.buyer?.fullName || "",
+                    buyerPhone: res.data.buyer?.phone || "",
+                    buyerAddress: res.data.buyer?.address || "",
+                    note: "",
+                });
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Không thể tải thông tin sản phẩm");
+            setShowOrderModal(false);
+        } finally {
+            setOrderLoading(false);
+        }
+    };
+
+    const handleOrderSubmit = async (e) => {
+        e.preventDefault();
+        if (!orderForm.recipientName || !orderForm.buyerPhone || !orderForm.buyerAddress) {
+            toast.error("Vui lòng điền đầy đủ thông tin");
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const res = await orderService.createOrder({ productId: id, ...orderForm });
+            if (res.success) {
+                toast.success("Đặt hàng thành công!");
+                setShowOrderModal(false);
+                // Refresh product data
+                const productRes = await productService.getProduct(id);
+                if (productRes.success) setProduct(productRes.data);
+                navigate("/don-hang");
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Không thể tạo đơn hàng");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleRentSubmit = async () => {
@@ -366,6 +424,131 @@ const ProductDetail = () => {
                                 onClick={handleRentSubmit} disabled={isSubmitting}>
                                 {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Order Modal */}
+            {showOrderModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] px-4 py-8 overflow-y-auto">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl animate-scale-up">
+                        <div className="p-8">
+                            <div className="flex items-start justify-between gap-6 mb-6">
+                                <div>
+                                    <h3 className="font-extrabold text-2xl mb-1">Xác nhận Đơn hàng</h3>
+                                    <p className="text-sm text-on-surface-variant">Vui lòng kiểm tra kỹ thông tin trước khi hoàn tất giao dịch.</p>
+                                </div>
+                                <button onClick={() => setShowOrderModal(false)} className="p-2 hover:bg-surface-container-low rounded-xl transition-all text-on-surface-variant">
+                                    <span className="material-symbols-outlined text-2xl">close</span>
+                                </button>
+                            </div>
+
+                            {orderLoading ? (
+                                <div className="flex justify-center items-center py-10">
+                                    <span className="material-symbols-outlined text-primary text-5xl animate-spin">refresh</span>
+                                </div>
+                            ) : orderPreview && (
+                                <form onSubmit={handleOrderSubmit} className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_340px]">
+                                    <div className="space-y-7">
+                                        <div className="p-6 rounded-2xl border border-surface-variant/20 bg-surface-container-lowest">
+                                            <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-primary">map_pin</span>
+                                                Thông tin nhận hàng
+                                            </h4>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-bold mb-2">Họ và tên người nhận</label>
+                                                    <Input value={orderForm.recipientName} onChange={(e) => setOrderForm({ ...orderForm, recipientName: e.target.value })} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-bold mb-2">Số điện thoại</label>
+                                                    <Input value={orderForm.buyerPhone} onChange={(e) => setOrderForm({ ...orderForm, buyerPhone: e.target.value })} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-bold mb-2">Địa chỉ giao hàng</label>
+                                                    <Textarea value={orderForm.buyerAddress} onChange={(e) => setOrderForm({ ...orderForm, buyerAddress: e.target.value })} className="min-h-[100px]" />
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                                                    <span className="material-symbols-outlined text-[18px]">info</span>
+                                                    Vui lòng nhập chính xác để shipper dễ dàng tìm thấy bạn.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 rounded-2xl border border-surface-variant/20 bg-surface-container-lowest">
+                                            <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-primary">inventory_2</span>
+                                                Chi tiết sản phẩm
+                                            </h4>
+                                            <div className="flex gap-5">
+                                                <div className="w-24 h-24 rounded-2xl bg-surface-variant/20 overflow-hidden flex-shrink-0">
+                                                    {images.length > 0 ? (
+                                                        <img src={getImageUrl(images[0])} alt={product.title} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="flex items-center justify-center h-full text-on-surface-variant">
+                                                            <span className="material-symbols-outlined text-4xl">image</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h5 className="text-lg font-bold">{product.title}</h5>
+                                                    <div className="flex gap-3 mt-2">
+                                                        <Badge>{product.categoryId?.name || "Danh mục"}</Badge>
+                                                        <Badge>{product.conditionStatus === 'new' ? 'Mới' : product.conditionStatus === 'like_new' ? 'Như mới' : product.conditionStatus === 'good' ? 'Đã dùng - Còn tốt' : 'Đã dùng - Có lỗi nhỏ'}</Badge>
+                                                    </div>
+                                                    <p className="text-xl font-black text-primary mt-4">{formatPrice(product.salePrice)}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 rounded-2xl border border-surface-variant/20 bg-surface-container-lowest">
+                                            <label className="block text-sm font-bold mb-2">Ghi chú cho người bán (Không bắt buộc)</label>
+                                            <Textarea
+                                                value={orderForm.note}
+                                                onChange={(e) => setOrderForm({ ...orderForm, note: e.target.value })}
+                                                placeholder="Ví dụ: Giao hàng vào giờ hành chính, gọi trước khi đến..."
+                                                className="min-h-[100px]"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-7">
+                                        <div className="p-6 rounded-2xl border border-surface-variant/20 bg-surface-container-lowest">
+                                            <h4 className="text-xl font-bold mb-4">Tóm tắt đơn hàng</h4>
+                                            <div className="space-y-3 text-base">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-on-surface-variant">Tạm tính (1 sản phẩm)</span>
+                                                    <span className="font-medium">{formatPrice(orderPreview.subtotal)}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-on-surface-variant">Phí vận chuyển</span>
+                                                    <span className="font-medium">{formatPrice(orderPreview.shippingFee)}</span>
+                                                </div>
+                                            </div>
+                                            <div className="border-t border-dashed border-surface-variant/30 pt-4 mt-4">
+                                                <div className="flex items-end justify-between">
+                                                    <div>
+                                                        <p className="text-base font-bold">Tổng cộng</p>
+                                                        <p className="text-xs text-on-surface-variant">(Đã bao gồm VAT)</p>
+                                                    </div>
+                                                    <p className="text-2xl font-black text-primary">{formatPrice(orderPreview.totalAmount)}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-6 p-4 rounded-2xl bg-surface-container flex items-center justify-between border border-surface-variant/20">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="material-symbols-outlined text-primary">payments</span>
+                                                    <p className="font-semibold">Thanh toán khi nhận hàng (COD)</p>
+                                                </div>
+                                            </div>
+
+                                            <Button type="submit" size="lg" className="w-full mt-6" disabled={isSubmitting}>
+                                                {isSubmitting ? "Đang xử lý..." : "Đặt hàng"}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </form>
+                            )}
                         </div>
                     </div>
                 </div>

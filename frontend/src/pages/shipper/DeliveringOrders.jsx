@@ -13,6 +13,12 @@ const STEP_MAP = {
   completed: { label: "Hoàn tất", color: "bg-green-50 text-green-600 border-green-200" },
 };
 
+const getImageUrl = (url) => {
+  if (!url) return "https://placehold.co/400x300?text=No+Image";
+  if (url.startsWith("http")) return url;
+  return `http://localhost:5000${url}`;
+};
+
 const DeliveringOrders = () => {
   const [deliveries, setDeliveries] = useState([]);
   const [inspectOpen, setInspectOpen] = useState(null);
@@ -100,9 +106,8 @@ const DeliveringOrders = () => {
           <header className="mb-10">
             <h1 className="text-3xl md:text-4xl font-extrabold text-on-surface mb-2 flex items-center gap-3">
               <span className="material-symbols-outlined text-primary text-4xl">local_shipping</span>
-              Quản lý Giao Hàng
+              Đơn đang giao
             </h1>
-            <p className="text-on-surface-variant text-base">Theo dõi tiến độ các đơn hàng bạn đang phụ trách.</p>
           </header>
 
           {loading ? (
@@ -132,101 +137,107 @@ const DeliveringOrders = () => {
                        </div>
                     )}
                     
-                    {/* Header */}
-                    <div className="p-6 md:p-8 border-b border-surface-variant/30 flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-bold text-on-surface text-lg">{order.postId?.title}</h3>
-                          <span className={`text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider border ${s.color}`}>
-                            {s.label}
-                          </span>
-                        </div>
-                        <p className="text-sm text-on-surface-variant font-mono">Mã ĐH: {order._id.substring(0, 8).toUpperCase()}</p>
+                    <div className="p-6 md:p-8 flex gap-6 items-start">
+                      <div className="w-28 h-28 rounded-2xl overflow-hidden bg-surface-container flex-shrink-0">
+                        <img src={getImageUrl(order.productImage)} alt={order.postId?.title} className="w-full h-full object-cover" />
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-on-surface-variant mb-0.5">Tiền thu hộ (COD)</p>
-                        <p className="font-black text-primary text-xl">{order.totalAmount?.toLocaleString('vi-VN')}đ</p>
-                      </div>
-                    </div>
 
-                    {/* Địa chỉ */}
-                    <div className="p-6 md:p-8 bg-surface-bright/30">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-                        {/* Connecting line on desktop */}
-                        <div className="hidden md:block absolute top-1/2 left-[calc(50%-10px)] right-[calc(50%+10px)] h-0.5 border-t-2 border-dashed border-surface-variant/50 -translate-y-1/2 z-0"></div>
-                        
-                        <div className="bg-white p-5 rounded-2xl border border-surface-variant/40 shadow-sm relative z-10 flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0">
-                            <span className="material-symbols-outlined">store</span>
-                          </div>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between gap-4 mb-3">
                           <div>
-                            <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Điểm lấy hàng</p>
-                            <p className="font-bold text-on-surface text-base">{order.sellerId?.fullName}</p>
-                            <p className="text-sm text-on-surface-variant mt-1 flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-[16px]">call</span> {order.sellerId?.phone}
+                            <div className="flex items-center gap-3 mb-1">
+                              <h3 className="font-bold text-on-surface text-lg">{order.postId?.title}</h3>
+                              <span className={`text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider border ${s.color}`}>
+                                {s.label}
+                              </span>
+                            </div>
+                            <p className="text-sm text-on-surface-variant font-mono">Mã đơn: {order._id.substring(0, 8).toUpperCase()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-on-surface-variant mb-0.5">Tiền thu hộ (COD)</p>
+                            <p className="font-black text-primary text-xl">
+                              {order.totalAmount ? `${order.totalAmount.toLocaleString('vi-VN')}₫` : "0₫"}
                             </p>
-                            <p className="text-sm text-on-surface-variant mt-1">{delivery.pickupAddress}</p>
                           </div>
                         </div>
 
-                        <div className="bg-white p-5 rounded-2xl border border-surface-variant/40 shadow-sm relative z-10 flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-                            <span className="material-symbols-outlined">home_pin</span>
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Điểm giao hàng</p>
-                            <p className="font-bold text-on-surface text-base">{order.buyerId?.fullName}</p>
-                            <p className="text-sm text-on-surface-variant mt-1 flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-[16px]">call</span> {order.buyerId?.phone}
-                            </p>
-                            <p className="text-sm text-on-surface-variant mt-1">{delivery.deliveryAddress}</p>
+                        {/* Addresses */}
+                        <div className="p-4 bg-surface-bright/30 rounded-2xl mb-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+                            <div className="bg-white p-4 rounded-2xl border border-surface-variant/40 shadow-sm relative z-10 flex items-start gap-4">
+                              <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0">
+                                <span className="material-symbols-outlined">store</span>
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Điểm lấy hàng</p>
+                                <p className="font-bold text-on-surface text-base">{order.sellerId?.fullName}</p>
+                                <p className="text-sm text-on-surface-variant mt-1 flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-[16px]">call</span> {order.sellerId?.phone}
+                                </p>
+                                <p className="text-sm text-on-surface-variant">{delivery.pickupAddress}</p>
+                              </div>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-2xl border border-surface-variant/40 shadow-sm relative z-10 flex items-start gap-4">
+                              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                <span className="material-symbols-outlined">home_pin</span>
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Điểm giao hàng</p>
+                                <p className="font-bold text-on-surface text-base">{order.buyerId?.fullName}</p>
+                                <p className="text-sm text-on-surface-variant mt-1 flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-[16px]">call</span> {order.buyerPhone}
+                                </p>
+                                <p className="text-sm text-on-surface-variant">{order.buyerAddress}</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    {/* Actions */}
-                    <div className="px-6 py-5 md:px-8 bg-surface-container-lowest flex flex-wrap gap-4 items-center justify-between border-t border-surface-variant/30">
-                      {delivery.deliveryStatus === "picking_up" && (
-                        <button
-                          onClick={() => setInspectOpen(delivery)}
-                          className="flex items-center gap-1.5 px-5 py-2.5 bg-surface-container text-on-surface rounded-xl text-sm font-bold hover:bg-surface-variant transition-all"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">fact_check</span>
-                          Tạo biên bản kiểm tra
-                        </button>
-                      )}
-                      
-                      <div className="flex gap-3">
-                        {delivery.deliveryStatus === "accepted" && (
-                          <button
-                            onClick={() => handleUpdateStatus(delivery._id, "picking_up")} disabled={isProcessing}
-                            className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50"
-                          >
-                            Đang đến lấy hàng
-                          </button>
-                        )}
-                        {delivery.deliveryStatus === "picked_up" && (
-                          <button
-                            onClick={() => handleUpdateStatus(delivery._id, "in_transit")} disabled={isProcessing}
-                            className="px-6 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-bold hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
-                          >
-                            Bắt đầu đi giao
-                          </button>
-                        )}
-                        {delivery.deliveryStatus === "in_transit" && (
-                          <button
-                            onClick={() => handleUpdateStatus(delivery._id, "delivered")} disabled={isProcessing}
-                            className="px-6 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
-                          >
-                            Xác nhận đã giao đến nơi
-                          </button>
-                        )}
-                        {delivery.deliveryStatus === "delivered" && (
-                          <div className="px-6 py-2.5 bg-surface-container text-on-surface-variant rounded-xl text-sm font-bold border border-surface-variant/50">
-                            Chờ người mua xác nhận hoàn tất
+                        {/* Actions */}
+                        <div className="flex flex-wrap gap-4 items-center justify-between">
+                          {delivery.deliveryStatus === "picking_up" && (
+                            <button
+                              onClick={() => setInspectOpen(delivery)}
+                              className="flex items-center gap-1.5 px-5 py-2.5 bg-surface-container text-on-surface rounded-xl text-sm font-bold hover:bg-surface-variant transition-all"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">fact_check</span>
+                              Tạo biên bản kiểm tra
+                            </button>
+                          )}
+                          
+                          <div className="flex gap-3 flex-wrap">
+                            {delivery.deliveryStatus === "accepted" && (
+                              <button
+                                onClick={() => handleUpdateStatus(delivery._id, "picking_up")} disabled={isProcessing}
+                                className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50"
+                              >
+                                Đang đến lấy hàng
+                              </button>
+                            )}
+                            {delivery.deliveryStatus === "picked_up" && (
+                              <button
+                                onClick={() => handleUpdateStatus(delivery._id, "in_transit")} disabled={isProcessing}
+                                className="px-6 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-bold hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                              >
+                                Bắt đầu đi giao
+                              </button>
+                            )}
+                            {delivery.deliveryStatus === "in_transit" && (
+                              <button
+                                onClick={() => handleUpdateStatus(delivery._id, "delivered")} disabled={isProcessing}
+                                className="px-6 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                              >
+                                Xác nhận đã giao đến nơi
+                              </button>
+                            )}
+                            {delivery.deliveryStatus === "delivered" && (
+                              <div className="px-6 py-2.5 bg-surface-container text-on-surface-variant rounded-xl text-sm font-bold border border-surface-variant/50">
+                                Chờ người mua xác nhận hoàn tất
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -246,7 +257,7 @@ const DeliveringOrders = () => {
                 <h3 className="font-extrabold text-on-surface text-2xl mb-1">Biên bản kiểm tra hàng</h3>
                 <p className="text-sm text-on-surface-variant">{inspectOpen.orderId?.postId?.title}</p>
               </div>
-              <button onClick={() => setInspectOpen(null)} className="p-2 hover:bg-surface-container rounded-xl text-on-surface-variant">
+              <button onClick={() => setInspectOpen(null)} className="p-2 hover:bg-surface-container rounded-xl transition-all text-on-surface-variant">
                 <span className="material-symbols-outlined text-2xl">close</span>
               </button>
             </div>
@@ -312,7 +323,7 @@ const DeliveringOrders = () => {
             {/* Kết quả */}
             <div className="mb-6">
               <label className="block text-sm font-bold text-on-surface mb-3">Kết quả</label>
-              <div className="flex gap-4">
+              <div className="flex gap-4 flex-wrap">
                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input 
                       type="radio" 
@@ -362,11 +373,13 @@ const DeliveringOrders = () => {
 
             <div className="flex gap-4">
               <button onClick={() => setInspectOpen(null)}
-                className="flex-1 py-3.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all">
+                className="flex-1 py-3.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all"
+              >
                 Hủy
               </button>
               <button onClick={handleInspectSubmit}
-                className="flex-1 py-3.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-full text-base font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95">
+                className="flex-1 py-3.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-full text-base font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95"
+              >
                 Lưu biên bản
               </button>
             </div>

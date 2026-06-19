@@ -66,6 +66,9 @@ const createOrder = async (req, res) => {
       orderStatus: "pending",
     });
 
+    // Đóng bài đăng sản phẩm ngay khi tạo đơn hàng
+    await ProductPost.findByIdAndUpdate(req.body.productId, { postStatus: "closed" });
+
     // Thông báo cho seller
     const io = req.app.get("io");
     await createNotification({
