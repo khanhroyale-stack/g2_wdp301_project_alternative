@@ -5,16 +5,16 @@ const inspectionService = {
     const response = await api.post("/inspections", data);
     return response.data;
   },
-  getInspection: async (id) => {
-    const response = await api.get(`/inspections/${id}`);
-    return response.data;
-  },
   getInspectionsByOrder: async (orderId) => {
     const response = await api.get(`/inspections/order/${orderId}`);
     return response.data;
   },
   getInspectionsByRental: async (rentalId) => {
     const response = await api.get(`/inspections/rental/${rentalId}`);
+    return response.data;
+  },
+  getInspection: async (id) => {
+    const response = await api.get(`/inspections/${id}`);
     return response.data;
   },
   updateInspection: async (id, data) => {
