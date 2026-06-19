@@ -430,10 +430,10 @@ const ProductDetail = () => {
             )}
             {/* Order Modal */}
             {showOrderModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] px-4 py-8 overflow-y-auto">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl animate-scale-up">
-                        <div className="p-8">
-                            <div className="flex items-start justify-between gap-6 mb-6">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-[60] px-4 py-8 overflow-y-auto">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl animate-scale-up my-8">
+                        <div className="sticky top-0 bg-white p-6 md:p-8 border-b border-surface-variant/30 z-10 rounded-t-3xl">
+                            <div className="flex items-start justify-between gap-6">
                                 <div>
                                     <h3 className="font-extrabold text-2xl mb-1">Xác nhận Đơn hàng</h3>
                                     <p className="text-sm text-on-surface-variant">Vui lòng kiểm tra kỹ thông tin trước khi hoàn tất giao dịch.</p>
@@ -442,13 +442,15 @@ const ProductDetail = () => {
                                     <span className="material-symbols-outlined text-2xl">close</span>
                                 </button>
                             </div>
+                        </div>
 
+                        <div className="p-6 md:p-8 overflow-y-auto max-h-[calc(100vh-240px)]">
                             {orderLoading ? (
                                 <div className="flex justify-center items-center py-10">
                                     <span className="material-symbols-outlined text-primary text-5xl animate-spin">refresh</span>
                                 </div>
                             ) : orderPreview && (
-                                <form onSubmit={handleOrderSubmit} className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_340px]">
+                                <form onSubmit={handleOrderSubmit} className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_360px]">
                                     <div className="space-y-7">
                                         <div className="p-6 rounded-2xl border border-surface-variant/20 bg-surface-container-lowest">
                                             <h4 className="text-xl font-bold mb-4 flex items-center gap-2">
