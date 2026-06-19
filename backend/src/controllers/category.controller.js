@@ -9,6 +9,15 @@ const getCategories = async (req, res) => {
   }
 };
 
+const adminGetCategories = async (req, res) => {
+  try {
+    const cats = await Category.find().sort({ name: 1 });
+    res.json({ success: true, data: cats });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const createCategory = async (req, res) => {
   try {
     const cat = await Category.create(req.body);
@@ -36,4 +45,4 @@ const deleteCategory = async (req, res) => {
   }
 };
 
-module.exports = { getCategories, createCategory, updateCategory, deleteCategory };
+module.exports = { getCategories, adminGetCategories, createCategory, updateCategory, deleteCategory };

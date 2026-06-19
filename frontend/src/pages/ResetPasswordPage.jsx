@@ -37,7 +37,7 @@ const ResetPasswordPage = () => {
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
         <div style={{ textAlign: "center" }}>
           <p style={{ marginBottom: "1rem", color: "var(--color-text-muted)" }}>Không tìm thấy thông tin. Vui lòng thực hiện lại.</p>
-          <Link to="/forgot-password">Quay lại</Link>
+          <Link to="/quen-mat-khau">Quay lại</Link>
         </div>
       </div>
     );
@@ -53,7 +53,7 @@ const ResetPasswordPage = () => {
     setLoading(true);
     try {
       await authService.resetPassword({ email, otp: form.otp, newPassword: form.newPassword });
-      navigate("/login", { state: { message: "Đặt lại mật khẩu thành công. Vui lòng đăng nhập." } });
+      navigate("/dang-nhap", { state: { message: "Đặt lại mật khẩu thành công. Vui lòng đăng nhập." } });
     } catch (err) {
       setError(err.response?.data?.message || "Đặt lại mật khẩu thất bại. Vui lòng thử lại.");
     } finally {
@@ -113,7 +113,7 @@ const ResetPasswordPage = () => {
         </form>
 
         <p style={{ marginTop: "1.5rem", textAlign: "center", fontSize: "0.875rem" }}>
-          <Link to="/forgot-password" style={{ color: "var(--color-text-muted)" }}>Gửi lại OTP</Link>
+          <Link to="/quen-mat-khau" style={{ color: "var(--color-text-muted)" }}>Gửi lại OTP</Link>
         </p>
       </div>
     </div>

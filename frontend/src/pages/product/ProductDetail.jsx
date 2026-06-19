@@ -131,7 +131,7 @@ const ProductDetail = () => {
         if (!user) return navigate("/dang-nhap");
         try {
             const res = await chatService.getOrCreateRoom(product.ownerId._id, product._id);
-            if (res.success) navigate("/tin-nhan");
+            if (res.success) navigate(`/tin-nhan/${res.data.room._id}`);
         } catch {
             toast.error("Lỗi khi mở cuộc trò chuyện");
         }

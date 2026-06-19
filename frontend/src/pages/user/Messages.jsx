@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import chatService from "../../services/chat.service";
 import { useAuth } from "../../context/AuthContext";
@@ -10,6 +11,7 @@ const formatTime = (dateStr) => {
 };
 
 const Messages = () => {
+  const { roomId } = useParams();
   const { user } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
@@ -28,8 +30,15 @@ const Messages = () => {
       const res = await chatService.getMyRooms();
       if (res.success) {
         setRooms(res.data);
-        if (res.data.length > 0 && !activeRoom) {
-          handleSelectRoom(res.data[0]);
+        if (res.data.length > 0) {
+          const targetRoom = roomId
+            ? res.data.find((r) => String(r._id) === String(roomId))
+            : null;
+          if (targetRoom) {
+            handleSelectRoom(targetRoom);
+          } else if (!roomId) {
+            handleSelectRoom(res.data[0]);
+          }
         }
       }
     } catch (err) {
@@ -38,7 +47,7 @@ const Messages = () => {
       setLoadingRooms(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [roomId]);
 
   useEffect(() => {
     fetchRooms();
@@ -96,7 +105,10 @@ const Messages = () => {
     try {
       const res = await chatService.sendMessage(activeRoom._id, content);
       if (res.success) {
-        setMessages((prev) => [...prev, res.data]);
+        setMessages((prev) => {
+          if (prev.some((m) => m._id === res.data._id)) return prev;
+          return [...prev, res.data];
+        });
         setRooms((prev) =>
           prev.map((r) =>
             r._id === activeRoom._id

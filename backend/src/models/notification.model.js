@@ -35,11 +35,12 @@ const notificationSchema = new mongoose.Schema(
     },
     relatedType: {
       type: String,
-      enum: ["order", "rental", "report", "review", "chat", "system"],
+      enum: ["Order", "RentalContract", "Report", "Review", "ChatRoom", "System"],
       default: null,
     },
     relatedId: {
       type: mongoose.Schema.Types.ObjectId,
+      refPath: "relatedType",
       default: null,
     },
     link: {

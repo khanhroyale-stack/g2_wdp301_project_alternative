@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import { Toaster } from "react-hot-toast";
@@ -38,6 +38,11 @@ import ShipperDashboard from "./pages/shipper/ShipperDashboard";
 import PendingDeliveries from './pages/shipper/PendingDeliveries';
 import DeliveringOrders from './pages/shipper/DeliveringOrders';
 
+const ChatRoomRedirect = () => {
+  const { roomId } = useParams();
+  return <Navigate to={`/tin-nhan/${roomId}`} replace />;
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -55,7 +60,16 @@ function App() {
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/cho-thue" element={<Marketplace />} />
           <Route path="/san-pham/:id" element={<ProductDetail />} />
-          <Route path="/san-pham" element={<ProductDetail />} />
+          <Route path="/san-pham" element={<Navigate to="/marketplace" replace />} />
+
+          {/* Redirect alias — tương thích link cũ */}
+          <Route path="/login" element={<Navigate to="/dang-nhap" replace />} />
+          <Route path="/register" element={<Navigate to="/dang-ky" replace />} />
+          <Route path="/forgot-password" element={<Navigate to="/quen-mat-khau" replace />} />
+          <Route path="/reset-password" element={<Navigate to="/dat-lai-mat-khau" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/ho-so" replace />} />
+          <Route path="/reputation" element={<Navigate to="/ho-so" replace />} />
+          <Route path="/chat/:roomId" element={<ChatRoomRedirect />} />
 
           {/* ── Người dùng (cần đăng nhập) ─────────── */}
           <Route path="/ho-so" element={<PrivateRoute><Profile /></PrivateRoute>} />
@@ -64,6 +78,7 @@ function App() {
           <Route path="/don-hang" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
           <Route path="/thue-muon" element={<PrivateRoute><Rentals /></PrivateRoute>} />
           <Route path="/tin-nhan" element={<PrivateRoute><Messages /></PrivateRoute>} />
+          <Route path="/tin-nhan/:roomId" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />
 
           {/* ── Admin ───────────────────────────────── */}

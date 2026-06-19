@@ -42,7 +42,7 @@ const Sidebar = ({ variant = "user" }) => {
       {/* Header */}
       <div className="px-5 py-5 flex items-center gap-3 border-b border-surface-variant/40">
         <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-on-primary text-sm font-bold flex-shrink-0">
-          {displayName.charAt(0).toUpperCase() || "U"}
+          E
         </div>
         <div className="min-w-0">
           <h1 className="font-bold text-primary text-sm tracking-tight truncate">EcoTrade</h1>

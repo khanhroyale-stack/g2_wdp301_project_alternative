@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../../services/api";
 
 const AccountVerification = () => {
   const [cccdFile, setCccdFile] = useState(null);
@@ -21,11 +22,21 @@ const AccountVerification = () => {
     setLoading(true);
     setError("");
     try {
-      // Trong thực tế: upload file lên server, ở đây chỉ demo
-      await new Promise((r) => setTimeout(r, 1200));
-      setSubmitted(true);
-    } catch {
-      setError("Có lỗi xảy ra. Vui lòng thử lại.");
+      const formData = new FormData();
+      formData.append("citizenId", cccdFile);
+      
+      const res = await api.post("/verification/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      
+      if (res.data.success) {
+        setSubmitted(true);
+      } else {
+        setError(res.data.message || "Lỗi tải lên.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

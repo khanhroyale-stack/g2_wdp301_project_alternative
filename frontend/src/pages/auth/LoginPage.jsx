@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const LoginPage = () => {
@@ -8,6 +8,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const successMessage = location.state?.message;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,6 +38,12 @@ const LoginPage = () => {
         </div>
 
         <div className="bg-surface-container-lowest rounded-2xl shadow-apple-md p-8 border border-surface-variant/30">
+          {successMessage && (
+            <div className="flex items-center gap-2 text-primary mb-5 p-3.5 bg-primary/10 rounded-xl text-sm border border-primary/20">
+              <span className="material-symbols-outlined text-[18px]">check_circle</span>
+              {successMessage}
+            </div>
+          )}
           {error && (
             <div className="flex items-center gap-2 text-error mb-5 p-3.5 bg-error-container/30 rounded-xl text-sm border border-error/20">
               <span className="material-symbols-outlined text-[18px]">error</span>
@@ -56,7 +64,7 @@ const LoginPage = () => {
                 className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" />
             </div>
             <div className="flex justify-end">
-              <a href="#" className="text-sm text-primary hover:underline">Quên mật khẩu?</a>
+              <Link to="/quen-mat-khau" className="text-sm text-primary hover:underline">Quên mật khẩu?</Link>
             </div>
             <button type="submit" disabled={loading}
               className="w-full py-3.5 bg-primary text-on-primary font-semibold rounded-xl hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60">

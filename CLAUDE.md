@@ -1,5 +1,13 @@
 # WDP301 Project — Claude Code Guide
 
+> *## MCP & Context Optimization*
+> * **Priority Tooling**: Always prioritize using the `serena` MCP server for context gathering, project indexing, and code search.
+> * **Token Efficiency**: Before reading multiple files manually with `ls` or `cat`, use `serena`'s search/indexing tools to identify and fetch only the relevant code snippets.
+> * **Workflow**:
+> 1. Use `serena` to get a high-level overview of the project structure.
+> 2. Use `serena` to locate specific logic or variable definitions instead of broad file reads.
+> 3. Only request full file content if summaries are insufficient.
+
 ## Tổng quan
 
 App marketplace cho **thuê và mua bán đồ dùng** (C2C), dự án môn học WDP301.

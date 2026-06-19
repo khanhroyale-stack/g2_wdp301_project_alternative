@@ -183,6 +183,9 @@ const Navbar = () => {
               {user.role === "admin" && (
                 <NavLink to="/admin" className={linkClass} onClick={() => setMenuOpen(false)}>Trang quản trị</NavLink>
               )}
+              {user.role === "shipper" && (
+                <NavLink to="/shipper" className={linkClass} onClick={() => setMenuOpen(false)}>Trang Shipper</NavLink>
+              )}
             </>
           ) : (
             <>

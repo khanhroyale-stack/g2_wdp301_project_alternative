@@ -28,23 +28,7 @@ const io = new Server(httpServer, {
 // Gắn io vào app để dùng trong controllers
 app.set("io", io);
 
-io.on("connection", (socket) => {
-  // User join room cá nhân để nhận notification
-  socket.on("join_user", (userId) => {
-    socket.join(`user_${userId}`);
-  });
-
-  // User join chat room
-  socket.on("join_chat", (roomId) => {
-    socket.join(`chat_${roomId}`);
-  });
-
-  socket.on("leave_chat", (roomId) => {
-    socket.leave(`chat_${roomId}`);
-  });
-
-  socket.on("disconnect", () => { });
-});
+require("./sockets")(io);
 
 // Export io để các controller dùng khi cần emit trực tiếp
 module.exports.io = io;

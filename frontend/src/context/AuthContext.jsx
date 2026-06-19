@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { authService } from "../services/auth.service";
+import notificationService from "../services/notification.service";
 import { connectSocket, disconnectSocket, getSocket } from "../services/socket";
 
 const AuthContext = createContext(null);
@@ -34,10 +35,7 @@ export const AuthProvider = ({ children }) => {
         .then((data) => {
           setUser(data.user);
           setupSocket(data.user);
-          // Fetch số unread
-          return fetch("/api/notifications/unread-count", {
-            headers: { Authorization: `Bearer ${token}` },
-          }).then((r) => r.json());
+          return notificationService.getUnreadCount();
         })
         .then((res) => { if (res?.count !== undefined) setUnreadCount(res.count); })
         .catch(() => localStorage.removeItem("token"))

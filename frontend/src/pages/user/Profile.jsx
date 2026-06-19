@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
 import userService from "../../services/user.service";
@@ -108,7 +109,7 @@ const Profile = () => {
               <div>
                 <p className="font-semibold text-orange-900">Tài khoản chưa xác minh</p>
                 <p className="text-sm text-orange-800 mt-0.5">
-                  Vui lòng <a href="/xac-minh-tai-khoan" className="font-bold underline">tải lên giấy tờ</a> để bắt đầu giao dịch.
+                  Vui lòng <Link to="/xac-minh-tai-khoan" className="font-bold underline">tải lên giấy tờ</Link> để bắt đầu giao dịch.
                 </p>
               </div>
             </div>

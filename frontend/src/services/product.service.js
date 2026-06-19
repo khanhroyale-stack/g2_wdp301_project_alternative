@@ -36,7 +36,11 @@ const productService = {
   adminRejectProduct: async (id, reason) => {
     const response = await api.patch(`/products/${id}/reject`, { reason });
     return response.data;
-  }
+  },
+  adminChangeStatus: async (id, status, reason) => {
+    const response = await api.patch(`/products/${id}/status`, { status, reason });
+    return response.data;
+  },
 };
 
 export default productService;

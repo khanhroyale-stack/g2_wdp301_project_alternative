@@ -29,7 +29,7 @@ const VerifyEmailPage = () => {
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
         <div style={{ textAlign: "center" }}>
           <p style={{ marginBottom: "1rem", color: "var(--color-text-muted)" }}>Không tìm thấy thông tin email. Vui lòng đăng ký lại.</p>
-          <Link to="/register">Quay lại đăng ký</Link>
+          <Link to="/dang-ky">Quay lại đăng ký</Link>
         </div>
       </div>
     );
@@ -46,7 +46,7 @@ const VerifyEmailPage = () => {
     setLoading(true);
     try {
       await verifyEmail({ email, otp });
-      navigate("/dashboard");
+      navigate("/ho-so");
     } catch (err) {
       setError(err.response?.data?.message || "Xác thực thất bại. Vui lòng thử lại.");
     } finally {
@@ -134,7 +134,7 @@ const VerifyEmailPage = () => {
         </div>
 
         <p style={{ marginTop: "1rem", textAlign: "center", fontSize: "0.875rem" }}>
-          <Link to="/register" style={{ color: "var(--color-text-muted)" }}>Quay lại đăng ký</Link>
+          <Link to="/dang-ky" style={{ color: "var(--color-text-muted)" }}>Quay lại đăng ký</Link>
         </p>
       </div>
     </div>

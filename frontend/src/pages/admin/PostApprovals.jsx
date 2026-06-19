@@ -4,10 +4,10 @@ import productService from "../../services/product.service";
 
 const STATUS_FILTER = ["pending", "approved", "rejected", "closed"];
 const STATUS_MAP = {
-  PENDING: { label: "Chờ duyệt", color: "bg-surface-container text-on-surface-variant" },
-  ACTIVE: { label: "Đang hiển thị", color: "bg-secondary-container text-on-secondary-container" },
-  REJECTED: { label: "Từ chối", color: "bg-error-container text-on-error-container" },
-  HIDDEN: { label: "Đã ẩn", color: "bg-surface-container-highest text-on-surface-variant" },
+  pending: { label: "Chờ duyệt", color: "bg-surface-container text-on-surface-variant" },
+  approved: { label: "Đang hiển thị", color: "bg-secondary-container text-on-secondary-container" },
+  rejected: { label: "Từ chối", color: "bg-error-container text-on-error-container" },
+  closed: { label: "Đã ẩn", color: "bg-surface-container-highest text-on-surface-variant" },
 };
 
 const PostApprovals = () => {
@@ -37,9 +37,7 @@ const PostApprovals = () => {
   const handleApprove = async (id) => {
     try {
       const res = await productService.adminApproveProduct(id);
-      if (res.success) {
-        fetchPosts();
-      }
+      if (res.success) fetchPosts();
     } catch (err) {
       alert(err.response?.data?.message || "Lỗi khi duyệt bài");
     }
@@ -48,7 +46,14 @@ const PostApprovals = () => {
   const handleReject = async () => {
     try {
       if (!rejectReason) return alert("Vui lòng nhập lý do từ chối");
-      const res = await productService.adminRejectProduct(showModal._id, rejectReason);
+
+      let res;
+      if (showModal.postStatus && showModal.postStatus !== "pending") {
+        res = await productService.adminChangeStatus(showModal._id, "rejected", rejectReason);
+      } else {
+        res = await productService.adminRejectProduct(showModal._id, rejectReason);
+      }
+
       if (res.success) {
         setShowModal(null);
         setRejectReason("");
@@ -59,13 +64,22 @@ const PostApprovals = () => {
     }
   };
 
+  const handleStatusChange = async (id, status, reason = "") => {
+    try {
+      const res = await productService.adminChangeStatus(id, status, reason);
+      if (res.success) fetchPosts();
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi khi đổi trạng thái");
+    }
+  };
+
   const getImageUrl = (img) => {
     if (!img) return null;
     if (img.startsWith("http")) return img;
     return `http://localhost:5000${img}`;
   };
 
-  const formatPrice = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
+  const formatPrice = (num) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(num || 0);
 
   return (
     <div className="flex min-h-screen bg-[#F5F5F7]">
@@ -76,15 +90,14 @@ const PostApprovals = () => {
           <div className="flex gap-1 bg-surface-container rounded-xl p-1 w-fit mb-8">
             {["Chờ duyệt", "Đang hiển thị", "Từ chối", "Đã ẩn"].map((t, i) => (
               <button key={t} onClick={() => setTab(i)}
-                className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${tab === i ? "bg-surface-container-lowest text-on-surface shadow-sm" : "text-on-surface-variant hover:text-on-surface"
-                  }`}>
+                className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${tab === i ? "bg-surface-container-lowest text-on-surface shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}>
                 {t}
               </button>
             ))}
           </div>
 
           {loading ? (
-             <div className="text-center py-16 text-on-surface-variant">Đang tải...</div>
+            <div className="text-center py-16 text-on-surface-variant">Đang tải...</div>
           ) : posts.length === 0 ? (
             <div className="text-center py-16 text-on-surface-variant">
               <span className="material-symbols-outlined text-5xl block mb-3">inbox</span>
@@ -93,26 +106,27 @@ const PostApprovals = () => {
           ) : (
             <div className="flex flex-col gap-4">
               {posts.map((post) => {
-                const s = STATUS_MAP[post.status];
-                const displayPrice = post.listingType === "cho-thue" ? `${formatPrice(post.rentalPricePerDay)}/ngày` : formatPrice(post.salePrice);
+                const s = STATUS_MAP[post.postStatus] || { label: post.postStatus, color: "bg-surface-variant text-on-surface" };
+                const displayPrice = post.productType === "rent"
+                  ? `${formatPrice(post.rentPricePerDay)}/ngày`
+                  : formatPrice(post.salePrice);
 
                 return (
                   <div key={post._id} className="bg-surface-container-lowest rounded-2xl shadow-apple border border-surface-variant/30 p-5">
                     <div className="flex items-start gap-4">
                       <div className="w-16 h-16 rounded-xl overflow-hidden bg-surface-container-low flex-shrink-0">
-                        {post.images?.[0]
-                          ? <img src={getImageUrl(post.images[0])} alt="" className="w-full h-full object-cover" />
+                        {post.thumbnailUrl
+                          ? <img src={getImageUrl(post.thumbnailUrl)} alt="" className="w-full h-full object-cover" />
                           : <div className="w-full h-full flex items-center justify-center">
                             <span className="material-symbols-outlined text-on-surface-variant">image</span>
-                          </div>
-                        }
+                          </div>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="font-semibold text-on-surface">{post.title}</p>
                             <p className="text-sm text-on-surface-variant mt-0.5">
-                              {post.seller?.name || "N/A"} • {post.category?.name || "N/A"} • {post.listingType === "cho-thue" ? "Cho thuê" : "Bán"}
+                              {post.ownerId?.fullName || "N/A"} • {post.categoryId?.name || "N/A"} • {post.productType === "rent" ? "Cho thuê" : "Bán"}
                             </p>
                             <p className="text-sm font-semibold text-primary mt-1">{displayPrice}</p>
                           </div>
@@ -123,26 +137,84 @@ const PostApprovals = () => {
                         </div>
                       </div>
                     </div>
-                    {post.status === "PENDING" && (
-                      <div className="flex gap-3 mt-4 pt-4 border-t border-surface-variant/40">
-                        <button onClick={() => handleApprove(post._id)}
-                          className="px-5 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:opacity-90 transition-all">
-                          ✓ Duyệt bài
-                        </button>
-                        <button onClick={() => setShowModal(post)}
-                          className="px-5 py-2 border border-error/30 text-error rounded-lg text-sm font-semibold hover:bg-error/5 transition-all">
-                          ✗ Từ chối
-                        </button>
-                        <button className="px-5 py-2 border border-surface-variant text-on-surface-variant rounded-lg text-sm font-medium hover:bg-surface-container-low transition-all">
+
+                    <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-surface-variant/40">
+                      {post.postStatus === "rejected" && post.rejectReason && (
+                        <p className="text-sm text-error mb-1"><strong>Lý do từ chối:</strong> {post.rejectReason}</p>
+                      )}
+
+                      <div className="flex flex-wrap gap-2.5">
+                        <button onClick={() => window.open(`/san-pham/${post._id}`, "_blank")}
+                          className="px-4 py-2 border border-surface-variant text-on-surface-variant rounded-lg text-sm font-medium hover:bg-surface-container-low transition-all flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px]">visibility</span>
                           Xem chi tiết
                         </button>
+
+                        {post.postStatus === "pending" && (
+                          <>
+                            <button onClick={() => handleApprove(post._id)}
+                              className="px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:opacity-90 transition-all">
+                              Duyệt bài
+                            </button>
+                            <button onClick={() => setShowModal(post)}
+                              className="px-4 py-2 border border-error/30 text-error rounded-lg text-sm font-semibold hover:bg-error/5 transition-all">
+                              Từ chối
+                            </button>
+                          </>
+                        )}
+
+                        {post.postStatus === "approved" && (
+                          <>
+                            <button onClick={() => handleStatusChange(post._id, "pending")}
+                              className="px-4 py-2 border border-amber-500/30 text-amber-600 rounded-lg text-sm font-semibold hover:bg-amber-500/5 transition-all">
+                              Đưa về chờ duyệt
+                            </button>
+                            <button onClick={() => setShowModal(post)}
+                              className="px-4 py-2 border border-error/30 text-error rounded-lg text-sm font-semibold hover:bg-error/5 transition-all">
+                              Từ chối
+                            </button>
+                            <button onClick={() => handleStatusChange(post._id, "closed")}
+                              className="px-4 py-2 border border-surface-variant text-on-surface-variant/80 rounded-lg text-sm font-semibold hover:bg-surface-container-low transition-all">
+                              Ẩn bài
+                            </button>
+                          </>
+                        )}
+
+                        {post.postStatus === "rejected" && (
+                          <>
+                            <button onClick={() => handleApprove(post._id)}
+                              className="px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:opacity-90 transition-all">
+                              Duyệt & hiển thị
+                            </button>
+                            <button onClick={() => handleStatusChange(post._id, "pending")}
+                              className="px-4 py-2 border border-amber-500/30 text-amber-600 rounded-lg text-sm font-semibold hover:bg-amber-500/5 transition-all">
+                              Đưa về chờ duyệt
+                            </button>
+                            <button onClick={() => handleStatusChange(post._id, "closed")}
+                              className="px-4 py-2 border border-surface-variant text-on-surface-variant/80 rounded-lg text-sm font-semibold hover:bg-surface-container-low transition-all">
+                              Ẩn bài
+                            </button>
+                          </>
+                        )}
+
+                        {post.postStatus === "closed" && (
+                          <>
+                            <button onClick={() => handleApprove(post._id)}
+                              className="px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold hover:opacity-90 transition-all">
+                              Duyệt & hiển thị
+                            </button>
+                            <button onClick={() => handleStatusChange(post._id, "pending")}
+                              className="px-4 py-2 border border-amber-500/30 text-amber-600 rounded-lg text-sm font-semibold hover:bg-amber-500/5 transition-all">
+                              Đưa về chờ duyệt
+                            </button>
+                            <button onClick={() => setShowModal(post)}
+                              className="px-4 py-2 border border-error/30 text-error rounded-lg text-sm font-semibold hover:bg-error/5 transition-all">
+                              Từ chối
+                            </button>
+                          </>
+                        )}
                       </div>
-                    )}
-                    {post.status === "REJECTED" && (
-                      <div className="mt-4 pt-4 border-t border-surface-variant/40">
-                        <p className="text-sm text-error"><strong>Lý do từ chối:</strong> {post.rejectedReason}</p>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
@@ -151,7 +223,6 @@ const PostApprovals = () => {
         </div>
       </main>
 
-      {/* Modal từ chối */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
           <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-apple-md border border-surface-variant w-full max-w-md">
@@ -180,4 +251,5 @@ const PostApprovals = () => {
     </div>
   );
 };
+
 export default PostApprovals;

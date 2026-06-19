@@ -80,7 +80,7 @@ const MyPosts = () => {
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface-container-low flex-shrink-0">
-                                <img src={getImageUrl(post.images?.[0])} alt="" className="w-full h-full object-cover" />
+                                <img src={getImageUrl(post.thumbnailUrl)} alt="" className="w-full h-full object-cover" />
                               </div>
                               <Link to={`/san-pham/${post._id}`} className="font-semibold text-on-surface text-sm hover:text-primary transition-colors line-clamp-2 max-w-[180px]">
                                 {post.title}
