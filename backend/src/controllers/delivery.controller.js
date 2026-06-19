@@ -1,5 +1,6 @@
 const Delivery = require("../models/delivery.model");
 const Order = require("../models/order.model");
+const ProductPost = require("../models/product_post.model");
 const DeliveryInspection = require("../models/delivery_inspection.model");
 const ProductImage = require("../models/product_image.model");
 
@@ -217,16 +218,6 @@ const updateDeliveryStatus = async (req, res) => {
         success: false,
         message: "Khong the chuyen sang trang thai nay",
       });
-    }
-
-    if (status === "in_transit") {
-      const latestInspection = await DeliveryInspection.findOne({ deliveryId: delivery._id }).sort({ createdAt: -1 }).lean();
-      if (!latestInspection || latestInspection.result !== "passed") {
-        return res.status(400).json({
-          success: false,
-          message: "Can co bien ban kiem tra hop le truoc khi bat dau giao hang",
-        });
-      }
     }
 
     delivery.deliveryStatus = status;
