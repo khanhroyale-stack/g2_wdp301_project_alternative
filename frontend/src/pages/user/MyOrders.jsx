@@ -22,6 +22,7 @@ const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processingId, setProcessingId] = useState(null);
+  const [showOrderDetail, setShowOrderDetail] = useState(null);
 
   // Review modal state
   const [reviewOpen, setReviewOpen] = useState(null);
@@ -183,7 +184,7 @@ const MyOrders = () => {
 
                     {/* Actions bar */}
                     <div className="bg-surface-container-lowest/50 px-6 py-4 md:px-8 border-t border-surface-variant/30 flex flex-wrap items-center justify-between gap-4">
-                      <button onClick={() => navigate(`/don-hang/${order._id}`)} className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 transition-all group-hover:translate-x-1">
+                      <button onClick={() => setShowOrderDetail(order)} className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 transition-all group-hover:translate-x-1">
                         Xem chi tiết <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </button>
 
@@ -271,6 +272,118 @@ const MyOrders = () => {
               </button>
               <button onClick={handleSubmitReview} className="flex-1 py-3.5 bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-full text-base font-bold hover:shadow-lg hover:shadow-orange-500/30 transition-all active:scale-95">
                 Gửi đánh giá
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Detail Popup */}
+      {showOrderDetail && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] px-4 overflow-y-auto py-8">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl border border-surface-variant/20">
+            <div className="p-8">
+              <div className="flex items-start justify-between gap-6 mb-6">
+                <div>
+                  <h2 className="text-2xl font-extrabold text-on-surface mb-2">
+                    Chi tiết đơn hàng #{showOrderDetail._id.slice(-6).toUpperCase()}
+                  </h2>
+                  <span className={`text-xs px-3 py-1 rounded-full font-bold ${ORDER_STATUS[showOrderDetail.orderStatus]?.color || "bg-surface-variant text-on-surface"}`}>
+                    {ORDER_STATUS[showOrderDetail.orderStatus]?.label || showOrderDetail.orderStatus}
+                  </span>
+                </div>
+                <button onClick={() => setShowOrderDetail(null)} className="p-2 hover:bg-surface-container-low rounded-xl transition-all text-on-surface-variant">
+                  <span className="material-symbols-outlined text-2xl">close</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* Người bán */}
+                <div className="p-4 bg-surface-container-low rounded-2xl border border-surface-variant/20">
+                  <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-3">Người bán</h4>
+                  <p className="text-lg font-semibold text-on-surface">{showOrderDetail.sellerId?.fullName || "N/A"}</p>
+                  {showOrderDetail.sellerId?.phone && (
+                    <p className="text-sm text-on-surface-variant mt-1">Điện thoại: {showOrderDetail.sellerId.phone}</p>
+                  )}
+                  {showOrderDetail.sellerId?.address && (
+                    <p className="text-sm text-on-surface-variant mt-1">Địa chỉ: {showOrderDetail.sellerId.address}</p>
+                  )}
+                </div>
+
+                {/* Người mua */}
+                <div className="p-4 bg-surface-container-low rounded-2xl border border-surface-variant/20">
+                  <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-3">Người mua</h4>
+                  <p className="text-lg font-semibold text-on-surface">{showOrderDetail.buyerId?.fullName || "N/A"}</p>
+                  {showOrderDetail.buyerPhone && (
+                    <p className="text-sm text-on-surface-variant mt-1">Điện thoại: {showOrderDetail.buyerPhone}</p>
+                  )}
+                  {showOrderDetail.buyerAddress && (
+                    <p className="text-sm text-on-surface-variant mt-1">Địa chỉ: {showOrderDetail.buyerAddress}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Sản phẩm */}
+              <div className="mb-8">
+                <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">Sản phẩm</h4>
+                <div className="flex items-start gap-4 p-4 bg-surface-container-low rounded-2xl border border-surface-variant/20">
+                  {showOrderDetail.postId?.thumbnailUrl ? (
+                    <img src={getImageUrl(showOrderDetail.postId.thumbnailUrl)} alt="" className="w-24 h-24 object-cover rounded-xl" />
+                  ) : (
+                    <div className="w-24 h-24 bg-surface-variant/20 rounded-xl flex items-center justify-center">
+                      <span className="material-symbols-outlined text-3xl text-on-surface-variant">image</span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h5 className="font-semibold text-on-surface text-lg">{showOrderDetail.postId?.title || "Sản phẩm"}</h5>
+                    <p className="text-sm text-on-surface-variant mt-1">{showOrderDetail.postId?.conditionStatus || ""}</p>
+                    <p className="text-xl font-black text-primary mt-2">{formatPrice(showOrderDetail.productPrice)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thông tin giao hàng */}
+              {showOrderDetail.buyerAddress && (
+                <div className="mb-8">
+                  <h4 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4">Thông tin nhận hàng</h4>
+                  <div className="p-4 bg-surface-container-low rounded-2xl border border-surface-variant/20">
+                    <p className="text-base text-on-surface"><span className="font-medium">Người nhận:</span> {showOrderDetail.recipientName || showOrderDetail.buyerId?.fullName}</p>
+                    <p className="text-base text-on-surface mt-2"><span className="font-medium">Địa chỉ:</span> {showOrderDetail.buyerAddress}</p>
+                    <p className="text-base text-on-surface mt-2"><span className="font-medium">Điện thoại:</span> {showOrderDetail.buyerPhone}</p>
+                    {showOrderDetail.note && (
+                      <p className="text-sm text-on-surface-variant mt-3"><span className="font-medium">Ghi chú:</span> {showOrderDetail.note}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tổng kết */}
+              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/20">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-on-surface-variant">Tạm tính</span>
+                  <span className="text-base font-medium text-on-surface">{formatPrice(showOrderDetail.productPrice)}</span>
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-on-surface-variant">Phí vận chuyển</span>
+                  <span className="text-base font-medium text-on-surface">{formatPrice(showOrderDetail.shippingFee)}</span>
+                </div>
+                {showOrderDetail.cancelReason && (
+                  <div className="flex items-center justify-between mb-3 p-3 bg-red-50 rounded-xl border border-red-200">
+                    <span className="text-sm text-red-600">Lý do hủy</span>
+                    <span className="text-sm font-medium text-red-700">{showOrderDetail.cancelReason}</span>
+                  </div>
+                )}
+                <div className="pt-4 border-t border-surface-variant/20 flex items-center justify-between">
+                  <span className="text-base font-bold text-on-surface">Tổng cộng</span>
+                  <span className="text-2xl font-black text-primary">{formatPrice(showOrderDetail.totalAmount)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-8 pb-8 pt-4 border-t border-surface-variant/20 flex justify-end">
+              <button onClick={() => setShowOrderDetail(null)}
+                className="px-6 py-2.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all text-on-surface-variant">
+                Đóng
               </button>
             </div>
           </div>

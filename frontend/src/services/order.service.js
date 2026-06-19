@@ -21,6 +21,9 @@ const orderService = {
     const response = await api.get(`/orders/${id}`);
     return response.data;
   },
+  getOrderById: async (id) => {
+    return orderService.getOrder(id);
+  },
   sellerConfirmOrder: async (id) => {
     const response = await api.patch(`/orders/${id}/confirm`);
     return response.data;
