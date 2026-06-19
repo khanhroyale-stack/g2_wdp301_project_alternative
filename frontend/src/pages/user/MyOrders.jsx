@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import orderService from "../../services/order.service";
 import reviewService from "../../services/review.service";
@@ -16,6 +17,7 @@ const ORDER_STATUS = {
 };
 
 const MyOrders = () => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState(0); // 0: Đơn mua, 1: Đơn bán
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -43,10 +45,20 @@ const MyOrders = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (id, action) => {
     setProcessingId(id);
     try {
-      const res = await orderService.updateOrderStatus(id, status);
+      let res;
+      if (action === "sellerConfirm") {
+        res = await orderService.sellerConfirmOrder(id);
+      } else if (action === "sellerReject") {
+        res = await orderService.sellerRejectOrder(id, "Người bán từ chối đơn");
+      } else if (action === "cancel") {
+        res = await orderService.cancelOrder(id, "Hủy đơn hàng");
+      } else if (action === "complete") {
+        res = await orderService.buyerConfirmDelivery(id);
+      }
+
       if (res.success) {
         toast.success("Cập nhật trạng thái thành công!");
         fetchOrders();
@@ -171,20 +183,20 @@ const MyOrders = () => {
 
                     {/* Actions bar */}
                     <div className="bg-surface-container-lowest/50 px-6 py-4 md:px-8 border-t border-surface-variant/30 flex flex-wrap items-center justify-between gap-4">
-                      <button className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 transition-all group-hover:translate-x-1">
+                      <button onClick={() => navigate(`/don-hang/${order._id}`)} className="text-primary font-semibold text-sm hover:underline flex items-center gap-1 transition-all group-hover:translate-x-1">
                         Xem chi tiết <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                       </button>
 
                       <div className="flex flex-wrap gap-3">
                         {/* BUYER ACTIONS */}
                         {tab === 0 && order.orderStatus === "pending" && (
-                          <button onClick={() => updateStatus(order._id, "cancelled")} disabled={isProcessing}
+                          <button onClick={() => updateStatus(order._id, "cancel")} disabled={isProcessing}
                             className="px-5 py-2 text-sm font-bold border-2 border-error/20 text-error rounded-xl hover:bg-error/5 hover:border-error/40 transition-all active:scale-95 disabled:opacity-50">
                             Hủy đơn
                           </button>
                         )}
-                        {tab === 0 && (order.orderStatus === "shipping" || order.orderStatus === "delivered") && (
-                          <button onClick={() => updateStatus(order._id, "completed")} disabled={isProcessing}
+                        {tab === 0 && order.orderStatus === "delivered" && (
+                          <button onClick={() => updateStatus(order._id, "complete")} disabled={isProcessing}
                             className="px-5 py-2 text-sm font-bold bg-primary text-white rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50">
                             Đã nhận hàng (Hoàn tất)
                           </button>
@@ -199,11 +211,11 @@ const MyOrders = () => {
                         {/* SELLER ACTIONS */}
                         {tab === 1 && order.orderStatus === "pending" && (
                           <>
-                            <button onClick={() => updateStatus(order._id, "cancelled")} disabled={isProcessing}
+                            <button onClick={() => updateStatus(order._id, "sellerReject")} disabled={isProcessing}
                               className="px-5 py-2 text-sm font-bold border-2 border-error/20 text-error rounded-xl hover:bg-error/5 hover:border-error/40 transition-all active:scale-95 disabled:opacity-50">
                               Từ chối
                             </button>
-                            <button onClick={() => updateStatus(order._id, "confirmed")} disabled={isProcessing}
+                            <button onClick={() => updateStatus(order._id, "sellerConfirm")} disabled={isProcessing}
                               className="px-5 py-2 text-sm font-bold bg-primary text-white rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50">
                               Xác nhận đơn
                             </button>
