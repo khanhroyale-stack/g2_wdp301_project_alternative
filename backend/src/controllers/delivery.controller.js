@@ -13,12 +13,19 @@ const appendDeliveryHistory = (delivery, status, note) => {
 
 const hydrateProductImage = async (delivery) => {
   if (delivery.orderId?.postId?._id) {
-    const image = await ProductImage.findOne({
-      productPostId: delivery.orderId.postId._id,
-    })
-      .select("imageUrl")
-      .lean();
-    delivery.orderId.productImage = image?.imageUrl || null;
+    // Try using thumbnailUrl first since that's what marketplace uses
+    const post = await ProductPost.findById(delivery.orderId.postId._id).select('thumbnailUrl').lean();
+    if (post?.thumbnailUrl) {
+      delivery.orderId.productImage = post.thumbnailUrl;
+    } else {
+      // Fallback to old method if no thumbnailUrl
+      const image = await ProductImage.findOne({
+        productPostId: delivery.orderId.postId._id,
+      })
+        .select('imageUrl')
+        .lean();
+      delivery.orderId.productImage = image?.imageUrl || null;
+    }
   }
 };
 
@@ -33,14 +40,15 @@ const getAvailableDeliveries = async (req, res) => {
         populate: [
           { path: "buyerId", select: "fullName phone" },
           { path: "sellerId", select: "fullName phone address" },
-          { path: "postId", select: "title salePrice" },
+          { path: "postId", select: "title salePrice thumbnailUrl" }, // Added thumbnailUrl!
         ],
       })
       .sort({ createdAt: -1 })
       .lean();
 
+    // Now we can directly use postId.thumbnailUrl instead of extra query
     for (const delivery of deliveries) {
-      await hydrateProductImage(delivery);
+      delivery.orderId.productImage = delivery.orderId?.postId?.thumbnailUrl || null;
     }
 
     res.json({ success: true, data: deliveries });
@@ -109,14 +117,15 @@ const getMyDeliveries = async (req, res) => {
         populate: [
           { path: "buyerId", select: "fullName phone address" },
           { path: "sellerId", select: "fullName phone address" },
-          { path: "postId", select: "title salePrice" },
+          { path: "postId", select: "title salePrice thumbnailUrl" }, // Added thumbnailUrl!
         ],
       })
       .sort({ createdAt: -1 })
       .lean();
 
+    // Now we can directly use postId.thumbnailUrl instead of extra query
     for (const delivery of deliveries) {
-      await hydrateProductImage(delivery);
+      delivery.orderId.productImage = delivery.orderId?.postId?.thumbnailUrl || null;
     }
 
     res.json({ success: true, data: deliveries });
