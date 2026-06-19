@@ -23,6 +23,9 @@ import Rentals from './pages/user/Rentals';
 import Messages from './pages/user/Messages';
 import Notifications from './pages/user/Notifications';
 import CreateOrder from './pages/orders/CreateOrder';
+import OrderList from './pages/orders/OrderList';
+import OrderDetail from './pages/orders/OrderDetail';
+import MySales from './pages/orders/MySales';
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -38,6 +41,10 @@ import ContractManagement from './pages/admin/ContractManagement';
 import ShipperDashboard from "./pages/shipper/ShipperDashboard";
 import PendingDeliveries from './pages/shipper/PendingDeliveries';
 import DeliveringOrders from './pages/shipper/DeliveringOrders';
+// Delivery pages
+import DeliveryList from './pages/delivery/DeliveryList';
+import DeliveryDetail from './pages/delivery/DeliveryDetail';
+import DeliveryInspection from './pages/delivery/DeliveryInspection';
 
 const ChatRoomRedirect = () => {
   const { roomId } = useParams();
@@ -77,11 +84,18 @@ function App() {
           <Route path="/quan-ly/bai-dang" element={<PrivateRoute><MyPosts /></PrivateRoute>} />
           <Route path="/dang-tin" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
           <Route path="/don-hang" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
+          <Route path="/don-hang/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
+          <Route path="/don-hang-cua-toi" element={<PrivateRoute><MySales /></PrivateRoute>} />
           <Route path="/thue-muon" element={<PrivateRoute><Rentals /></PrivateRoute>} />
           <Route path="/tin-nhan" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/tin-nhan/:roomId" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/dat-hang/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
+
+          {/* ── Delivery routes ───────────────────────── */}
+          <Route path="/giao-hang" element={<PrivateRoute><DeliveryList /></PrivateRoute>} />
+          <Route path="/giao-hang/:id" element={<PrivateRoute><DeliveryDetail /></PrivateRoute>} />
+          <Route path="/giao-hang/:id/kiem-tra" element={<PrivateRoute><DeliveryInspection /></PrivateRoute>} />
 
           {/* ── Admin ───────────────────────────────── */}
           <Route path="/admin" element={<PrivateRoute adminOnly><AdminDashboard /></PrivateRoute>} />

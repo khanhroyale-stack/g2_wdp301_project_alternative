@@ -21,6 +21,22 @@ const orderService = {
     const response = await api.get(`/orders/${id}`);
     return response.data;
   },
+  sellerConfirmOrder: async (id) => {
+    const response = await api.patch(`/orders/${id}/confirm`);
+    return response.data;
+  },
+  sellerRejectOrder: async (id, reason) => {
+    const response = await api.patch(`/orders/${id}/reject`, { reason });
+    return response.data;
+  },
+  cancelOrder: async (id, reason) => {
+    const response = await api.patch(`/orders/${id}/cancel`, { reason });
+    return response.data;
+  },
+  buyerConfirmDelivery: async (id) => {
+    const response = await api.patch(`/orders/${id}/confirm-delivery`);
+    return response.data;
+  },
   updateOrderStatus: async (id, orderStatus) => {
     const response = await api.patch(`/orders/${id}/status`, { orderStatus });
     return response.data;

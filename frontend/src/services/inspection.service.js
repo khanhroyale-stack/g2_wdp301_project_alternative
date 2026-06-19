@@ -1,29 +1,30 @@
 import api from "./api";
 
 const inspectionService = {
-  // Create inspection report
   createInspection: async (data) => {
     const response = await api.post("/inspections", data);
     return response.data;
   },
-
-  // Get inspections by delivery ID
-  getInspectionsByDelivery: async (deliveryId) => {
-    const response = await api.get(`/inspections/delivery/${deliveryId}`);
-    return response.data;
-  },
-
-  // Get inspection by ID
-  getInspectionById: async (id) => {
+  getInspection: async (id) => {
     const response = await api.get(`/inspections/${id}`);
     return response.data;
   },
-
-  // Get my inspections
-  getMyInspections: async () => {
-    const response = await api.get("/inspections/my-inspections");
+  getInspectionsByOrder: async (orderId) => {
+    const response = await api.get(`/inspections/order/${orderId}`);
     return response.data;
   },
+  getInspectionsByRental: async (rentalId) => {
+    const response = await api.get(`/inspections/rental/${rentalId}`);
+    return response.data;
+  },
+  updateInspection: async (id, data) => {
+    const response = await api.put(`/inspections/${id}`, data);
+    return response.data;
+  },
+  adminGetAllInspections: async () => {
+    const response = await api.get("/inspections/admin");
+    return response.data;
+  }
 };
 
 export default inspectionService;
