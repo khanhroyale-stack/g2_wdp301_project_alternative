@@ -17,6 +17,19 @@ const chatRoomSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    lastMessage: {
+      type: String,
+      default: null,
+    },
+    lastMessageAt: {
+      type: Date,
+      default: null,
+    },
+    lastSenderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   {
     timestamps: true,

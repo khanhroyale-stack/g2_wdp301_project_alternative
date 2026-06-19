@@ -2,30 +2,33 @@ const Order = require("../models/order.model");
 const ProductPost = require("../models/product_post.model");
 const Delivery = require("../models/delivery.model");
 const User = require("../models/user.model");
-const ProductImage = require("../models/product_image.model");
+const {
+  getProductImageUrls,
+  getProductThumbnailUrl,
+} = require("../utils/product-images.util");
 
 const SHIPPING_FEE = 35000;
 const ACTIVE_ORDER_STATUSES = ["pending", "confirmed", "shipping", "delivered"];
 
 const getProductAvailabilityError = (product, viewerId, seller) => {
   if (!product) {
-    return { code: 404, message: "Sản phẩm không tồn tại" };
+    return { code: 404, message: "San pham khong ton tai" };
   }
 
   if (product.postStatus !== "approved") {
-    return { code: 400, message: "Sản phẩm hiện không khả dụng để đặt mua" };
+    return { code: 400, message: "San pham hien khong kha dung de dat mua" };
   }
 
   if (!["sale", "both"].includes(product.productType)) {
-    return { code: 400, message: "Sản phẩm này không hỗ trợ mua" };
+    return { code: 400, message: "San pham nay khong ho tro mua" };
   }
 
   if (String(product.ownerId?._id || product.ownerId) === String(viewerId)) {
-    return { code: 400, message: "Bạn không thể mua sản phẩm của chính mình" };
+    return { code: 400, message: "Ban khong the mua san pham cua chinh minh" };
   }
 
   if (!seller || seller.accountStatus !== "active") {
-    return { code: 400, message: "Người bán hiện không thể nhận đơn hàng" };
+    return { code: 400, message: "Nguoi ban hien khong the nhan don hang" };
   }
 
   return null;
@@ -57,10 +60,7 @@ const getOrderActionFlags = (order, delivery, userId) => {
 
 const hydrateOrderListItem = async (order, viewerId) => {
   if (order.postId?._id) {
-    const image = await ProductImage.findOne({ productPostId: order.postId._id })
-      .select("imageUrl")
-      .lean();
-    order.productImage = image?.imageUrl || null;
+    order.productImage = await getProductThumbnailUrl(order.postId._id);
   }
 
   const delivery = await Delivery.findOne({ orderId: order._id })
@@ -80,7 +80,7 @@ const createOrder = async (req, res) => {
     if (!productId || !buyerAddress || !buyerPhone || !recipientName) {
       return res.status(400).json({
         success: false,
-        message: "Vui lòng điền đầy đủ thông tin",
+        message: "Vui long dien day du thong tin",
       });
     }
 
@@ -98,7 +98,7 @@ const createOrder = async (req, res) => {
     if (existingOrder) {
       return res.status(400).json({
         success: false,
-        message: "Sản phẩm này đang có đơn hàng đang xử lý",
+        message: "San pham nay dang co don hang dang xu ly",
       });
     }
 
@@ -126,7 +126,7 @@ const createOrder = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Tạo đơn hàng thành công",
+      message: "Tao don hang thanh cong",
       data: populatedOrder,
     });
   } catch (error) {
@@ -179,7 +179,7 @@ const getOrderById = async (req, res) => {
       .lean();
 
     if (!order) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+      return res.status(404).json({ success: false, message: "Khong tim thay don hang" });
     }
 
     const isBuyer = String(order.buyerId._id) === String(req.user._id);
@@ -187,16 +187,12 @@ const getOrderById = async (req, res) => {
     if (!isBuyer && !isSeller && req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
-        message: "Bạn không có quyền xem đơn hàng này",
+        message: "Ban khong co quyen xem don hang nay",
       });
     }
 
     if (order.postId?._id) {
-      const images = await ProductImage.find({ productPostId: order.postId._id })
-        .select("imageUrl displayOrder")
-        .sort({ displayOrder: 1 })
-        .lean();
-      order.postId.images = images.map((img) => img.imageUrl);
+      order.postId.images = await getProductImageUrls(order.postId._id);
     }
 
     const delivery = await Delivery.findOne({ orderId: order._id })
@@ -217,7 +213,7 @@ const updateOrderStatus = async (req, res) => {
     const order = await Order.findById(req.params.id);
 
     if (!order) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+      return res.status(404).json({ success: false, message: "Khong tim thay don hang" });
     }
 
     const isBuyer = String(order.buyerId) === String(req.user._id);
@@ -229,7 +225,7 @@ const updateOrderStatus = async (req, res) => {
 
       const seller = await User.findById(order.sellerId).select("address accountStatus");
       if (!seller || seller.accountStatus !== "active") {
-        return res.status(400).json({ success: false, message: "Seller hiện không thể xác nhận đơn" });
+        return res.status(400).json({ success: false, message: "Seller hien khong the xac nhan don" });
       }
 
       const existingDelivery = await Delivery.findOne({ orderId: order._id });
@@ -237,7 +233,7 @@ const updateOrderStatus = async (req, res) => {
         await Delivery.create({
           orderId: order._id,
           shipperId: null,
-          pickupAddress: seller.address || "Địa chỉ người bán chưa cập nhật",
+          pickupAddress: seller.address || "Dia chi nguoi ban chua cap nhat",
           deliveryAddress: order.buyerAddress,
           deliveryFee: order.shippingFee,
           deliveryType: "standard",
@@ -245,7 +241,7 @@ const updateOrderStatus = async (req, res) => {
           history: [
             {
               status: "pending",
-              note: "Đơn giao hàng được tạo sau khi seller xác nhận đơn.",
+              note: "Don giao hang duoc tao sau khi seller xac nhan don.",
               timestamp: new Date(),
             },
           ],
@@ -260,7 +256,7 @@ const updateOrderStatus = async (req, res) => {
       if (delivery?.shipperId || ["in_transit", "delivered"].includes(delivery?.deliveryStatus)) {
         return res.status(400).json({
           success: false,
-          message: "Không thể hủy đơn khi delivery đã có shipper hoặc đang giao",
+          message: "Khong the huy don khi delivery da co shipper hoac dang giao",
         });
       }
 
@@ -269,7 +265,7 @@ const updateOrderStatus = async (req, res) => {
 
       if (delivery) {
         delivery.deliveryStatus = "failed";
-        delivery.failureReason = order.cancelReason || `Đơn hàng bị hủy bởi ${isBuyer ? "buyer" : "seller"}.`;
+        delivery.failureReason = order.cancelReason || `Don hang bi huy boi ${isBuyer ? "buyer" : "seller"}.`;
         delivery.history.push({
           status: "failed",
           note: delivery.failureReason,
@@ -282,7 +278,7 @@ const updateOrderStatus = async (req, res) => {
       if (!delivery || delivery.deliveryStatus !== "delivered") {
         return res.status(400).json({
           success: false,
-          message: "Đơn hàng chưa ở trạng thái đã giao để xác nhận hoàn tất",
+          message: "Don hang chua o trang thai da giao de xac nhan hoan tat",
         });
       }
 
@@ -299,7 +295,7 @@ const updateOrderStatus = async (req, res) => {
     } else {
       return res.status(400).json({
         success: false,
-        message: "Không thể cập nhật trạng thái đơn hàng",
+        message: "Khong the cap nhat trang thai don hang",
       });
     }
 
@@ -318,7 +314,7 @@ const updateOrderStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Cập nhật trạng thái thành công",
+      message: "Cap nhat trang thai thanh cong",
       data: updatedOrder,
     });
   } catch (error) {
@@ -337,11 +333,7 @@ const getCheckoutPreview = async (req, res) => {
       return res.status(availabilityError.code).json({ success: false, message: availabilityError.message });
     }
 
-    const images = await ProductImage.find({ productPostId: product._id })
-      .select("imageUrl displayOrder")
-      .sort({ displayOrder: 1 })
-      .lean();
-    product.images = images.map((img) => img.imageUrl);
+    product.images = await getProductImageUrls(product._id);
 
     const subtotal = product.salePrice;
     const totalAmount = subtotal + SHIPPING_FEE;

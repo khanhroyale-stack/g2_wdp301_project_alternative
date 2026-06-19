@@ -71,14 +71,7 @@ const createInspection = async (req, res) => {
       result,
     });
 
-    if (result === "passed") {
-      if (delivery.deliveryStatus !== "picked_up") {
-        return res.status(400).json({
-          success: false,
-          message: "Delivery phai o trang thai da lay hang truoc khi xac nhan inspection dat",
-        });
-      }
-    } else {
+    if (result !== "passed") {
       delivery.deliveryStatus = "failed";
       delivery.failureReason =
         result === "failed_seller_fault"
@@ -128,9 +121,7 @@ const getInspectionsByDelivery = async (req, res) => {
       .lean();
 
     for (const inspection of inspections) {
-      const images = await InspectionImage.find({
-        inspectionId: inspection._id,
-      })
+      const images = await InspectionImage.find({ inspectionId: inspection._id })
         .select("imageUrl description")
         .lean();
       inspection.images = images;

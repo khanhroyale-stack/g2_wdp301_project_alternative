@@ -5,13 +5,12 @@ const {
   getMySales,
   getOrderById,
   updateOrderStatus,
-  getCheckoutPreview
+  getCheckoutPreview,
 } = require("../controllers/order.controller");
 const { protect, activeOnly } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
-// Protected routes - require authentication
 router.use(protect, activeOnly);
 
 router.get("/checkout/:productId", getCheckoutPreview);

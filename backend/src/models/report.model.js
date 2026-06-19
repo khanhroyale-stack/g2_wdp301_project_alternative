@@ -22,6 +22,11 @@ const reportSchema = new mongoose.Schema(
       ref: "RentalContract",
       default: null,
     },
+    postId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ProductPost",
+      default: null,
+    },
     reportType: {
       type: String,
       enum: ["product_issue", "fraud", "damage", "missing_item", "other"],
@@ -48,8 +53,10 @@ const reportSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    collection: "report",
+    collection: "reports",
   }
 );
+
+reportSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Report", reportSchema);

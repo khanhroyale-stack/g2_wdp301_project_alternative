@@ -22,7 +22,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      // Không chuyển hướng nếu lỗi 401 đến từ trang đăng nhập
+      if (error.config && !error.config.url.includes("/auth/login")) {
+        window.location.href = "/dang-nhap";
+      }
     }
     return Promise.reject(error);
   }
