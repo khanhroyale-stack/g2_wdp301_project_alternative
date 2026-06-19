@@ -41,5 +41,6 @@ const productService = {
     const response = await api.patch(`/products/${id}/status`, { status, reason });
     return response.data;
   },
+};
 
 export default productService;
