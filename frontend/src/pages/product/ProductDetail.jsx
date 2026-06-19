@@ -90,20 +90,7 @@ const ProductDetail = () => {
 
     const handleBuy = async () => {
         if (!user) return navigate("/dang-nhap");
-        if (window.confirm(`Xác nhận đặt mua: ${product.title}?`)) {
-            setIsSubmitting(true);
-            try {
-                const res = await orderService.createOrder({ productId: product._id });
-                if (res.success) {
-                    toast.success("Đặt hàng thành công!");
-                    navigate("/don-hang");
-                }
-            } catch (err) {
-                toast.error(err.response?.data?.message || "Lỗi khi đặt mua");
-            } finally {
-                setIsSubmitting(false);
-            }
-        }
+        navigate(`/dat-hang/${product._id}`);
     };
 
     const handleRentSubmit = async () => {

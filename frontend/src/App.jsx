@@ -22,6 +22,7 @@ import MyOrders from './pages/user/MyOrders';
 import Rentals from './pages/user/Rentals';
 import Messages from './pages/user/Messages';
 import Notifications from './pages/user/Notifications';
+import CreateOrder from './pages/orders/CreateOrder';
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -80,6 +81,7 @@ function App() {
           <Route path="/tin-nhan" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/tin-nhan/:roomId" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+          <Route path="/dat-hang/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
 
           {/* ── Admin ───────────────────────────────── */}
           <Route path="/admin" element={<PrivateRoute adminOnly><AdminDashboard /></PrivateRoute>} />
