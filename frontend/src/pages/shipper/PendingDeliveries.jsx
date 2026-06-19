@@ -3,7 +3,7 @@ import Sidebar from "../../components/Sidebar";
 import shipperService from "../../services/shipper.service";
 
 const getImageUrl = (url) => {
-  if (!url) return "https://placehold.co/400x300?text=No+Image";
+  if (!url) return null; // Dùng null để hiển thị placeholder đẹp
   if (url.startsWith("http")) return url;
   return `http://localhost:5000${url}`;
 };
@@ -61,8 +61,19 @@ const PendingDeliveries = () => {
                 return (
                   <div key={delivery._id} className="bg-white rounded-2xl shadow-sm border border-surface-variant/30 overflow-hidden">
                     <div className="p-6 flex gap-6">
-                      <div className="w-32 h-32 rounded-2xl overflow-hidden bg-surface-container flex-shrink-0">
-                        <img src={getImageUrl(order.productImage)} alt={order.postId?.title} className="w-full h-full object-cover" />
+                      <div className="w-28 h-28 rounded-2xl overflow-hidden bg-surface-container flex-shrink-0 relative">
+                        {getImageUrl(order.productImage) ? (
+                          <img
+                            src={getImageUrl(order.productImage)}
+                            alt={order.postId?.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+                          />
+                        ) : null}
+                        <div className={`absolute inset-0 flex items-center justify-center bg-surface-container-low flex-col gap-2 ${getImageUrl(order.productImage) ? "hidden" : "flex"}`}>
+                          <span className="material-symbols-outlined text-4xl text-on-surface-variant/30">image</span>
+                          <span className="text-xs text-on-surface-variant/50">Chưa có ảnh</span>
+                        </div>
                       </div>
                       <div className="flex-1">
                         <div className="flex items-start justify-between gap-4 mb-3">

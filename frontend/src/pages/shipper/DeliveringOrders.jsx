@@ -14,7 +14,7 @@ const STEP_MAP = {
 };
 
 const getImageUrl = (url) => {
-  if (!url) return "https://placehold.co/400x300?text=No+Image";
+  if (!url) return null; // Dùng null để hiển thị placeholder đẹp
   if (url.startsWith("http")) return url;
   return `http://localhost:5000${url}`;
 };
@@ -111,13 +111,13 @@ const DeliveringOrders = () => {
           </header>
 
           {loading ? (
-             <div className="flex justify-center items-center py-20">
-                <span className="material-symbols-outlined text-primary text-5xl animate-spin">refresh</span>
-             </div>
+            <div className="flex justify-center items-center py-20">
+              <span className="material-symbols-outlined text-primary text-5xl animate-spin">refresh</span>
+            </div>
           ) : deliveries.length === 0 ? (
             <div className="bg-white rounded-3xl py-20 text-center border border-surface-variant/20 shadow-sm flex flex-col items-center">
               <div className="w-24 h-24 bg-surface-container-low rounded-full flex items-center justify-center mb-6">
-                 <span className="material-symbols-outlined text-6xl text-primary/50">inbox</span>
+                <span className="material-symbols-outlined text-6xl text-primary/50">inbox</span>
               </div>
               <h3 className="text-xl font-bold text-on-surface mb-2">Không có đơn đang giao</h3>
               <p className="text-on-surface-variant">Bạn đã hoàn thành tất cả đơn hàng hiện tại.</p>
@@ -132,14 +132,25 @@ const DeliveringOrders = () => {
                 return (
                   <div key={delivery._id} className="bg-white rounded-3xl shadow-sm hover:shadow-apple transition-all border border-surface-variant/20 overflow-hidden relative">
                     {isProcessing && (
-                       <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-primary text-3xl animate-spin">refresh</span>
-                       </div>
+                      <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-primary text-3xl animate-spin">refresh</span>
+                      </div>
                     )}
-                    
+
                     <div className="p-6 md:p-8 flex gap-6 items-start">
-                      <div className="w-28 h-28 rounded-2xl overflow-hidden bg-surface-container flex-shrink-0">
-                        <img src={getImageUrl(order.productImage)} alt={order.postId?.title} className="w-full h-full object-cover" />
+                      <div className="w-28 h-28 rounded-2xl overflow-hidden bg-surface-container flex-shrink-0 relative">
+                        {getImageUrl(order.productImage) ? (
+                          <img
+                            src={getImageUrl(order.productImage)}
+                            alt={order.postId?.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+                          />
+                        ) : null}
+                        <div className={`absolute inset-0 flex items-center justify-center bg-surface-container-low flex-col gap-2 ${getImageUrl(order.productImage) ? "hidden" : "flex"}`}>
+                          <span className="material-symbols-outlined text-4xl text-on-surface-variant/30">image</span>
+                          <span className="text-xs text-on-surface-variant/50">Chưa có ảnh</span>
+                        </div>
                       </div>
 
                       <div className="flex-1">
@@ -205,7 +216,7 @@ const DeliveringOrders = () => {
                               Tạo biên bản kiểm tra
                             </button>
                           )}
-                          
+
                           <div className="flex gap-3 flex-wrap">
                             {delivery.deliveryStatus === "accepted" && (
                               <button
@@ -265,54 +276,54 @@ const DeliveringOrders = () => {
             {/* Kiểm tra các mục */}
             <div className="space-y-3 mb-6">
               <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={form.isCorrectProduct} 
+                <input
+                  type="checkbox"
+                  checked={form.isCorrectProduct}
                   onChange={(e) => setForm({ ...form, isCorrectProduct: e.target.checked })}
                   className="w-5 h-5 text-primary focus:ring-primary accent-primary"
                 />
                 <span className="text-sm text-on-surface">Đúng sản phẩm</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={form.isCorrectImage} 
+                <input
+                  type="checkbox"
+                  checked={form.isCorrectImage}
                   onChange={(e) => setForm({ ...form, isCorrectImage: e.target.checked })}
                   className="w-5 h-5 text-primary focus:ring-primary accent-primary"
                 />
                 <span className="text-sm text-on-surface">Đúng hình ảnh</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={form.isCorrectModel} 
+                <input
+                  type="checkbox"
+                  checked={form.isCorrectModel}
                   onChange={(e) => setForm({ ...form, isCorrectModel: e.target.checked })}
                   className="w-5 h-5 text-primary focus:ring-primary accent-primary"
                 />
                 <span className="text-sm text-on-surface">Đúng model</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={form.isCorrectCondition} 
+                <input
+                  type="checkbox"
+                  checked={form.isCorrectCondition}
                   onChange={(e) => setForm({ ...form, isCorrectCondition: e.target.checked })}
                   className="w-5 h-5 text-primary focus:ring-primary accent-primary"
                 />
                 <span className="text-sm text-on-surface">Đúng tình trạng</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={form.isAccessoriesEnough} 
+                <input
+                  type="checkbox"
+                  checked={form.isAccessoriesEnough}
                   onChange={(e) => setForm({ ...form, isAccessoriesEnough: e.target.checked })}
                   className="w-5 h-5 text-primary focus:ring-primary accent-primary"
                 />
                 <span className="text-sm text-on-surface">Đủ phụ kiện</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={form.isMatchDescription} 
+                <input
+                  type="checkbox"
+                  checked={form.isMatchDescription}
                   onChange={(e) => setForm({ ...form, isMatchDescription: e.target.checked })}
                   className="w-5 h-5 text-primary focus:ring-primary accent-primary"
                 />
@@ -324,39 +335,39 @@ const DeliveringOrders = () => {
             <div className="mb-6">
               <label className="block text-sm font-bold text-on-surface mb-3">Kết quả</label>
               <div className="flex gap-4 flex-wrap">
-                 <label className="flex items-center gap-2 cursor-pointer group">
-                    <input 
-                      type="radio" 
-                      name="result" 
-                      value="passed" 
-                      checked={form.result === "passed"} 
-                      onChange={() => setForm({ ...form, result: "passed" })} 
-                      className="w-4 h-4 text-primary focus:ring-primary accent-primary"
-                    />
-                    <span className={`text-sm font-semibold ${form.result === "passed" ? "text-primary" : "text-on-surface-variant group-hover:text-on-surface"}`}>Đạt yêu cầu</span>
-                 </label>
-                 <label className="flex items-center gap-2 cursor-pointer group">
-                    <input 
-                      type="radio" 
-                      name="result" 
-                      value="failed_seller_fault" 
-                      checked={form.result === "failed_seller_fault"} 
-                      onChange={() => setForm({ ...form, result: "failed_seller_fault" })} 
-                      className="w-4 h-4 text-error focus:ring-error accent-error"
-                    />
-                    <span className={`text-sm font-semibold ${form.result === "failed_seller_fault" ? "text-error" : "text-on-surface-variant group-hover:text-on-surface"}`}>Lỗi từ người bán</span>
-                 </label>
-                 <label className="flex items-center gap-2 cursor-pointer group">
-                    <input 
-                      type="radio" 
-                      name="result" 
-                      value="failed_shipper_fault" 
-                      checked={form.result === "failed_shipper_fault"} 
-                      onChange={() => setForm({ ...form, result: "failed_shipper_fault" })} 
-                      className="w-4 h-4 text-error focus:ring-error accent-error"
-                    />
-                    <span className={`text-sm font-semibold ${form.result === "failed_shipper_fault" ? "text-error" : "text-on-surface-variant group-hover:text-on-surface"}`}>Lỗi từ shipper</span>
-                 </label>
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="result"
+                    value="passed"
+                    checked={form.result === "passed"}
+                    onChange={() => setForm({ ...form, result: "passed" })}
+                    className="w-4 h-4 text-primary focus:ring-primary accent-primary"
+                  />
+                  <span className={`text-sm font-semibold ${form.result === "passed" ? "text-primary" : "text-on-surface-variant group-hover:text-on-surface"}`}>Đạt yêu cầu</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="result"
+                    value="failed_seller_fault"
+                    checked={form.result === "failed_seller_fault"}
+                    onChange={() => setForm({ ...form, result: "failed_seller_fault" })}
+                    className="w-4 h-4 text-error focus:ring-error accent-error"
+                  />
+                  <span className={`text-sm font-semibold ${form.result === "failed_seller_fault" ? "text-error" : "text-on-surface-variant group-hover:text-on-surface"}`}>Lỗi từ người bán</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="result"
+                    value="failed_shipper_fault"
+                    checked={form.result === "failed_shipper_fault"}
+                    onChange={() => setForm({ ...form, result: "failed_shipper_fault" })}
+                    className="w-4 h-4 text-error focus:ring-error accent-error"
+                  />
+                  <span className={`text-sm font-semibold ${form.result === "failed_shipper_fault" ? "text-error" : "text-on-surface-variant group-hover:text-on-surface"}`}>Lỗi từ shipper</span>
+                </label>
               </div>
             </div>
 
