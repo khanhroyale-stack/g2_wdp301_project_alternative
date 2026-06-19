@@ -33,10 +33,11 @@ const getProducts = async (req, res) => {
     if (keyword) filter.$text = { $search: keyword };
     if (category) filter.categoryId = category;
 
-    if (listingType) {
-      if (listingType === "ban") filter.productType = "sale";
-      else if (listingType === "cho-thue") filter.productType = "rent";
-      else filter.productType = listingType;
+    const type = listingType || req.query.productType;
+    if (type) {
+      if (type === "ban" || type === "sale") filter.productType = "sale";
+      else if (type === "cho-thue" || type === "rent") filter.productType = "rent";
+      else filter.productType = type;
     }
 
     if (condition) filter.conditionStatus = condition;
@@ -173,10 +174,11 @@ const adminGetProducts = async (req, res) => {
     const { status } = req.query;
     const filter = status ? { postStatus: status } : {};
     const products = await ProductPost.find(filter)
-      .populate("ownerId", "name email")
+      .populate("ownerId", "fullName email")
       .populate("categoryId", "name")
       .sort({ createdAt: -1 });
-    res.json({ success: true, data: products });
+    const productsWithThumbs = await attachThumbnails(products);
+    res.json({ success: true, data: productsWithThumbs });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -233,7 +235,71 @@ const adminRejectProduct = async (req, res) => {
   }
 };
 
+const adminChangeStatus = async (req, res) => {
+  try {
+    const { status, reason } = req.body;
+    if (!["pending", "approved", "rejected", "closed"].includes(status)) {
+      return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ" });
+    }
+    
+    const updateData = { postStatus: status };
+    if (status === "approved") {
+      updateData.approvedBy = req.user._id;
+      updateData.approvedAt = new Date();
+    } else if (status === "rejected") {
+      updateData.rejectReason = reason || "Không đạt yêu cầu";
+    } else if (status === "pending") {
+      updateData.approvedBy = null;
+      updateData.approvedAt = null;
+      updateData.rejectReason = null;
+    }
+    
+    const product = await ProductPost.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+    
+    if (!product) return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+
+    // Send notifications if approved/rejected/pending
+    const io = req.app.get("io");
+    const { createNotification } = require("./notification.controller");
+    if (status === "approved") {
+      await createNotification({
+        recipientId: product.ownerId,
+        type: "system",
+        title: "Bài đăng đã được duyệt ✅",
+        content: `Bài đăng "${product.title}" của bạn đã được duyệt và đang hiển thị.`,
+        relatedType: "order",
+        relatedId: product._id,
+        link: `/san-pham/${product._id}`,
+      }, io);
+    } else if (status === "rejected") {
+      await createNotification({
+        recipientId: product.ownerId,
+        type: "system",
+        title: "Bài đăng bị từ chối ❌",
+        content: `Bài đăng "${product.title}" bị từ chối. Lý do: ${reason || "Không đạt yêu cầu"}`,
+        link: "/quan-ly/bai-dang",
+      }, io);
+    } else if (status === "pending") {
+      await createNotification({
+        recipientId: product.ownerId,
+        type: "system",
+        title: "Bài đăng đang được xem xét lại ⏳",
+        content: `Bài đăng "${product.title}" đã được đưa về trạng thái chờ duyệt để xem xét lại tính minh bạch.`,
+        link: "/quan-ly/bai-dang",
+      }, io);
+    }
+
+    res.json({ success: true, data: product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getProducts, getProduct, createProduct, updateProduct, deleteProduct,
-  getMyProducts, adminGetProducts, adminApproveProduct, adminRejectProduct,
+  getMyProducts, adminGetProducts, adminApproveProduct, adminRejectProduct, adminChangeStatus,
 };
