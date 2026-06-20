@@ -1,12 +1,19 @@
 const ProductImage = require("../models/product_image.model");
 
 const extractMediaUrl = (image) => {
+  if (image.imageUrl) {
+    return image.imageUrl;
+  }
+
   const media = image.mediaId || image.field;
   return media?.publicUrl || null;
 };
 
 const getImageQuery = (postIds) => ({
-  postId: Array.isArray(postIds) ? { $in: postIds } : postIds,
+  $or: [
+    { postId: Array.isArray(postIds) ? { $in: postIds } : postIds },
+    { productPostId: Array.isArray(postIds) ? { $in: postIds } : postIds },
+  ],
 });
 
 const fetchImages = async (postIds) => {
@@ -41,7 +48,7 @@ const attachImagesToProducts = async (products) => {
   const grouped = new Map();
 
   for (const image of images) {
-    const key = String(image.postId);
+    const key = String(image.postId || image.productPostId);
     const publicUrl = extractMediaUrl(image);
 
     if (!publicUrl) {

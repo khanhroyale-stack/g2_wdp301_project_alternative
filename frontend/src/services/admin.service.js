@@ -28,11 +28,11 @@ const adminService = {
     return response.data;
   },
   banUser: async (id) => {
-    const response = await api.patch(`/users/admin/${id}`, { accountStatus: "banned" });
+    const response = await api.put(`/users/admin/${id}`, { accountStatus: "banned" });
     return response.data;
   },
   unbanUser: async (id) => {
-    const response = await api.patch(`/users/admin/${id}`, { accountStatus: "active" });
+    const response = await api.put(`/users/admin/${id}`, { accountStatus: "active" });
     return response.data;
   },
   deductReputation: async (id, data) => {

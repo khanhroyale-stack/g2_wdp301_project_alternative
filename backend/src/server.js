@@ -59,6 +59,7 @@ app.use("/api/reputation", require("./routes/reputation.routes"));
 app.use("/api/categories", require("./routes/category.routes"));
 app.use("/api/products", require("./routes/product.routes"));
 app.use("/api/orders", require("./routes/order.routes"));
+app.use("/api/cart", require("./routes/cart.routes"));
 app.use("/api/deliveries", require("./routes/delivery.routes"));
 app.use("/api/inspections", require("./routes/inspection.routes"));
 app.use("/api/rentals", require("./routes/rental.routes"));

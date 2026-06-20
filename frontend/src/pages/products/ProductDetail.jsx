@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import productService from "../../services/product.service";
+import cartService from "../../services/cart.service";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -44,6 +45,17 @@ const ProductDetail = () => {
 
   const handleBuyNow = () => {
     navigate(`/orders/create/${id}`);
+  };
+
+  const handleAddToCart = async () => {
+    try {
+      const res = await cartService.addCartItem(id, 1);
+      if (res.success) {
+        navigate("/gio-hang");
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Khong the them vao gio hang");
+    }
   };
 
   if (loading) {

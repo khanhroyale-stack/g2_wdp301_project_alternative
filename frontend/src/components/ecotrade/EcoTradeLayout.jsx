@@ -1,18 +1,27 @@
 import { NavLink } from "react-router-dom";
-import { Bell, Box, Grid2x2, Leaf, LogOut, Search, Settings, ShoppingCart, Truck } from "lucide-react";
+import { Bell, Box, Grid2x2, Leaf, LogOut, Search, Settings, ShoppingCart, Store, Truck } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import usePendingSalesCount from "../../hooks/usePendingSalesCount";
 import { cn } from "../../lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Input } from "../ui/input";
 
-const mainMenu = [
-  { label: "Marketplace", icon: Grid2x2, to: "/products" },
-  { label: "My Orders", icon: Box, to: "/orders/my-orders" },
-  { label: "Deliveries", icon: Truck, to: "/deliveries" },
-];
-
 export default function EcoTradeLayout({ children }) {
   const { user, logout } = useAuth();
+  const pendingSalesCount = usePendingSalesCount();
+  const mainMenu = user?.role === "shipper"
+    ? [
+        { label: "Marketplace", icon: Grid2x2, to: "/products" },
+        { label: "Shipper Hub", icon: Box, to: "/shipper" },
+        { label: "Don can giao", icon: Truck, to: "/shipper/don-can-giao" },
+        { label: "Don dang giao", icon: Truck, to: "/shipper/dang-giao" },
+      ]
+    : [
+        { label: "Marketplace", icon: Grid2x2, to: "/products" },
+        { label: "Gio hang", icon: ShoppingCart, to: "/gio-hang" },
+        { label: "Don mua", icon: Box, to: "/orders/my-orders" },
+        { label: "Don ban", icon: Store, to: "/orders/my-sales" },
+      ];
   const initials = (user?.fullName || "Alex Nguyen")
     .split(" ")
     .map((part) => part[0])
@@ -41,6 +50,11 @@ export default function EcoTradeLayout({ children }) {
               >
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
+                {to === "/orders/my-sales" && pendingSalesCount > 0 ? (
+                  <span className="ml-auto flex h-6 min-w-6 items-center justify-center rounded-full bg-warning px-2 text-xs font-bold text-warning-foreground">
+                    {pendingSalesCount}
+                  </span>
+                ) : null}
               </NavLink>
             ))}
           </nav>

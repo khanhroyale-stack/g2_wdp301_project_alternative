@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Clock3, MapPin, Package2, Phone, Truck } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -11,9 +11,15 @@ import { formatDateTime } from "../../lib/utils";
 import deliveryService from "../../services/delivery.service";
 
 export default function DeliveryList() {
-  const [tab, setTab] = useState("available");
+  const location = useLocation();
+  const getTabFromPath = () => (location.pathname.includes("/dang-giao") ? "my" : "available");
+  const [tab, setTab] = useState(getTabFromPath);
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setTab(getTabFromPath());
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetchDeliveries = async () => {

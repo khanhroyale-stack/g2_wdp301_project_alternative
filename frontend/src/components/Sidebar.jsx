@@ -1,93 +1,110 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import usePendingSalesCount from "../hooks/usePendingSalesCount";
 
 const USER_NAV = [
-  { label: "Trang chủ", icon: "home", to: "/" },
-  { label: "Tổng quan", icon: "dashboard", to: "/ho-so" },
-  { label: "Bài đăng của tôi", icon: "inventory_2", to: "/quan-ly/bai-dang" },
-  { label: "Đơn mua hàng", icon: "shopping_bag", to: "/don-hang" },
-  { label: "Thuê & mượn", icon: "handshake", to: "/thue-muon" },
-  { label: "Tin nhắn", icon: "chat", to: "/tin-nhan" },
-  { label: "Thông báo", icon: "notifications", to: "/thong-bao" },
+  { label: "Trang chu", icon: "home", to: "/" },
+  { label: "Tong quan", icon: "dashboard", to: "/ho-so" },
+  { label: "Bai dang cua toi", icon: "inventory_2", to: "/quan-ly/bai-dang" },
+  { label: "Don mua hang", icon: "shopping_bag", to: "/don-hang" },
+  { label: "Don ban hang", icon: "storefront", to: "/don-ban" },
+  { label: "Thue va muon", icon: "handshake", to: "/thue-muon" },
+  { label: "Tin nhan", icon: "chat", to: "/tin-nhan" },
+  { label: "Thong bao", icon: "notifications", to: "/thong-bao" },
 ];
 
 const ADMIN_NAV = [
-  { label: "Trang chủ", icon: "home", to: "/" },
-  { label: "Tổng quan", icon: "dashboard", to: "/admin" },
-  { label: "Duyệt tài khoản", icon: "how_to_reg", to: "/admin/duyet-tai-khoan" },
-  { label: "Duyệt bài đăng", icon: "fact_check", to: "/admin/duyet-bai-dang" },
-  { label: "Quản lý người dùng", icon: "group", to: "/admin/nguoi-dung" },
-  { label: "Quản lý danh mục", icon: "category", to: "/admin/danh-muc" },
-  { label: "Báo cáo vi phạm", icon: "report", to: "/admin/bao-cao" },
-  { label: "Đơn hàng", icon: "receipt_long", to: "/admin/don-hang" },
-  { label: "Hợp đồng thuê", icon: "description", to: "/admin/hop-dong" },
+  { label: "Trang chu", icon: "home", to: "/" },
+  { label: "Tong quan", icon: "dashboard", to: "/admin" },
+  { label: "Duyet tai khoan", icon: "how_to_reg", to: "/admin/duyet-tai-khoan" },
+  { label: "Duyet bai dang", icon: "fact_check", to: "/admin/duyet-bai-dang" },
+  { label: "Quan ly nguoi dung", icon: "group", to: "/admin/nguoi-dung" },
+  { label: "Quan ly danh muc", icon: "category", to: "/admin/danh-muc" },
+  { label: "Bao cao vi pham", icon: "report", to: "/admin/bao-cao" },
+  { label: "Don hang", icon: "receipt_long", to: "/admin/don-hang" },
+  { label: "Hop dong thue", icon: "description", to: "/admin/hop-dong" },
 ];
 
 const SHIPPER_NAV = [
-  { label: "Trang chủ", icon: "home", to: "/" },
-  { label: "Tổng quan", icon: "dashboard", to: "/shipper" },
-  { label: "Đơn cần giao", icon: "local_shipping", to: "/shipper/don-can-giao" },
-  { label: "Đơn đang giao", icon: "pending_actions", to: "/shipper/dang-giao" },
+  { label: "Trang chu", icon: "home", to: "/" },
+  { label: "Tong quan", icon: "dashboard", to: "/shipper" },
+  { label: "Don can giao", icon: "local_shipping", to: "/shipper/don-can-giao" },
+  { label: "Don dang giao", icon: "pending_actions", to: "/shipper/dang-giao" },
 ];
 
 const Sidebar = ({ variant = "user" }) => {
   const { user, logout, unreadCount } = useAuth();
+  const pendingSalesCount = usePendingSalesCount();
   const navigate = useNavigate();
   const navItems = variant === "admin" ? ADMIN_NAV : variant === "shipper" ? SHIPPER_NAV : USER_NAV;
-  const titleMap = { admin: "Quản trị viên", shipper: "Shipper", user: "Người dùng" };
+  const titleMap = {
+    admin: "Quan tri vien",
+    shipper: "Shipper",
+    user: "Nguoi dung",
+  };
   const displayName = user?.fullName || user?.name || "";
 
   return (
-    <aside className="hidden md:flex flex-col bg-surface-bright w-64 flex-shrink-0 fixed left-0 top-0 h-screen border-r border-surface-variant z-40">
-      {/* Header */}
-      <div className="px-5 py-5 flex items-center gap-3 border-b border-surface-variant/40">
-        <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-on-primary text-sm font-bold flex-shrink-0">
+    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 shrink-0 flex-col border-r border-surface-variant bg-surface-bright font-sans md:flex">
+      <div className="flex items-center gap-3 border-b border-surface-variant/40 px-5 py-5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
           {displayName.charAt(0).toUpperCase() || "U"}
         </div>
         <div className="min-w-0">
-          <h1 className="font-bold text-primary text-sm tracking-tight truncate">EcoTrade</h1>
+          <h1 className="truncate text-sm font-bold tracking-tight text-primary">EcoTrade</h1>
           <p className="text-xs text-on-surface-variant">{titleMap[variant]}</p>
-        </div>      </div>
+        </div>
+      </div>
 
-      {/* Nav */}
-      <nav className="flex-1 flex flex-col gap-0.5 py-3 px-3 overflow-y-auto">
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-3">
         {navItems.map((item) => (
-          <NavLink key={item.label} to={item.to} end={item.to.split("/").length <= 2}
+          <NavLink
+            key={item.label}
+            to={item.to}
+            end={item.to.split("/").length <= 2}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm ${isActive
-                ? "bg-secondary-container text-on-secondary-container font-semibold"
-                : "text-on-surface-variant hover:bg-surface-container-low"
+              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all ${
+                isActive
+                  ? "bg-secondary-container font-semibold text-on-secondary-container"
+                  : "text-on-surface-variant hover:bg-surface-container-low"
               }`
             }
           >
             <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            <span className="truncate flex-1">{item.label}</span>
-            {item.to === "/thong-bao" && unreadCount > 0 && (
-              <span className="w-5 h-5 bg-error text-on-error text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="flex-1 truncate">{item.label}</span>
+            {item.to === "/thong-bao" && unreadCount > 0 ? (
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-error text-[10px] font-bold text-on-error">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
-            )}
+            ) : null}
+            {item.to === "/don-ban" && pendingSalesCount > 0 ? (
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-warning px-1.5 text-[10px] font-bold text-warning-foreground">
+                {pendingSalesCount}
+              </span>
+            ) : null}
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 py-4 border-t border-surface-variant/40 space-y-0.5">
-        <div className="flex items-center gap-3 px-3 py-2 mb-1">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+      <div className="space-y-0.5 border-t border-surface-variant/40 px-3 py-4">
+        <div className="mb-1 flex items-center gap-3 px-3 py-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
             {displayName.charAt(0).toUpperCase() || "?"}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-on-surface truncate">{displayName}</p>
-            <p className="text-xs text-on-surface-variant">{titleMap[user?.role] || "Người dùng"}</p>
+            <p className="truncate text-sm font-semibold text-on-surface">{displayName}</p>
+            <p className="text-xs text-on-surface-variant">{titleMap[user?.role] || "Nguoi dung"}</p>
           </div>
         </div>
         <button
-          onClick={() => { logout(); navigate("/"); }}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-error hover:bg-error/5 transition-all w-full"
+          onClick={() => {
+            logout();
+            navigate("/");
+          }}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-error transition-all hover:bg-error/5"
         >
           <span className="material-symbols-outlined text-[20px]">logout</span>
-          Đăng xuất
+          Dang xuat
         </button>
       </div>
     </aside>

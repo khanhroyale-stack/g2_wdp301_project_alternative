@@ -15,10 +15,10 @@ import VerifyEmailPage from "./pages/VerifyEmailPage";
 import Profile from "./pages/user/Profile";
 import MyPosts from "./pages/user/MyPosts";
 import CreatePost from "./pages/product/CreatePost";
-import MyOrdersPage from "./pages/user/MyOrders";
 import Rentals from "./pages/user/Rentals";
 import Messages from "./pages/user/Messages";
 import Notifications from "./pages/user/Notifications";
+import Cart from "./pages/user/Cart";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountApprovals from "./pages/admin/AccountApprovals";
@@ -75,8 +75,10 @@ function App() {
           <Route path="/thue-muon" element={<PrivateRoute><Rentals /></PrivateRoute>} />
           <Route path="/tin-nhan" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+          <Route path="/gio-hang" element={<PrivateRoute><Cart /></PrivateRoute>} />
 
-          <Route path="/don-hang" element={<PrivateRoute><MyOrdersPage /></PrivateRoute>} />
+          <Route path="/don-hang" element={<PrivateRoute><OrderList /></PrivateRoute>} />
+          <Route path="/don-ban" element={<PrivateRoute><MySales /></PrivateRoute>} />
           <Route path="/orders/create/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
           <Route path="/orders/my-orders" element={<PrivateRoute><OrderList /></PrivateRoute>} />
           <Route path="/orders/my-sales" element={<PrivateRoute><MySales /></PrivateRoute>} />
