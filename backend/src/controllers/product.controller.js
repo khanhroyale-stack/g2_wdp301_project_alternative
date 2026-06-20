@@ -15,19 +15,40 @@ const normalizeProductType = (value) => {
   }
 
   const normalized = String(value).trim().toLowerCase();
-  if (normalized === "ban" || normalized === "sale") return "sale";
-  if (normalized === "cho-thue" || normalized === "rent") return "rent";
-  if (normalized === "both") return "both";
+  if (normalized === "ban" || normalized === "sale") {
+    return "sale";
+  }
+  if (normalized === "cho-thue" || normalized === "rent") {
+    return "rent";
+  }
+  if (normalized === "both") {
+    return "both";
+  }
+
   return normalized;
 };
 
 const buildMarketplaceFilter = (query) => {
-  const { category, condition, search, keyword, minPrice, maxPrice } = query;
+  const {
+    category,
+    condition,
+    search,
+    keyword,
+    minPrice,
+    maxPrice,
+  } = query;
   const type = normalizeProductType(query.type || query.listingType || query.productType);
+
   const filter = { postStatus: { $in: MARKETPLACE_STATUSES } };
 
-  if (category) filter.categoryId = category;
-  if (condition) filter.conditionStatus = condition;
+  if (category) {
+    filter.categoryId = category;
+  }
+
+  if (condition) {
+    filter.conditionStatus = condition;
+  }
+
   if (type) {
     filter.productType = type === "sale" ? { $in: ["sale", "both"] } : type === "rent" ? { $in: ["rent", "both"] } : type;
   }
@@ -44,8 +65,12 @@ const buildMarketplaceFilter = (query) => {
   const max = maxPrice !== undefined && maxPrice !== "" ? Number(maxPrice) : null;
   if (min !== null || max !== null) {
     const range = {};
-    if (min !== null) range.$gte = min;
-    if (max !== null) range.$lte = max;
+    if (min !== null) {
+      range.$gte = min;
+    }
+    if (max !== null) {
+      range.$lte = max;
+    }
 
     filter.$and = [
       {
@@ -83,10 +108,14 @@ const mapProductPayload = (body) => {
   ];
 
   for (const field of fields) {
-    if (body[field] !== undefined) payload[field] = body[field];
+    if (body[field] !== undefined) {
+      payload[field] = body[field];
+    }
   }
 
-  if (payload.productType) payload.productType = normalizeProductType(payload.productType);
+  if (payload.productType) {
+    payload.productType = normalizeProductType(payload.productType);
+  }
 
   for (const key of ["salePrice", "rentPricePerDay", "rentPricePerWeek", "rentPricePerMonth", "depositAmount", "quantity"]) {
     if (payload[key] !== undefined && payload[key] !== null && payload[key] !== "") {
@@ -101,7 +130,9 @@ const syncProductImages = async (productId, imageIds = []) => {
   await ProductImage.deleteMany({ postId: productId });
 
   const normalizedIds = imageIds.filter(Boolean);
-  if (!normalizedIds.length) return;
+  if (!normalizedIds.length) {
+    return;
+  }
 
   await ProductImage.insertMany(
     normalizedIds.map((mediaId, index) => ({

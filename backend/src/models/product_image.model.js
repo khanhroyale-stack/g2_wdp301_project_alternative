@@ -10,7 +10,13 @@ const productImageSchema = new mongoose.Schema(
     field: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "MediaFile",
-      required: true,
+      default: null,
+    },
+    // Backward compatibility for records created from the songh branch.
+    field: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MediaFile",
+      default: null,
     },
     isThumbnail: {
       type: Boolean,

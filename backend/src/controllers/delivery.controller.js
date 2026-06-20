@@ -1,7 +1,11 @@
 const Delivery = require("../models/delivery.model");
 const Order = require("../models/order.model");
 const DeliveryInspection = require("../models/delivery_inspection.model");
-const ProductImage = require("../models/product_image.model");
+const ProductPost = require("../models/product_post.model");
+const {
+  getProductImageUrls,
+  getProductThumbnailUrl,
+} = require("../utils/product-images.util");
 
 const appendDeliveryHistory = (delivery, status, note) => {
   delivery.history.push({
@@ -13,12 +17,7 @@ const appendDeliveryHistory = (delivery, status, note) => {
 
 const hydrateProductImage = async (delivery) => {
   if (delivery.orderId?.postId?._id) {
-    const image = await ProductImage.findOne({
-      productPostId: delivery.orderId.postId._id,
-    })
-      .select("imageUrl")
-      .lean();
-    delivery.orderId.productImage = image?.imageUrl || null;
+    delivery.orderId.productImage = await getProductThumbnailUrl(delivery.orderId.postId._id);
   }
 };
 
@@ -154,13 +153,7 @@ const getDeliveryById = async (req, res) => {
     }
 
     if (delivery.orderId?.postId?._id) {
-      const images = await ProductImage.find({
-        productPostId: delivery.orderId.postId._id,
-      })
-        .select("imageUrl displayOrder")
-        .sort({ displayOrder: 1 })
-        .lean();
-      delivery.orderId.postId.images = images.map((img) => img.imageUrl);
+      delivery.orderId.postId.images = await getProductImageUrls(delivery.orderId.postId._id);
     }
 
     const inspections = await DeliveryInspection.find({ deliveryId: delivery._id })
@@ -244,10 +237,16 @@ const updateDeliveryStatus = async (req, res) => {
         orderStatus: "delivered",
       });
     } else if (status === "failed") {
-      await Order.findByIdAndUpdate(delivery.orderId, {
+      const order = await Order.findByIdAndUpdate(delivery.orderId, {
         orderStatus: "cancelled",
         cancelReason: delivery.failureReason,
-      });
+      }, { new: true }).lean();
+
+      if (order?.postId) {
+        await ProductPost.findByIdAndUpdate(order.postId, {
+          postStatus: "approved",
+        });
+      }
     }
 
     const updatedDelivery = await Delivery.findById(delivery._id)

@@ -33,6 +33,8 @@ import ShipperDashboard from "./pages/shipper/ShipperDashboard";
 
 import ProductList from "./pages/products/ProductList";
 import BuyerProductDetail from "./pages/products/ProductDetail";
+import Marketplace from "./pages/product/Marketplace";
+import ProductDetail from "./pages/product/ProductDetail";
 import CreateOrder from "./pages/orders/CreateOrder";
 import OrderList from "./pages/orders/OrderList";
 import OrderDetail from "./pages/orders/OrderDetail";
@@ -60,15 +62,16 @@ function App() {
           <Route path="/dat-lai-mat-khau" element={<ResetPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-          <Route path="/marketplace" element={<ProductList />} />
+          <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/products" element={<ProductList />} />
-          <Route path="/cho-thue" element={<ProductList />} />
+          <Route path="/cho-thue" element={<Marketplace />} />
           <Route path="/products/:id" element={<BuyerProductDetail />} />
-          <Route path="/san-pham/:id" element={<BuyerProductDetail />} />
+          <Route path="/san-pham/:id" element={<ProductDetail />} />
 
           <Route path="/ho-so" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/quan-ly/bai-dang" element={<PrivateRoute><MyPosts /></PrivateRoute>} />
           <Route path="/dang-tin" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
+          <Route path="/dang-tin/:id" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
           <Route path="/thue-muon" element={<PrivateRoute><Rentals /></PrivateRoute>} />
           <Route path="/tin-nhan" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />

@@ -6,7 +6,6 @@ import ReportModal from "../../components/ReportModal";
 import { useAuth } from "../../context/AuthContext";
 import productService from "../../services/product.service";
 import rentalService from "../../services/rental.service";
-import orderService from "../../services/order.service";
 import chatService from "../../services/chat.service";
 import toast from "react-hot-toast";
 
@@ -82,7 +81,7 @@ const ProductDetail = () => {
 
     const formatPrice = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
 
-    const images = product.imageUrls?.length > 0 ? product.imageUrls : [];
+    const images = product.images?.length > 0 ? product.images : product.imageUrls?.length > 0 ? product.imageUrls : [];
     const displayPrice = product.productType === "rent" ? `${formatPrice(product.rentPricePerDay)}/ngày` : formatPrice(product.salePrice);
 
     const sellerName = product.ownerId?.fullName || product.ownerId?.name || "Người dùng ẩn";
@@ -90,20 +89,7 @@ const ProductDetail = () => {
 
     const handleBuy = async () => {
         if (!user) return navigate("/dang-nhap");
-        if (window.confirm(`Xác nhận đặt mua: ${product.title}?`)) {
-            setIsSubmitting(true);
-            try {
-                const res = await orderService.createOrder({ productId: product._id });
-                if (res.success) {
-                    toast.success("Đặt hàng thành công!");
-                    navigate("/don-hang");
-                }
-            } catch (err) {
-                toast.error(err.response?.data?.message || "Lỗi khi đặt mua");
-            } finally {
-                setIsSubmitting(false);
-            }
-        }
+        navigate(`/orders/create/${product._id}`);
     };
 
     const handleRentSubmit = async () => {
@@ -247,8 +233,8 @@ const ProductDetail = () => {
                             <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">Người đăng</p>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    {product.ownerId?.avatar ? (
-                                        <img src={product.ownerId.avatar} alt={sellerName} className="w-12 h-12 rounded-full object-cover" />
+                                    {product.ownerId?.avatarUrl ? (
+                                        <img src={product.ownerId.avatarUrl} alt={sellerName} className="w-12 h-12 rounded-full object-cover" />
                                     ) : (
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-secondary to-tertiary text-white flex items-center justify-center font-bold text-lg shadow-sm">
                                             {sellerInitial}

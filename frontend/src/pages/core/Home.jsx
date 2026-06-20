@@ -28,7 +28,7 @@ const Home = () => {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const res = await productService.getProducts({ limit: 4, sort: "createdAt" });
+        const res = await productService.getProducts({ limit: 4, sort: "newest" });
         if (res.success) {
           setFeaturedProducts(res.data);
         }

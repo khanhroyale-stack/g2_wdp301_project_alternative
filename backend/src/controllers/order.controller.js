@@ -10,6 +10,14 @@ const {
 const SHIPPING_FEE = 35000;
 const ACTIVE_ORDER_STATUSES = ["pending", "confirmed", "shipping", "delivered"];
 
+const syncProductPostStatus = async (productId, nextStatus) => {
+  if (!productId || !nextStatus) {
+    return;
+  }
+
+  await ProductPost.findByIdAndUpdate(productId, { postStatus: nextStatus });
+};
+
 const getProductAvailabilityError = (product, viewerId, seller) => {
   if (!product) {
     return { code: 404, message: "San pham khong ton tai" };
@@ -116,6 +124,8 @@ const createOrder = async (req, res) => {
       note: note || "",
       orderStatus: "pending",
     });
+
+    await syncProductPostStatus(productId, "closed");
 
     const populatedOrder = await Order.findById(order._id)
       .populate("buyerId", "fullName email phone")
@@ -273,6 +283,8 @@ const updateOrderStatus = async (req, res) => {
         });
         await delivery.save();
       }
+
+      await syncProductPostStatus(order.postId, "approved");
     } else if (status === "completed" && isBuyer && order.orderStatus === "delivered") {
       const delivery = await Delivery.findOne({ orderId: order._id });
       if (!delivery || delivery.deliveryStatus !== "delivered") {
@@ -291,7 +303,7 @@ const updateOrderStatus = async (req, res) => {
         timestamp: new Date(),
       });
       await delivery.save();
-      await ProductPost.findByIdAndUpdate(order.postId, { postStatus: "closed" });
+      await syncProductPostStatus(order.postId, "closed");
     } else {
       return res.status(400).json({
         success: false,

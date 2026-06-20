@@ -2,6 +2,7 @@ const DeliveryInspection = require("../models/delivery_inspection.model");
 const Delivery = require("../models/delivery.model");
 const Order = require("../models/order.model");
 const InspectionImage = require("../models/inspection_image.model");
+const ProductPost = require("../models/product_post.model");
 
 const createInspection = async (req, res) => {
   try {
@@ -84,10 +85,16 @@ const createInspection = async (req, res) => {
       });
       await delivery.save();
 
-      await Order.findByIdAndUpdate(delivery.orderId, {
+      const order = await Order.findByIdAndUpdate(delivery.orderId, {
         orderStatus: "cancelled",
         cancelReason: delivery.failureReason,
-      });
+      }, { new: true }).lean();
+
+      if (order?.postId) {
+        await ProductPost.findByIdAndUpdate(order.postId, {
+          postStatus: "approved",
+        });
+      }
     }
 
     const populatedInspection = await DeliveryInspection.findById(inspection._id)
