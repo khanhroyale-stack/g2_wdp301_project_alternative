@@ -26,7 +26,10 @@ const ProductDetail = () => {
     const [showReportModal, setShowReportModal] = useState(false);
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [startDate, setStartDate] = useState("");
+    const [startTime, setStartTime] = useState("08:00");
     const [endDate, setEndDate] = useState("");
+    const [endTime, setEndTime] = useState("08:00");
+    const [rentalNote, setRentalNote] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Order form state
@@ -86,9 +89,25 @@ const ProductDetail = () => {
     }
 
     const totalDays = startDate && endDate
-        ? Math.max(0, Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000))
+        ? Math.max(0, Math.ceil((new Date(`${endDate}T${endTime}`) - new Date(`${startDate}T${startTime}`)) / 86400000))
         : 0;
-    const totalFee = totalDays * (product.rentPricePerDay || 0);
+
+    // Tính tiền theo kỳ hạn (ưu tiên tháng → tuần → ngày)
+    const calcFee = (days, p) => {
+        if (!p) return 0;
+        if (p.rentPricePerMonth > 0 && days >= 30) {
+            const months = Math.floor(days / 30);
+            const rem = days % 30;
+            return months * p.rentPricePerMonth + rem * p.rentPricePerDay;
+        }
+        if (p.rentPricePerWeek > 0 && days >= 7) {
+            const weeks = Math.floor(days / 7);
+            const rem = days % 7;
+            return weeks * p.rentPricePerWeek + rem * p.rentPricePerDay;
+        }
+        return days * (p.rentPricePerDay || 0);
+    };
+    const totalFee = calcFee(totalDays, product);
 
     const getImageUrl = (img) => {
         if (!img) return "https://placehold.co/800x600?text=No+Image";
@@ -153,12 +172,14 @@ const ProductDetail = () => {
 
     const handleRentSubmit = async () => {
         if (!startDate || !endDate) return toast.error("Vui lòng chọn ngày thuê");
+        if (totalDays <= 0) return toast.error("Ngày kết thúc phải sau ngày bắt đầu");
         setIsSubmitting(true);
         try {
             const res = await rentalService.createRentalRequest({
                 productId: product._id,
-                startDate,
-                endDate
+                startDate: `${startDate}T${startTime}:00`,
+                endDate:   `${endDate}T${endTime}:00`,
+                note: rentalNote,
             });
             if (res.success) {
                 toast.success("Đã gửi yêu cầu thuê thành công!");
@@ -381,47 +402,108 @@ const ProductDetail = () => {
             {showRentalModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
                     <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md animate-scale-up">
-                        <h3 className="font-extrabold text-on-surface text-2xl mb-2">Yêu cầu thuê</h3>
-                        <p className="text-sm text-on-surface-variant mb-6 pb-4 border-b border-surface-variant/30">{product.title}</p>
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-extrabold text-on-surface text-2xl">Yêu cầu thuê</h3>
+                            <button onClick={() => setShowRentalModal(false)}
+                                className="p-2 hover:bg-surface-container rounded-xl transition-all">
+                                <span className="material-symbols-outlined text-xl text-on-surface-variant">close</span>
+                            </button>
+                        </div>
+                        <p className="text-sm text-on-surface-variant mb-5 pb-4 border-b border-surface-variant/30 line-clamp-1">{product.title}</p>
 
-                        <div className="grid grid-cols-2 gap-5 mb-6">
+                        {/* Bảng giá */}
+                        <div className="flex flex-wrap gap-2 mb-5">
+                            {product.rentPricePerDay > 0 && (
+                                <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-semibold">
+                                    {new Intl.NumberFormat("vi-VN").format(product.rentPricePerDay)}đ/ngày
+                                </span>
+                            )}
+                            {product.rentPricePerWeek > 0 && (
+                                <span className="text-xs bg-secondary/10 text-secondary px-3 py-1.5 rounded-full font-semibold">
+                                    {new Intl.NumberFormat("vi-VN").format(product.rentPricePerWeek)}đ/tuần
+                                </span>
+                            )}
+                            {product.rentPricePerMonth > 0 && (
+                                <span className="text-xs bg-tertiary/10 text-tertiary px-3 py-1.5 rounded-full font-semibold">
+                                    {new Intl.NumberFormat("vi-VN").format(product.rentPricePerMonth)}đ/tháng
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Ngày + Giờ */}
+                        <div className="space-y-4 mb-5">
                             <div>
                                 <label className="block text-sm font-bold text-on-surface mb-2">Từ ngày</label>
-                                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                                <div className="flex gap-2">
+                                    <input type="date" value={startDate}
+                                        min={new Date().toISOString().split("T")[0]}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="flex-1 px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                                    <input type="time" value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                        className="w-28 px-3 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-on-surface mb-2">Đến ngày</label>
-                                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                                    className="w-full px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                                <div className="flex gap-2">
+                                    <input type="date" value={endDate}
+                                        min={startDate || new Date().toISOString().split("T")[0]}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="flex-1 px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                                    <input type="time" value={endTime}
+                                        onChange={(e) => setEndTime(e.target.value)}
+                                        className="w-28 px-3 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                                </div>
                             </div>
                         </div>
 
+                        {/* Ghi chú */}
+                        <div className="mb-5">
+                            <label className="block text-sm font-bold text-on-surface mb-2">Ghi chú cho chủ đồ <span className="font-normal text-on-surface-variant">(tuỳ chọn)</span></label>
+                            <textarea value={rentalNote} onChange={(e) => setRentalNote(e.target.value)}
+                                placeholder="Ví dụ: Tôi cần thuê để dùng cuối tuần..."
+                                rows={2}
+                                className="w-full px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" />
+                        </div>
+
+                        {/* Tóm tắt chi phí */}
                         {totalDays > 0 && (
-                            <div className="bg-surface-container-low rounded-2xl p-5 mb-6 space-y-2.5">
-                                <div className="flex justify-between text-on-surface-variant text-sm">
-                                    <span>Số ngày thuê</span><span className="font-bold text-on-surface">{totalDays} ngày</span>
+                            <div className="bg-surface-container-low rounded-2xl p-4 mb-5 space-y-2">
+                                <div className="flex justify-between text-sm text-on-surface-variant">
+                                    <span>Số ngày thuê</span>
+                                    <span className="font-bold text-on-surface">{totalDays} ngày</span>
                                 </div>
-                                <div className="flex justify-between text-on-surface-variant text-sm">
-                                    <span>Tiền thuê</span><span className="font-bold text-on-surface">{formatPrice(totalFee)}</span>
+                                <div className="flex justify-between text-sm text-on-surface-variant">
+                                    <span>Tiền thuê</span>
+                                    <span className="font-bold text-on-surface">
+                                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(totalFee)}
+                                    </span>
                                 </div>
                                 {product.depositAmount > 0 && (
-                                    <div className="flex justify-between text-on-surface-variant text-sm">
-                                        <span>Tiền cọc</span><span className="font-bold text-on-surface">{formatPrice(product.depositAmount)}</span>
+                                    <div className="flex justify-between text-sm text-on-surface-variant">
+                                        <span>Tiền cọc</span>
+                                        <span className="font-bold text-on-surface">
+                                            {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(product.depositAmount)}
+                                        </span>
                                     </div>
                                 )}
-                                <div className="flex justify-between font-black text-on-surface pt-3 mt-1 border-t border-surface-variant/30 text-lg">
+                                <div className="flex justify-between font-black text-on-surface pt-2 border-t border-surface-variant/30 text-base">
                                     <span>Tổng thanh toán</span>
-                                    <span className="text-primary">{formatPrice(totalFee + (product.depositAmount || 0))}</span>
+                                    <span className="text-primary">
+                                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(totalFee + (product.depositAmount || 0))}
+                                    </span>
                                 </div>
                             </div>
                         )}
 
-                        <div className="flex gap-4">
+                        <div className="flex gap-3">
                             <button onClick={() => setShowRentalModal(false)} disabled={isSubmitting}
-                                className="flex-1 py-3.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all">Hủy</button>
-                            <button className="flex-1 py-3.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-full text-base font-bold hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50"
-                                onClick={handleRentSubmit} disabled={isSubmitting}>
+                                className="flex-1 py-3.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all">
+                                Hủy
+                            </button>
+                            <button onClick={handleRentSubmit} disabled={isSubmitting || totalDays <= 0}
+                                className="flex-1 py-3.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-full text-base font-bold hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50">
                                 {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
                             </button>
                         </div>

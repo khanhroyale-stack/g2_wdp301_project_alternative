@@ -20,6 +20,7 @@ import MyPosts from './pages/user/MyPosts';
 import CreatePost from './pages/product/CreatePost';
 import MyOrders from './pages/user/MyOrders';
 import Rentals from './pages/user/Rentals';
+import RentalDetail from './pages/user/RentalDetail';
 import Messages from './pages/user/Messages';
 import Notifications from './pages/user/Notifications';
 import CreateOrder from './pages/orders/CreateOrder';
@@ -87,6 +88,7 @@ function App() {
           <Route path="/don-hang/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
           <Route path="/don-hang-cua-toi" element={<PrivateRoute><MySales /></PrivateRoute>} />
           <Route path="/thue-muon" element={<PrivateRoute><Rentals /></PrivateRoute>} />
+          <Route path="/thue-muon/:id" element={<PrivateRoute><RentalDetail /></PrivateRoute>} />
           <Route path="/tin-nhan" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/tin-nhan/:roomId" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />

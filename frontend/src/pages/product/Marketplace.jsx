@@ -61,7 +61,7 @@ const Marketplace = () => {
         };
         if (keyword) params.keyword = keyword;
         if (selectedCat !== "Tất cả") params.category = selectedCat;
-        if (selectedCond !== "Tất cả") params.conditionStatus = mapConditionToStatus(selectedCond);
+        if (selectedCond !== "Tất cả") params.condition = mapConditionToStatus(selectedCond);
         if (minPrice) params.minPrice = minPrice;
         if (maxPrice) params.maxPrice = maxPrice;
 
@@ -223,14 +223,33 @@ const Marketplace = () => {
                         <span className="text-primary font-bold text-base whitespace-nowrap">{displayPrice}</span>
                       </div>
                       <p className="text-on-surface-variant text-xs mb-3 line-clamp-2 leading-relaxed flex-1">{product.description}</p>
+
+                      {/* Tên người cho thuê / người bán */}
+                      {product.ownerId && (
+                        <div className="flex items-center gap-1.5 mb-3">
+                          <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <span className="material-symbols-outlined text-[11px] text-primary">person</span>
+                          </div>
+                          <span className="text-xs text-on-surface-variant truncate">
+                            {product.ownerId.fullName || product.ownerId.name || "Ẩn danh"}
+                          </span>
+                          {product.ownerId.reputationScore != null && (
+                            <span className="ml-auto flex items-center gap-0.5 text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                              <span className="material-symbols-outlined text-[11px]">verified_user</span>
+                              {product.ownerId.reputationScore}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 text-on-surface-variant">
                           <span className="material-symbols-outlined text-[13px]">location_on</span>
-                          <span className="text-xs">{product.location}</span>
+                          <span className="text-xs truncate max-w-[120px]">{product.location}</span>
                         </div>
-                        <div className="flex items-center gap-0.5 text-primary">
+                        <div className="flex items-center gap-0.5 text-amber-500">
                           <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                          <span className="text-xs font-semibold">{product.averageRating || "0.0"}</span>
+                          <span className="text-xs font-semibold">{(product.ownerId?.averageRating || 0).toFixed(1)}</span>
                         </div>
                       </div>
                     </div>

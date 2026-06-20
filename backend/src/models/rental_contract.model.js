@@ -66,7 +66,7 @@ const rentalContractSchema = new mongoose.Schema(
     },
     contractStatus: {
       type: String,
-      enum: ["active", "completed", "cancelled", "disputed"],
+      enum: ["active", "renting", "return_requested", "completed", "cancelled", "disputed"],
       default: "active",
     },
   },
