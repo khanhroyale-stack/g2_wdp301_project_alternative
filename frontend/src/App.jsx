@@ -29,10 +29,6 @@ import ViolationReports from "./pages/admin/ViolationReports";
 import OrderManagement from "./pages/admin/OrderManagement";
 import ContractManagement from "./pages/admin/ContractManagement";
 
-import ShipperDashboard from "./pages/shipper/ShipperDashboard";
-
-import ProductList from "./pages/products/ProductList";
-import BuyerProductDetail from "./pages/products/ProductDetail";
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
 import CreateOrder from "./pages/orders/CreateOrder";
@@ -63,9 +59,9 @@ function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/products" element={<ProductList />} />
+          <Route path="/products" element={<Navigate to="/marketplace" replace />} />
           <Route path="/cho-thue" element={<Marketplace />} />
-          <Route path="/products/:id" element={<BuyerProductDetail />} />
+          <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/san-pham/:id" element={<ProductDetail />} />
 
           <Route path="/ho-so" element={<PrivateRoute><Profile /></PrivateRoute>} />
@@ -93,13 +89,16 @@ function App() {
           <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><OrderManagement /></PrivateRoute>} />
           <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><ContractManagement /></PrivateRoute>} />
 
-          <Route path="/shipper" element={<PrivateRoute shipperOnly><ShipperDashboard /></PrivateRoute>} />
-          <Route path="/shipper/don-can-giao" element={<PrivateRoute shipperOnly><DeliveryList /></PrivateRoute>} />
-          <Route path="/shipper/dang-giao" element={<PrivateRoute shipperOnly><DeliveryList /></PrivateRoute>} />
-          <Route path="/deliveries" element={<PrivateRoute shipperOnly><DeliveryList /></PrivateRoute>} />
-          <Route path="/deliveries/:id" element={<PrivateRoute><DeliveryDetail /></PrivateRoute>} />
-          <Route path="/deliveries/:id/inspection" element={<PrivateRoute shipperOnly><DeliveryInspection /></PrivateRoute>} />
-          <Route path="/inspections/:id" element={<PrivateRoute><DeliveryInspection /></PrivateRoute>} />
+          <Route path="/shipper" element={<PrivateRoute shipperOnly><DeliveryList /></PrivateRoute>} />
+          <Route path="/shipper/don/:id" element={<PrivateRoute shipperOnly><DeliveryDetail /></PrivateRoute>} />
+          <Route path="/shipper/don/:id/inspection" element={<PrivateRoute shipperOnly><DeliveryInspection /></PrivateRoute>} />
+          <Route path="/shipper/inspection/:id" element={<PrivateRoute shipperOnly><DeliveryInspection /></PrivateRoute>} />
+          <Route path="/shipper/don-can-giao" element={<Navigate to="/shipper" replace />} />
+          <Route path="/shipper/dang-giao" element={<Navigate to="/shipper" replace />} />
+          <Route path="/deliveries" element={<Navigate to="/shipper" replace />} />
+          <Route path="/deliveries/:id" element={<Navigate to="/shipper" replace />} />
+          <Route path="/deliveries/:id/inspection" element={<Navigate to="/shipper" replace />} />
+          <Route path="/inspections/:id" element={<Navigate to="/shipper" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

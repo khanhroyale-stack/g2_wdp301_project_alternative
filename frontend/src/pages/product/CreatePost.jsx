@@ -11,6 +11,7 @@ const defaultForm = {
   conditionStatus: "",
   productType: "sale",
   salePrice: "",
+  quantity: "1",
   rentPricePerDay: "",
   depositAmount: "",
   location: "Khu vuc Hoa Lac",
@@ -59,6 +60,7 @@ const CreatePost = () => {
             conditionStatus: product.conditionStatus || "",
             productType: product.productType || "sale",
             salePrice: product.salePrice || "",
+            quantity: String(product.quantity || 1),
             rentPricePerDay: product.rentPricePerDay || "",
             depositAmount: product.depositAmount || "",
             location: product.location || "",
@@ -288,18 +290,35 @@ const CreatePost = () => {
           <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-apple border border-surface-variant/30 flex flex-col gap-4">
             <h3 className="font-semibold text-on-surface">Thong tin gia</h3>
             {form.productType === "sale" ? (
-              <div>
-                <label className={labelCls}>
-                  Gia ban (VND) <span className="text-error">*</span>
-                </label>
-                <input
-                  type="number"
-                  className={inputCls}
-                  placeholder="VD: 15000000"
-                  value={form.salePrice}
-                  onChange={(event) => setField("salePrice", event.target.value)}
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>
+                    Gia ban (VND) <span className="text-error">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    className={inputCls}
+                    placeholder="VD: 15000000"
+                    value={form.salePrice}
+                    onChange={(event) => setField("salePrice", event.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>
+                    So luong ton kho <span className="text-error">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className={inputCls}
+                    placeholder="VD: 5"
+                    value={form.quantity}
+                    onChange={(event) => setField("quantity", event.target.value)}
+                    required
+                  />
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">

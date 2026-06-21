@@ -1,8 +1,8 @@
 import api from "./api";
 
 const orderService = {
-  getCheckoutPreview: async (productId) => {
-    const response = await api.get(`/orders/checkout/${productId}`);
+  getCheckoutPreview: async (productId, quantity = 1) => {
+    const response = await api.get(`/orders/checkout/${productId}`, { params: { quantity } });
     return response.data;
   },
   createOrder: async (data) => {

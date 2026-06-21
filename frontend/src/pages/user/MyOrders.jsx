@@ -109,7 +109,7 @@ const MyOrders = () => {
   return (
     <div className="flex min-h-screen bg-[#F5F5F7] font-sans">
       <Sidebar variant="user" />
-      <main className="flex-1 md:ml-64 px-4 md:px-10 py-10">
+      <main className="flex-1 md:ml-72 px-4 md:px-10 py-10">
         <div className="max-w-5xl mx-auto">
           <header className="mb-10 flex flex-col md:flex-row justify-between md:items-end gap-6">
             <div>

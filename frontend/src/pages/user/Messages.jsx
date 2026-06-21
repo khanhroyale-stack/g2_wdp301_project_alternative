@@ -132,7 +132,7 @@ const Messages = () => {
   return (
     <div className="flex min-h-screen bg-[#F5F5F7]">
       <Sidebar variant="user" />
-      <main className="flex-1 md:ml-64 flex h-screen overflow-hidden">
+      <main className="flex-1 md:ml-72 flex h-screen overflow-hidden">
 
         {/* ── Danh sách phòng chat ── */}
         <div className="w-80 flex-shrink-0 bg-white border-r border-surface-variant/30 flex flex-col">

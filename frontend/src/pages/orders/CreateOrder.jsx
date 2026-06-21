@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CircleAlert, CreditCard, MapPin, ShieldCheck, Truck } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -13,6 +13,8 @@ import { formatDateOnly, formatPrice } from "../../lib/utils";
 export default function CreateOrder() {
   const { productId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedQuantity = Math.max(Number(searchParams.get("quantity")) || 1, 1);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -27,7 +29,7 @@ export default function CreateOrder() {
     const fetchCheckoutPreview = async () => {
       setLoading(true);
       try {
-        const res = await orderService.getCheckoutPreview(productId);
+        const res = await orderService.getCheckoutPreview(productId, requestedQuantity);
         if (res.success) {
           setPreview(res.data);
           setForm({
@@ -46,7 +48,7 @@ export default function CreateOrder() {
     };
 
     fetchCheckoutPreview();
-  }, [navigate, productId]);
+  }, [navigate, productId, requestedQuantity]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -58,7 +60,7 @@ export default function CreateOrder() {
 
     setSubmitting(true);
     try {
-      const res = await orderService.createOrder({ productId, ...form });
+      const res = await orderService.createOrder({ productId, quantity: requestedQuantity, ...form });
       if (res.success) {
         navigate("/orders/my-orders");
       }
@@ -72,7 +74,9 @@ export default function CreateOrder() {
   if (loading) {
     return (
       <EcoTradeLayout>
-        <div className="flex min-h-[70vh] items-center justify-center text-lg font-medium text-muted-foreground">Đang tải dữ liệu đơn hàng...</div>
+        <div className="flex min-h-[70vh] items-center justify-center text-lg font-medium text-muted-foreground">
+          Đang tải dữ liệu đơn hàng...
+        </div>
       </EcoTradeLayout>
     );
   }
@@ -86,7 +90,7 @@ export default function CreateOrder() {
       <div className="w-full">
         <div className="mb-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-[3.2rem]">Xác nhận Đơn hàng</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-[3.2rem]">Xác nhận đơn hàng</h1>
             <p className="mt-3 text-xl text-muted-foreground">Vui lòng kiểm tra kỹ thông tin trước khi hoàn tất giao dịch.</p>
           </div>
           <div className="flex items-center gap-3 text-sm font-semibold">
@@ -144,14 +148,17 @@ export default function CreateOrder() {
                       <div>
                         <h3 className="text-[1.7rem] font-bold leading-tight">{product.title}</h3>
                         <p className="mt-1 text-base text-muted-foreground">
-                          {product.categoryId?.name || "Điện tử"} / {product.brand || "EcoTrade"}
+                          {product.categoryId?.name || "Điện tử"} / EcoTrade
                         </p>
                         <div className="mt-3 flex items-center gap-3">
-                          <Badge variant="muted">{product.conditionStatus || "Mới 95%"}</Badge>
-                          <span className="text-base italic text-muted-foreground">Số lượng: 1</span>
+                          <Badge variant="muted">{product.conditionStatus || "Tình trạng"}</Badge>
+                          <span className="text-base italic text-muted-foreground">Số lượng: {preview.quantity}</span>
                         </div>
                       </div>
-                      <div className="text-right text-[1.9rem] font-extrabold">{formatPrice(product.salePrice)}</div>
+                      <div className="text-right">
+                        <div className="text-[1.9rem] font-extrabold">{formatPrice(product.salePrice)}</div>
+                        <div className="text-sm text-muted-foreground">Đơn giá</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -181,7 +188,7 @@ export default function CreateOrder() {
               <CardContent className="space-y-6">
                 <div className="space-y-4 text-[1.05rem]">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Tạm tính (1 sản phẩm)</span>
+                    <span className="text-muted-foreground">Tạm tính ({preview.quantity} sản phẩm)</span>
                     <span>{formatPrice(preview.subtotal)}</span>
                   </div>
                   <div className="flex items-center justify-between">

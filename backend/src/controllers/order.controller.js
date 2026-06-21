@@ -2,13 +2,25 @@ const Order = require("../models/order.model");
 const ProductPost = require("../models/product_post.model");
 const Delivery = require("../models/delivery.model");
 const User = require("../models/user.model");
+const { createNotification } = require("./notification.controller");
 const {
   getProductImageUrls,
   getProductThumbnailUrl,
 } = require("../utils/product-images.util");
 
 const SHIPPING_FEE = 35000;
-const ACTIVE_ORDER_STATUSES = ["pending", "confirmed", "shipping", "delivered"];
+
+const sendOrderNotification = async (payload, io) => {
+  await createNotification(
+    {
+      ...payload,
+      type: "order_update",
+      relatedType: "order",
+      link: payload.link || `/orders/${payload.relatedId}`,
+    },
+    io
+  );
+};
 
 const syncProductPostStatus = async (productId, nextStatus) => {
   if (!productId || !nextStatus) {
@@ -16,6 +28,51 @@ const syncProductPostStatus = async (productId, nextStatus) => {
   }
 
   await ProductPost.findByIdAndUpdate(productId, { postStatus: nextStatus });
+};
+
+const syncProductAvailability = async (productId) => {
+  const product = await ProductPost.findById(productId).select("quantity postStatus");
+  if (!product) {
+    return null;
+  }
+
+  const nextStatus = product.quantity > 0 ? "approved" : "closed";
+  if (product.postStatus !== nextStatus) {
+    product.postStatus = nextStatus;
+    await product.save();
+  }
+
+  return product;
+};
+
+const reserveProductQuantity = async (productId, requestedQuantity) => {
+  const quantity = Math.max(Number(requestedQuantity) || 1, 1);
+  const product = await ProductPost.findOneAndUpdate(
+    {
+      _id: productId,
+      quantity: { $gte: quantity },
+      postStatus: "approved",
+    },
+    { $inc: { quantity: -quantity } },
+    { new: true }
+  );
+
+  if (!product) {
+    return null;
+  }
+
+  await syncProductAvailability(productId);
+  return product;
+};
+
+const releaseProductQuantity = async (productId, quantityToRelease) => {
+  const quantity = Math.max(Number(quantityToRelease) || 0, 0);
+  if (!quantity) {
+    return null;
+  }
+
+  await ProductPost.findByIdAndUpdate(productId, { $inc: { quantity: quantity } });
+  return syncProductAvailability(productId);
 };
 
 const getProductAvailabilityError = (product, viewerId, seller) => {
@@ -29,6 +86,10 @@ const getProductAvailabilityError = (product, viewerId, seller) => {
 
   if (!["sale", "both"].includes(product.productType)) {
     return { code: 400, message: "San pham nay khong ho tro mua" };
+  }
+
+  if ((Number(product.quantity) || 0) < 1) {
+    return { code: 400, message: "San pham da het hang" };
   }
 
   if (String(product.ownerId?._id || product.ownerId) === String(viewerId)) {
@@ -57,7 +118,7 @@ const getOrderActionFlags = (order, delivery, userId) => {
     canSellerConfirm: isSeller && order.orderStatus === "pending",
     canSellerReject:
       isSeller &&
-      ["pending", "confirmed"].includes(order.orderStatus) &&
+      order.orderStatus === "pending" &&
       (!delivery || !delivery.shipperId),
     canBuyerComplete:
       isBuyer &&
@@ -81,9 +142,25 @@ const hydrateOrderListItem = async (order, viewerId) => {
   return order;
 };
 
+const buildOrderResponse = async (orderId, viewerId) => {
+  const updatedOrder = await Order.findById(orderId)
+    .populate("buyerId", "fullName email phone address")
+    .populate("sellerId", "fullName email phone address")
+    .populate("postId", "title salePrice")
+    .lean();
+  const delivery = await Delivery.findOne({ orderId })
+    .populate("shipperId", "fullName phone")
+    .lean();
+  updatedOrder.delivery = delivery;
+  updatedOrder.actions = getOrderActionFlags(updatedOrder, delivery, viewerId);
+  return updatedOrder;
+};
+
 const createOrder = async (req, res) => {
   try {
-    const { productId, buyerAddress, buyerPhone, recipientName, note } = req.body;
+    const { productId, buyerAddress, buyerPhone, recipientName, note, quantity: rawQuantity } = req.body;
+    const io = req.app.get("io");
+    const quantity = Math.max(Number(rawQuantity) || 1, 1);
 
     if (!productId || !buyerAddress || !buyerPhone || !recipientName) {
       return res.status(400).json({
@@ -99,22 +176,27 @@ const createOrder = async (req, res) => {
       return res.status(availabilityError.code).json({ success: false, message: availabilityError.message });
     }
 
-    const existingOrder = await Order.findOne({
-      postId: productId,
-      orderStatus: { $in: ACTIVE_ORDER_STATUSES },
-    }).lean();
-    if (existingOrder) {
+    if ((Number(product.quantity) || 0) < quantity) {
       return res.status(400).json({
         success: false,
-        message: "San pham nay dang co don hang dang xu ly",
+        message: `So luong san pham con lai khong du. Hien chi con ${product.quantity}.`,
       });
     }
 
-    const totalAmount = product.salePrice + SHIPPING_FEE;
+    const reservedProduct = await reserveProductQuantity(productId, quantity);
+    if (!reservedProduct) {
+      return res.status(400).json({
+        success: false,
+        message: "So luong san pham hien khong con du de dat mua",
+      });
+    }
+
+    const totalAmount = product.salePrice * quantity + SHIPPING_FEE;
     const order = await Order.create({
       buyerId: req.user._id,
       sellerId: product.ownerId,
       postId: productId,
+      quantity,
       productPrice: product.salePrice,
       shippingFee: SHIPPING_FEE,
       totalAmount,
@@ -125,8 +207,6 @@ const createOrder = async (req, res) => {
       orderStatus: "pending",
     });
 
-    await syncProductPostStatus(productId, "closed");
-
     const populatedOrder = await Order.findById(order._id)
       .populate("buyerId", "fullName email phone")
       .populate("sellerId", "fullName email phone address")
@@ -134,9 +214,19 @@ const createOrder = async (req, res) => {
       .lean();
     populatedOrder.actions = getOrderActionFlags(populatedOrder, null, req.user._id);
 
+    await sendOrderNotification(
+      {
+        recipientId: populatedOrder.sellerId?._id || product.ownerId,
+        title: "Bạn có đơn hàng mới",
+        content: `${populatedOrder.buyerId?.fullName || "Người mua"} vừa đặt mua ${quantity} "${populatedOrder.postId?.title || "sản phẩm"}".`,
+        relatedId: order._id,
+      },
+      io
+    );
+
     res.status(201).json({
       success: true,
-      message: "Tao don hang thanh cong",
+      message: "Tạo đơn hàng thành công",
       data: populatedOrder,
     });
   } catch (error) {
@@ -221,6 +311,7 @@ const updateOrderStatus = async (req, res) => {
   try {
     const { status, cancelReason } = req.body;
     const order = await Order.findById(req.params.id);
+    const io = req.app.get("io");
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Khong tim thay don hang" });
@@ -228,6 +319,23 @@ const updateOrderStatus = async (req, res) => {
 
     const isBuyer = String(order.buyerId) === String(req.user._id);
     const isSeller = String(order.sellerId) === String(req.user._id);
+    const delivery = await Delivery.findOne({ orderId: order._id });
+
+    if (!isBuyer && !isSeller) {
+      return res.status(403).json({
+        success: false,
+        message: "Ban khong co quyen cap nhat don hang nay",
+      });
+    }
+
+    if (status === order.orderStatus) {
+      const currentOrder = await buildOrderResponse(order._id, req.user._id);
+      return res.json({
+        success: true,
+        message: "Trang thai don hang da duoc cap nhat truoc do",
+        data: currentOrder,
+      });
+    }
 
     if (status === "confirmed" && isSeller && order.orderStatus === "pending") {
       order.orderStatus = "confirmed";
@@ -238,8 +346,7 @@ const updateOrderStatus = async (req, res) => {
         return res.status(400).json({ success: false, message: "Seller hien khong the xac nhan don" });
       }
 
-      const existingDelivery = await Delivery.findOne({ orderId: order._id });
-      if (!existingDelivery) {
+      if (!delivery) {
         await Delivery.create({
           orderId: order._id,
           shipperId: null,
@@ -257,12 +364,21 @@ const updateOrderStatus = async (req, res) => {
           ],
         });
       }
+
+      await sendOrderNotification(
+        {
+          recipientId: order.buyerId,
+          title: "Đơn hàng đã được xác nhận",
+          content: "Người bán đã xác nhận đơn hàng của bạn và hệ thống đang chờ shipper nhận đơn.",
+          relatedId: order._id,
+        },
+        io
+      );
     } else if (
       status === "cancelled" &&
-      (isBuyer || isSeller) &&
-      ["pending", "confirmed"].includes(order.orderStatus)
+      ((isBuyer && ["pending", "confirmed"].includes(order.orderStatus)) ||
+        (isSeller && order.orderStatus === "pending"))
     ) {
-      const delivery = await Delivery.findOne({ orderId: order._id });
       if (delivery?.shipperId || ["in_transit", "delivered"].includes(delivery?.deliveryStatus)) {
         return res.status(400).json({
           success: false,
@@ -275,7 +391,7 @@ const updateOrderStatus = async (req, res) => {
 
       if (delivery) {
         delivery.deliveryStatus = "failed";
-        delivery.failureReason = order.cancelReason || `Don hang bi huy boi ${isBuyer ? "buyer" : "seller"}.`;
+        delivery.failureReason = order.cancelReason || `Đơn hàng bị hủy bởi ${isBuyer ? "người mua" : "người bán"}.`;
         delivery.history.push({
           status: "failed",
           note: delivery.failureReason,
@@ -284,9 +400,36 @@ const updateOrderStatus = async (req, res) => {
         await delivery.save();
       }
 
-      await syncProductPostStatus(order.postId, "approved");
+      await releaseProductQuantity(order.postId, order.quantity);
+
+      if (isSeller) {
+        await sendOrderNotification(
+          {
+            recipientId: order.buyerId,
+            title: "Đơn hàng đã bị từ chối",
+            content: order.cancelReason
+              ? `Người bán đã từ chối đơn hàng. Lý do: ${order.cancelReason}`
+              : "Người bán đã từ chối đơn hàng của bạn.",
+            relatedId: order._id,
+          },
+          io
+        );
+      }
+
+      if (isBuyer) {
+        await sendOrderNotification(
+          {
+            recipientId: order.sellerId,
+            title: "Người mua đã hủy đơn hàng",
+            content: order.cancelReason
+              ? `Người mua đã hủy đơn hàng. Lý do: ${order.cancelReason}`
+              : "Người mua đã hủy đơn hàng này.",
+            relatedId: order._id,
+          },
+          io
+        );
+      }
     } else if (status === "completed" && isBuyer && order.orderStatus === "delivered") {
-      const delivery = await Delivery.findOne({ orderId: order._id });
       if (!delivery || delivery.deliveryStatus !== "delivered") {
         return res.status(400).json({
           success: false,
@@ -303,7 +446,17 @@ const updateOrderStatus = async (req, res) => {
         timestamp: new Date(),
       });
       await delivery.save();
-      await syncProductPostStatus(order.postId, "closed");
+      await syncProductAvailability(order.postId);
+
+      await sendOrderNotification(
+        {
+          recipientId: order.sellerId,
+          title: "Đơn hàng đã hoàn tất",
+          content: "Người mua đã xác nhận nhận hàng. Giao dịch đã hoàn tất.",
+          relatedId: order._id,
+        },
+        io
+      );
     } else {
       return res.status(400).json({
         success: false,
@@ -312,17 +465,7 @@ const updateOrderStatus = async (req, res) => {
     }
 
     await order.save();
-
-    const updatedOrder = await Order.findById(order._id)
-      .populate("buyerId", "fullName email phone address")
-      .populate("sellerId", "fullName email phone address")
-      .populate("postId", "title salePrice")
-      .lean();
-    const delivery = await Delivery.findOne({ orderId: order._id })
-      .populate("shipperId", "fullName phone")
-      .lean();
-    updatedOrder.delivery = delivery;
-    updatedOrder.actions = getOrderActionFlags(updatedOrder, delivery, req.user._id);
+    const updatedOrder = await buildOrderResponse(order._id, req.user._id);
 
     res.json({
       success: true,
@@ -347,13 +490,22 @@ const getCheckoutPreview = async (req, res) => {
 
     product.images = await getProductImageUrls(product._id);
 
-    const subtotal = product.salePrice;
+    const quantity = Math.max(Number(req.query.quantity) || 1, 1);
+    if ((Number(product.quantity) || 0) < quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `So luong san pham con lai khong du. Hien chi con ${product.quantity}.`,
+      });
+    }
+
+    const subtotal = product.salePrice * quantity;
     const totalAmount = subtotal + SHIPPING_FEE;
 
     res.json({
       success: true,
       data: {
         product,
+        quantity,
         shippingFee: SHIPPING_FEE,
         subtotal,
         totalAmount,

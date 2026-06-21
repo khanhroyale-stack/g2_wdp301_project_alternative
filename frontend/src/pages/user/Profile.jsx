@@ -14,13 +14,9 @@ const VER_BADGE = {
 const Profile = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-
-  // Password state
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
   const [passLoading, setPassLoading] = useState(false);
-  const [passMsg, setPassMsg] = useState(null); // { type: "success"|"error", text }
-
-  // Reputation history
+  const [passMsg, setPassMsg] = useState(null);
   const [history, setHistory] = useState([]);
   const [histLoading, setHistLoading] = useState(false);
 
@@ -29,16 +25,18 @@ const Profile = () => {
 
   useEffect(() => {
     if (activeTab === "reputation" && user) fetchHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, user]);
 
   const fetchHistory = async () => {
     setHistLoading(true);
     try {
       const res = await userService.getReputationHistory(user._id || user.id);
       if (res.success) setHistory(res.logs || res.data || []);
-    } catch { setHistory([]); }
-    finally { setHistLoading(false); }
+    } catch {
+      setHistory([]);
+    } finally {
+      setHistLoading(false);
+    }
   };
 
   const handleChangePassword = async (e) => {
@@ -48,196 +46,196 @@ const Profile = () => {
       setPassMsg({ type: "error", text: "Mật khẩu xác nhận không khớp." });
       return;
     }
+
     setPassLoading(true);
     try {
       await authService.changePassword({ currentPassword: passwords.current, newPassword: passwords.newPass });
-      setPassMsg({ type: "success", text: "Đổi mật khẩu thành công!" });
+      setPassMsg({ type: "success", text: "Đổi mật khẩu thành công." });
       setPasswords({ current: "", newPass: "", confirm: "" });
     } catch (err) {
       setPassMsg({ type: "error", text: err.response?.data?.message || "Lỗi khi đổi mật khẩu." });
-    } finally { setPassLoading(false); }
+    } finally {
+      setPassLoading(false);
+    }
   };
 
-  const TABS = [
+  const tabs = [
     { key: "overview", label: "Tổng quan", icon: "person" },
     { key: "security", label: "Bảo mật", icon: "lock" },
     { key: "reputation", label: "Lịch sử uy tín", icon: "history" },
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#F5F5F7]">
+    <div className="app-shell flex">
       <Sidebar variant="user" />
-      <main className="flex-1 md:ml-64 px-4 md:px-10 py-10">
-        <div className="max-w-4xl mx-auto">
-
-          {/* Hero card */}
-          <div className="relative bg-gradient-to-r from-primary to-primary-fixed rounded-2xl p-8 mb-8 overflow-hidden shadow-lg">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <main className="flex-1 px-4 py-10 md:ml-72 md:px-10">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#146c43_0%,#56d892_100%)] p-8 shadow-[0px_20px_50px_rgba(20,108,67,0.16)]">
+            <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
               <div className="flex items-center gap-5">
-                <div className="w-20 h-20 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-white text-3xl font-black shadow-lg flex-shrink-0">
+                <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/20 text-3xl font-black text-white shadow-lg">
                   {user?.avatarUrl
-                    ? <img src={user.avatarUrl} alt={displayName} className="w-full h-full rounded-full object-cover" />
+                    ? <img src={user.avatarUrl} alt={displayName} className="h-full w-full rounded-full object-cover" />
                     : displayName.charAt(0).toUpperCase() || "U"}
                 </div>
                 <div>
-                  <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-1">Hồ sơ cá nhân</p>
-                  <h1 className="text-2xl md:text-3xl font-black text-white leading-tight">{displayName}</h1>
-                  <p className="text-white/70 text-sm mt-0.5">{user?.email}</p>
-                  <span className={`mt-2 px-3 py-1 rounded-full text-xs font-bold inline-block ${verBadge.cls}`}>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-white/75">Hồ sơ cá nhân</p>
+                  <h1 className="text-2xl font-black leading-tight text-white md:text-3xl">{displayName}</h1>
+                  <p className="mt-0.5 text-sm text-white/75">{user?.email}</p>
+                  <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold ${verBadge.cls}`}>
                     {verBadge.label}
                   </span>
                 </div>
               </div>
-              {/* Reputation score */}
-              <div className="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-5 text-center min-w-[140px]">
-                <p className="text-white/70 text-xs font-medium mb-1">Điểm uy tín</p>
+              <div className="min-w-[150px] rounded-2xl border border-white/20 bg-white/10 p-5 text-center backdrop-blur">
+                <p className="mb-1 text-xs font-medium text-white/75">Điểm uy tín</p>
                 <p className="text-4xl font-black text-white">{user?.reputationScore ?? 100}</p>
-                <div className="mt-2 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-white rounded-full"
-                    style={{ width: `${Math.min(user?.reputationScore ?? 100, 100)}%` }} />
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/20">
+                  <div className="h-full rounded-full bg-white" style={{ width: `${Math.min(user?.reputationScore ?? 100, 100)}%` }} />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Warning chưa xác minh */}
-          {user?.verificationStatus === "unverified" && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-8 flex items-start gap-3">
-              <span className="material-symbols-outlined text-orange-500 flex-shrink-0">warning</span>
+          {user?.verificationStatus === "unverified" ? (
+            <div className="mb-8 flex items-start gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+              <span className="material-symbols-outlined flex-shrink-0 text-orange-500">warning</span>
               <div>
                 <p className="font-semibold text-orange-900">Tài khoản chưa xác minh</p>
-                <p className="text-sm text-orange-800 mt-0.5">
+                <p className="mt-0.5 text-sm text-orange-800">
                   Vui lòng <a href="/xac-minh-tai-khoan" className="font-bold underline">tải lên giấy tờ</a> để bắt đầu giao dịch.
                 </p>
               </div>
             </div>
-          )}
+          ) : null}
 
-          {/* Tabs */}
-          <div className="flex bg-surface-container-lowest p-1 rounded-xl mb-6 shadow-sm border border-surface-variant/30 w-fit gap-0.5">
-            {TABS.map((t) => (
-              <button key={t.key} onClick={() => setActiveTab(t.key)}
-                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${activeTab === t.key
-                    ? "bg-white text-primary shadow-sm"
-                    : "text-on-surface-variant hover:text-on-surface"
-                  }`}>
-                <span className="material-symbols-outlined text-[16px]">{t.icon}</span>
-                {t.label}
+          <div className="mb-6 flex w-fit gap-0.5 rounded-2xl border border-surface-variant/30 bg-surface-container-lowest p-1 shadow-sm">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
+                  activeTab === tab.key ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+                {tab.label}
               </button>
             ))}
           </div>
 
-          {/* Tab content */}
-          <div className="bg-surface-container-lowest rounded-2xl shadow-apple border border-surface-variant/30 overflow-hidden">
-
-            {/* Overview */}
-            {activeTab === "overview" && (
+          <div className="panel-surface overflow-hidden">
+            {activeTab === "overview" ? (
               <div>
-                <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
-                  <h2 className="font-bold text-on-surface flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-[20px]">person</span>
+                <div className="border-b border-surface-variant/30 bg-surface-bright/40 px-6 py-4">
+                  <h2 className="flex items-center gap-2 font-bold text-on-surface">
+                    <span className="material-symbols-outlined text-[20px] text-primary">person</span>
                     Thông tin liên hệ
                   </h2>
                 </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2">
                   {[
                     { label: "Họ và tên", value: displayName },
                     { label: "Email", value: user?.email },
                     { label: "Số điện thoại", value: user?.phone || "Chưa cập nhật" },
                     { label: "Địa chỉ", value: user?.address || "Chưa cập nhật" },
                     { label: "Vai trò", value: { admin: "Quản trị viên", shipper: "Shipper", user: "Người dùng" }[user?.role] || "Người dùng" },
-                    { label: "Trạng thái TK", value: user?.accountStatus === "active" ? "Đang hoạt động" : "Bị khóa" },
+                    { label: "Trạng thái tài khoản", value: user?.accountStatus === "active" ? "Đang hoạt động" : "Bị khóa" },
                   ].map((item) => (
                     <div key={item.label}>
-                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5 block">
+                      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
                         {item.label}
                       </label>
-                      <div className="px-4 py-3 bg-surface-container-low border border-surface-variant/30 rounded-xl text-on-surface text-sm font-medium">
+                      <div className="rounded-xl border border-surface-variant/30 bg-surface-container-low px-4 py-3 text-sm font-medium text-on-surface">
                         {item.value}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {/* Security */}
-            {activeTab === "security" && (
+            {activeTab === "security" ? (
               <div>
-                <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
-                  <h2 className="font-bold text-on-surface flex items-center gap-2">
+                <div className="border-b border-surface-variant/30 bg-surface-bright/40 px-6 py-4">
+                  <h2 className="flex items-center gap-2 font-bold text-on-surface">
                     <span className="material-symbols-outlined text-[20px]">lock</span>
                     Đổi mật khẩu
                   </h2>
                 </div>
-                <form onSubmit={handleChangePassword} className="p-6 max-w-md">
-                  {passMsg && (
-                    <div className={`flex items-center gap-2 p-3.5 rounded-xl text-sm mb-5 border ${passMsg.type === "success"
-                        ? "bg-secondary-container/30 text-on-secondary-container border-secondary-container"
-                        : "bg-error-container/30 text-error border-error/20"
-                      }`}>
+                <form onSubmit={handleChangePassword} className="max-w-md p-6">
+                  {passMsg ? (
+                    <div className={`mb-5 flex items-center gap-2 rounded-xl border p-3.5 text-sm ${
+                      passMsg.type === "success"
+                        ? "border-secondary-container bg-secondary-container/30 text-on-secondary-container"
+                        : "border-error/20 bg-error-container/30 text-error"
+                    }`}>
                       <span className="material-symbols-outlined text-[16px]">
                         {passMsg.type === "success" ? "check_circle" : "error"}
                       </span>
                       {passMsg.text}
                     </div>
-                  )}
+                  ) : null}
                   {[
                     { key: "current", label: "Mật khẩu hiện tại", ph: "••••••••" },
                     { key: "newPass", label: "Mật khẩu mới", ph: "Tối thiểu 6 ký tự" },
                     { key: "confirm", label: "Xác nhận mật khẩu", ph: "Nhập lại mật khẩu mới" },
-                  ].map((f) => (
-                    <div key={f.key} className="mb-4">
-                      <label className="block text-sm font-medium text-on-surface mb-1.5">{f.label}</label>
-                      <input type="password" required minLength={6} placeholder={f.ph}
-                        value={passwords[f.key]}
-                        onChange={(e) => setPasswords({ ...passwords, [f.key]: e.target.value })}
-                        className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" />
+                  ].map((field) => (
+                    <div key={field.key} className="mb-4">
+                      <label className="mb-1.5 block text-sm font-medium text-on-surface">{field.label}</label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder={field.ph}
+                        value={passwords[field.key]}
+                        onChange={(e) => setPasswords({ ...passwords, [field.key]: e.target.value })}
+                        className="w-full rounded-xl border border-surface-variant bg-surface-bright px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10"
+                      />
                     </div>
                   ))}
-                  <button type="submit" disabled={passLoading}
-                    className="mt-2 px-7 py-3 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60">
+                  <button
+                    type="submit"
+                    disabled={passLoading}
+                    className="mt-2 rounded-xl bg-primary px-7 py-3 text-sm font-semibold text-on-primary transition-all hover:opacity-90 disabled:opacity-60"
+                  >
                     {passLoading ? "Đang cập nhật..." : "Cập nhật mật khẩu"}
                   </button>
                 </form>
               </div>
-            )}
+            ) : null}
 
-            {/* Reputation history */}
-            {activeTab === "reputation" && (
+            {activeTab === "reputation" ? (
               <div>
-                <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
-                  <h2 className="font-bold text-on-surface flex items-center gap-2">
+                <div className="border-b border-surface-variant/30 bg-surface-bright/40 px-6 py-4">
+                  <h2 className="flex items-center gap-2 font-bold text-on-surface">
                     <span className="material-symbols-outlined text-[20px]">history</span>
                     Lịch sử điểm uy tín
                   </h2>
                 </div>
                 {histLoading ? (
-                  <div className="p-10 flex justify-center">
+                  <div className="flex justify-center p-10">
                     <span className="material-symbols-outlined animate-spin text-2xl text-primary">refresh</span>
                   </div>
                 ) : history.length === 0 ? (
-                  <div className="p-12 text-center flex flex-col items-center gap-3 text-on-surface-variant">
+                  <div className="flex flex-col items-center gap-3 p-12 text-center text-on-surface-variant">
                     <span className="material-symbols-outlined text-5xl opacity-30">verified</span>
                     <p className="font-medium text-on-surface">Chưa từng bị trừ điểm uy tín.</p>
-                    <p className="text-sm">Hãy tiếp tục duy trì phong độ tốt!</p>
+                    <p className="text-sm">Hãy tiếp tục duy trì chất lượng giao dịch tốt.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-surface-variant/30">
-                    {history.map((h, i) => (
-                      <div key={i} className="px-6 py-5 flex items-start gap-4">
-                        <div className="w-11 h-11 rounded-full bg-error/10 text-error flex items-center justify-center font-black text-sm flex-shrink-0">
-                          {h.changeAmount}
+                    {history.map((item, index) => (
+                      <div key={index} className="flex items-start gap-4 px-6 py-5">
+                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-error/10 text-sm font-black text-error">
+                          {item.changeAmount}
                         </div>
                         <div className="flex-1">
-                          <p className="font-semibold text-on-surface text-sm">{h.reason}</p>
-                          <div className="flex flex-wrap gap-4 text-xs text-on-surface-variant mt-1.5">
-                            <span>{new Date(h.createdAt).toLocaleDateString("vi-VN")}</span>
-                            <span>Bởi: {h.changedBy?.fullName || "Admin"}</span>
-                            <span className="font-medium text-on-surface">
-                              Mức vi phạm: {h.violationLevel}
-                            </span>
+                          <p className="text-sm font-semibold text-on-surface">{item.reason}</p>
+                          <div className="mt-1.5 flex flex-wrap gap-4 text-xs text-on-surface-variant">
+                            <span>{new Date(item.createdAt).toLocaleDateString("vi-VN")}</span>
+                            <span>Bởi: {item.changedBy?.fullName || "Admin"}</span>
+                            <span className="font-medium text-on-surface">Mức vi phạm: {item.violationLevel}</span>
                           </div>
                         </div>
                       </div>
@@ -245,12 +243,12 @@ const Profile = () => {
                   </div>
                 )}
               </div>
-            )}
-
+            ) : null}
           </div>
         </div>
       </main>
     </div>
   );
 };
+
 export default Profile;

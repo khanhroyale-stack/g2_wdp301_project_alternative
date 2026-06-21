@@ -24,6 +24,7 @@ const ProductDetail = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [purchaseQuantity, setPurchaseQuantity] = useState(1);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -32,6 +33,7 @@ const ProductDetail = () => {
         const res = await productService.getProduct(id);
         if (res.success) {
           setProduct(res.data);
+          setPurchaseQuantity(1);
         } else {
           setError(res.message);
         }
@@ -62,13 +64,13 @@ const ProductDetail = () => {
 
   const handleBuy = async () => {
     if (!user) return navigate("/dang-nhap");
-    navigate(`/orders/create/${product._id}`);
+    navigate(`/orders/create/${product._id}?quantity=${purchaseQuantity}`);
   };
 
   const handleAddToCart = async () => {
     if (!user) return navigate("/dang-nhap");
     try {
-      const res = await cartService.addCartItem(product._id, 1);
+      const res = await cartService.addCartItem(product._id, purchaseQuantity);
       if (res.success) {
         toast.success("Da them san pham vao gio hang");
       }
@@ -137,6 +139,7 @@ const ProductDetail = () => {
   const images = product.images?.length > 0 ? product.images : product.imageUrls?.length > 0 ? product.imageUrls : [];
   const displayPrice =
     product.productType === "rent" ? `${formatPrice(product.rentPricePerDay)}/ngay` : formatPrice(product.salePrice);
+  const availableQuantity = Math.max(Number(product.quantity) || 0, 0);
   const sellerName = product.ownerId?.fullName || product.ownerId?.name || "Nguoi dung an";
   const sellerInitial = sellerName.charAt(0).toUpperCase();
 
@@ -211,6 +214,11 @@ const ProductDetail = () => {
                   {displayPrice}
                 </span>
               </div>
+              {product.productType === "sale" ? (
+                <p className="mt-3 text-sm font-semibold text-on-surface-variant">
+                  So luong con lai: <span className="text-on-surface">{availableQuantity}</span>
+                </p>
+              ) : null}
               {product.productType === "rent" && product.depositAmount > 0 ? (
                 <p className="text-sm text-on-surface-variant mt-2 flex items-center gap-1 bg-surface-container-low w-fit px-3 py-1 rounded-full">
                   <span className="material-symbols-outlined text-[16px] text-tertiary">lock</span>
@@ -227,9 +235,27 @@ const ProductDetail = () => {
             </div>
 
             <div className="flex flex-col gap-3 mt-2">
+              {product.productType === "sale" && product.postStatus !== "closed" ? (
+                <div className="rounded-2xl border border-surface-variant/30 bg-surface-container-lowest p-4">
+                  <label className="mb-2 block text-sm font-bold text-on-surface">So luong mua</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={Math.max(availableQuantity, 1)}
+                    value={purchaseQuantity}
+                    onChange={(event) => {
+                      const nextValue = Number(event.target.value) || 1;
+                      setPurchaseQuantity(Math.min(Math.max(nextValue, 1), Math.max(availableQuantity, 1)));
+                    }}
+                    className="w-full rounded-2xl border border-surface-variant/50 bg-white px-4 py-3 text-base outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                  <p className="mt-2 text-xs text-on-surface-variant">Ban khong the mua nhieu hon so luong hien co.</p>
+                </div>
+              ) : null}
+
               {product.postStatus === "closed" ? (
                 <button disabled className="w-full py-4 rounded-2xl bg-surface-container text-on-surface-variant font-bold shadow-none cursor-not-allowed">
-                  {product.productType === "sale" ? "San pham da ban" : "San pham dang duoc thue"}
+                  {product.productType === "sale" ? "San pham da het hang" : "San pham dang duoc thue"}
                 </button>
               ) : product.productType === "sale" ? (
                 <>

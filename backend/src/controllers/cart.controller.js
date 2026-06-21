@@ -6,7 +6,6 @@ const Delivery = require("../models/delivery.model");
 const { getProductThumbnailUrl } = require("../utils/product-images.util");
 
 const SHIPPING_FEE = 35000;
-const ACTIVE_ORDER_STATUSES = ["pending", "confirmed", "shipping", "delivered"];
 
 const mapCartItem = async (item) => {
   const product = item.postId;
@@ -29,6 +28,7 @@ const mapCartItem = async (item) => {
 const hydrateCart = async (cart) => {
   const hydratedItems = [];
   let subtotal = 0;
+  let totalQuantity = 0;
 
   for (const item of cart.items || []) {
     const mapped = await mapCartItem(item);
@@ -37,6 +37,7 @@ const hydrateCart = async (cart) => {
     }
 
     subtotal += Number(mapped.product.salePrice || 0) * Number(mapped.quantity || 1);
+    totalQuantity += Number(mapped.quantity || 1);
     hydratedItems.push(mapped);
   }
 
@@ -44,7 +45,7 @@ const hydrateCart = async (cart) => {
     ...cart,
     items: hydratedItems,
     summary: {
-      itemCount: hydratedItems.length,
+      itemCount: totalQuantity,
       subtotal,
       shippingFee: hydratedItems.length ? SHIPPING_FEE * hydratedItems.length : 0,
       totalAmount: subtotal + (hydratedItems.length ? SHIPPING_FEE * hydratedItems.length : 0),
@@ -63,6 +64,10 @@ const getProductAvailabilityError = (product, viewerId, seller) => {
 
   if (!["sale", "both"].includes(product.productType)) {
     return { code: 400, message: "San pham nay khong ho tro mua" };
+  }
+
+  if ((Number(product.quantity) || 0) < 1) {
+    return { code: 400, message: "San pham da het hang" };
   }
 
   if (String(product.ownerId?._id || product.ownerId) === String(viewerId)) {
@@ -111,6 +116,7 @@ const getMyCart = async (req, res) => {
 const addCartItem = async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
+    const normalizedQuantity = Math.max(Number(quantity) || 1, 1);
     if (!productId) {
       return res.status(400).json({ success: false, message: "Thieu productId" });
     }
@@ -121,15 +127,22 @@ const addCartItem = async (req, res) => {
       return res.status(availabilityError.code).json({ success: false, message: availabilityError.message });
     }
 
+    if ((Number(product.quantity) || 0) < normalizedQuantity) {
+      return res.status(400).json({
+        success: false,
+        message: `So luong vuot qua ton kho hien co. Chi con ${product.quantity} san pham.`,
+      });
+    }
+
     const cart = await getOrCreateCart(req.user._id);
     const existingItem = cart.items.find((item) => String(item.postId) === String(productId));
     if (existingItem) {
-      existingItem.quantity = Math.max(Number(quantity) || 1, 1);
+      existingItem.quantity = normalizedQuantity;
       existingItem.addedAt = new Date();
     } else {
       cart.items.push({
         postId: productId,
-        quantity: Math.max(Number(quantity) || 1, 1),
+        quantity: normalizedQuantity,
         addedAt: new Date(),
       });
     }
@@ -187,11 +200,8 @@ const checkoutCart = async (req, res) => {
         continue;
       }
 
-      const existingOrder = await Order.findOne({
-        postId: item.postId,
-        orderStatus: { $in: ACTIVE_ORDER_STATUSES },
-      }).lean();
-      if (existingOrder) {
+      const requestedQuantity = Math.max(Number(item.quantity) || 1, 1);
+      if ((Number(product.quantity) || 0) < requestedQuantity) {
         remainingItems.push(item);
         continue;
       }
@@ -202,11 +212,32 @@ const checkoutCart = async (req, res) => {
         continue;
       }
 
-      const totalAmount = Number(product.salePrice || 0) + SHIPPING_FEE;
+      const updatedProduct = await ProductPost.findOneAndUpdate(
+        {
+          _id: product._id,
+          quantity: { $gte: requestedQuantity },
+          postStatus: "approved",
+        },
+        { $inc: { quantity: -requestedQuantity } },
+        { new: true }
+      );
+      if (!updatedProduct) {
+        remainingItems.push(item);
+        continue;
+      }
+
+      const nextStatus = updatedProduct.quantity > 0 ? "approved" : "closed";
+      if (updatedProduct.postStatus !== nextStatus) {
+        updatedProduct.postStatus = nextStatus;
+        await updatedProduct.save();
+      }
+
+      const totalAmount = Number(product.salePrice || 0) * requestedQuantity + SHIPPING_FEE;
       const order = await Order.create({
         buyerId: req.user._id,
         sellerId: product.ownerId,
         postId: product._id,
+        quantity: requestedQuantity,
         productPrice: product.salePrice,
         shippingFee: SHIPPING_FEE,
         totalAmount,
@@ -216,8 +247,6 @@ const checkoutCart = async (req, res) => {
         note: note || "",
         orderStatus: "pending",
       });
-
-      await ProductPost.findByIdAndUpdate(product._id, { postStatus: "closed" });
       createdOrders.push(order);
     }
 

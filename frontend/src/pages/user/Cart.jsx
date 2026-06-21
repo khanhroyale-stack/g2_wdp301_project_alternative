@@ -48,6 +48,17 @@ export default function Cart() {
     }
   };
 
+  const handleQuantityChange = async (productId, quantity) => {
+    try {
+      const res = await cartService.addCartItem(productId, quantity);
+      if (res.success) {
+        setCart(res.data);
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Khong the cap nhat so luong san pham");
+    }
+  };
+
   const handleCheckout = async () => {
     if (!form.recipientName || !form.buyerPhone || !form.buyerAddress) {
       alert("Vui long dien day du thong tin nhan hang");
@@ -137,10 +148,24 @@ export default function Cart() {
                               <Truck className="h-4 w-4" />
                               Phi ship du kien {formatPrice(35000)}
                             </div>
+                            <div className="mt-3 flex items-center gap-3">
+                              <span className="text-sm font-medium text-muted-foreground">So luong</span>
+                              <Input
+                                type="number"
+                                min="1"
+                                max={Math.max(Number(item.product?.quantity) || 1, 1)}
+                                value={item.quantity}
+                                onChange={(e) => handleQuantityChange(item.productId, e.target.value)}
+                                className="h-10 w-24"
+                              />
+                              <span className="text-xs text-muted-foreground">
+                                Con lai {Math.max(Number(item.product?.quantity) || 0, 0)}
+                              </span>
+                            </div>
                           </div>
                           <div className="text-right">
                             <div className="text-[1.7rem] font-extrabold text-success">
-                              {formatPrice(item.product?.salePrice)}
+                              {formatPrice((Number(item.product?.salePrice) || 0) * (Number(item.quantity) || 1))}
                             </div>
                             <Button variant="outline" className="mt-3" onClick={() => handleRemove(item.productId)}>
                               <Trash2 className="h-4 w-4" />

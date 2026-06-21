@@ -1,16 +1,19 @@
 import { Link } from "react-router-dom";
 
 const Footer = () => (
-  <footer className="w-full border-t border-surface-variant bg-surface-container-lowest">
-    <div className="max-w-[1400px] mx-auto px-6 md:px-10 py-10 flex flex-col md:flex-row justify-between items-center gap-6">
+  <footer className="w-full border-t border-surface-variant/60 bg-surface-container-lowest/95 backdrop-blur">
+    <div className="max-w-[1400px] mx-auto flex flex-col items-center justify-between gap-6 px-6 py-10 md:flex-row md:px-10">
       <div>
-        <Link to="/" className="text-xl font-bold text-primary tracking-tight">EcoTrade</Link>
-        <p className="text-xs text-on-surface-variant mt-1">Nền tảng mua bán & cho thuê đồ cũ khu vực Hòa Lạc</p>
+        <Link to="/marketplace" className="text-xl font-extrabold text-primary tracking-tight">EcoTrade</Link>
+        <p className="mt-1 text-sm text-on-surface-variant">Nền tảng mua bán và cho thuê đồ cũ dành cho cộng đồng Hòa Lạc.</p>
       </div>
-      <div className="flex gap-6">
+      <div className="flex flex-wrap justify-center gap-6">
         {[["Về chúng tôi", "#"], ["Điều khoản", "#"], ["Bảo mật", "#"], ["Hỗ trợ", "#"], ["Tuyển dụng", "#"]].map(([label, href]) => (
-          <a key={label} href={href}
-            className="text-xs font-medium text-on-surface-variant/60 hover:text-on-surface transition-colors uppercase tracking-wider">
+          <a
+            key={label}
+            href={href}
+            className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant/70 transition-colors hover:text-on-surface"
+          >
             {label}
           </a>
         ))}

@@ -64,7 +64,7 @@ const MyPosts = () => {
   return (
     <div className="flex min-h-screen bg-[#F5F5F7]">
       <Sidebar variant="user" />
-      <main className="flex-1 md:ml-64 px-4 md:px-10 py-10">
+      <main className="flex-1 md:ml-72 px-4 md:px-10 py-10">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>

@@ -1,136 +1,74 @@
-import { NavLink } from "react-router-dom";
-import { Bell, Box, Grid2x2, Leaf, LogOut, Search, Settings, ShoppingCart, Store, Truck } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
+import { Box, Grid2x2, ShoppingCart, Store, Truck } from "lucide-react";
+import Navbar from "../Navbar";
+import Footer from "../Footer";
 import { useAuth } from "../../context/AuthContext";
 import usePendingSalesCount from "../../hooks/usePendingSalesCount";
 import { cn } from "../../lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Input } from "../ui/input";
 
 export default function EcoTradeLayout({ children }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const location = useLocation();
   const pendingSalesCount = usePendingSalesCount();
+
   const mainMenu = user?.role === "shipper"
     ? [
-        { label: "Marketplace", icon: Grid2x2, to: "/products" },
-        { label: "Shipper Hub", icon: Box, to: "/shipper" },
-        { label: "Don can giao", icon: Truck, to: "/shipper/don-can-giao" },
-        { label: "Don dang giao", icon: Truck, to: "/shipper/dang-giao" },
+        { label: "Marketplace", icon: Grid2x2, to: "/marketplace" },
+        { label: "Đơn có thể nhận", icon: Truck, to: "/shipper" },
       ]
     : [
-        { label: "Marketplace", icon: Grid2x2, to: "/products" },
-        { label: "Gio hang", icon: ShoppingCart, to: "/gio-hang" },
-        { label: "Don mua", icon: Box, to: "/orders/my-orders" },
-        { label: "Don ban", icon: Store, to: "/orders/my-sales" },
+        { label: "Marketplace", icon: Grid2x2, to: "/marketplace" },
+        { label: "Giỏ hàng", icon: ShoppingCart, to: "/gio-hang" },
+        { label: "Đơn mua", icon: Box, to: "/orders/my-orders" },
+        { label: "Đơn bán", icon: Store, to: "/orders/my-sales" },
       ];
-  const initials = (user?.fullName || "Alex Nguyen")
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+
+  const isActive = (to) => {
+    if (to === "/shipper") return location.pathname === "/shipper" || location.pathname.startsWith("/shipper/don/");
+    if (to === "/orders/my-orders") return location.pathname === "/orders/my-orders" || location.pathname === "/don-hang";
+    if (to === "/orders/my-sales") return location.pathname === "/orders/my-sales" || location.pathname === "/don-ban";
+    return location.pathname === to;
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="flex min-h-screen w-full bg-white">
-        <aside className="hidden w-[256px] shrink-0 border-r border-border bg-[#fbfbfb] lg:flex lg:flex-col">
-          <div className="border-b border-border px-8 py-9">
-            <div className="text-sm font-bold uppercase tracking-[0.18em] text-muted-foreground">Main Menu</div>
-          </div>
-          <nav className="flex-1 space-y-1 px-6 py-6">
+    <div className="min-h-screen bg-[#F5F5F7] flex flex-col">
+      <Navbar />
+
+      <main className="mx-auto w-full max-w-[1400px] flex-grow px-4 pb-16 pt-24 md:px-10">
+        <div className="mb-6 overflow-x-auto">
+          <div className="inline-flex min-w-full gap-2 rounded-2xl border border-surface-variant/40 bg-surface-container-lowest p-2 shadow-apple">
             {mainMenu.map(({ label, icon: Icon, to }) => (
               <NavLink
                 key={to}
                 to={to}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-2xl px-4 py-3 text-[1.05rem] font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground",
-                    isActive && "bg-white text-foreground shadow-panel"
-                  )
-                }
+                className={cn(
+                  "flex min-w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all",
+                  isActive(to)
+                    ? "bg-primary text-on-primary shadow-sm"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-4 w-4" />
                 <span>{label}</span>
                 {to === "/orders/my-sales" && pendingSalesCount > 0 ? (
-                  <span className="ml-auto flex h-6 min-w-6 items-center justify-center rounded-full bg-warning px-2 text-xs font-bold text-warning-foreground">
+                  <span
+                    className={cn(
+                      "ml-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                      isActive(to) ? "bg-white/20 text-on-primary" : "bg-warning text-warning-foreground"
+                    )}
+                  >
                     {pendingSalesCount}
                   </span>
                 ) : null}
               </NavLink>
             ))}
-          </nav>
-          <div className="px-8 pb-6">
-            <div className="mb-4 text-sm font-bold uppercase tracking-[0.18em] text-muted-foreground">System</div>
-            <div className="space-y-1">
-              <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-[1.02rem] font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground">
-                <Settings className="h-5 w-5" />
-                <span>Settings</span>
-              </button>
-              <button
-                onClick={logout}
-                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-[1.02rem] font-semibold text-[#ff5d53] transition hover:bg-[#fff0ef]"
-              >
-                <LogOut className="h-5 w-5" />
-                <span>Logout</span>
-              </button>
-            </div>
           </div>
-        </aside>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-10 border-b border-border bg-white/95 backdrop-blur">
-            <div className="flex h-[88px] items-center gap-4 px-5 sm:px-8">
-              <NavLink to="/products" className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Leaf className="h-5 w-5" />
-                </div>
-                <span className="text-[2rem] font-extrabold tracking-tight text-success">EcoTrade</span>
-              </NavLink>
-              <div className="hidden max-w-[420px] flex-1 md:block">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="border-transparent bg-[#f5f7f6] pl-11" placeholder="Search items, orders, or delivery IDs..." />
-                </div>
-              </div>
-              <div className="ml-auto flex items-center gap-4">
-                <button className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white text-muted-foreground">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-danger" />
-                </button>
-                <div className="hidden h-11 w-px bg-border md:block" />
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-base font-bold">{user?.fullName || "Alex Nguyen"}</div>
-                    <div className="text-sm text-muted-foreground">{user?.role === "shipper" ? "Premium Shipper" : "Premium Trader"}</div>
-                  </div>
-                  <div className="relative">
-                    <Avatar className="h-12 w-12 border border-border">
-                      <AvatarImage src="" alt={user?.fullName || "User"} />
-                      <AvatarFallback>{initials}</AvatarFallback>
-                    </Avatar>
-                    <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-success" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </header>
-
-          <main className="flex-1 bg-white pb-10 pt-8">{children}</main>
-
-          <footer className="flex flex-col gap-3 border-t border-border px-5 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
-            <div className="flex items-center gap-5">
-              <span>© 2024 EcoTrade Inc.</span>
-              <span className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-success" />
-                System Operational
-              </span>
-            </div>
-            <div className="flex items-center gap-6">
-              <span>Help Center</span>
-              <span>Terms of Service</span>
-              <span>Privacy Policy</span>
-            </div>
-          </footer>
         </div>
-      </div>
+
+        {children}
+      </main>
+
+      <Footer />
     </div>
   );
 }

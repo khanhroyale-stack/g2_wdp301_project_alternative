@@ -72,7 +72,7 @@ const AccountApprovals = () => {
   return (
     <div className="flex min-h-screen bg-[#F5F5F7]">
       <Sidebar variant="admin" />
-      <main className="flex-1 md:ml-64 px-4 md:px-10 py-10">
+      <main className="flex-1 md:ml-72 px-4 md:px-10 py-10">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-on-surface">Duyệt tài khoản (KYC)</h1>

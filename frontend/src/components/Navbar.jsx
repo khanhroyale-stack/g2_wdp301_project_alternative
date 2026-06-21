@@ -4,9 +4,9 @@ import { useAuth } from "../context/AuthContext";
 import usePendingSalesCount from "../hooks/usePendingSalesCount";
 
 const roleLabel = {
-  admin: "Quan tri vien",
+  admin: "Quản trị viên",
   shipper: "Shipper",
-  user: "Nguoi dung",
+  user: "Người dùng",
 };
 
 const Navbar = () => {
@@ -20,35 +20,35 @@ const Navbar = () => {
 
   const linkClass = ({ isActive }) =>
     isActive
-      ? "border-b-2 border-primary pb-1 text-sm font-medium text-primary transition-colors"
+      ? "border-b-2 border-primary pb-1 text-sm font-semibold text-primary transition-colors"
       : "text-sm font-medium text-on-surface-variant transition-colors hover:text-primary";
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate("/marketplace");
     setMenuOpen(false);
     setUserMenuOpen(false);
   };
 
   return (
-    <nav className="fixed left-0 top-0 z-50 h-16 w-full border-b border-surface-variant/50 bg-surface/95 shadow-[0px_1px_8px_rgba(0,0,0,0.06)] backdrop-blur-md">
+    <nav className="fixed left-0 top-0 z-50 h-16 w-full border-b border-surface-variant/50 bg-surface/90 shadow-[0px_8px_30px_rgba(17,38,28,0.05)] backdrop-blur-xl">
       <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between gap-4 px-4 md:px-10">
         <div className="flex items-center gap-8">
-          <Link to="/" className="select-none text-xl font-bold tracking-tight text-primary">
+          <Link to="/marketplace" className="select-none text-[1.35rem] font-extrabold tracking-tight text-primary">
             EcoTrade
           </Link>
           <div className="hidden gap-5 md:flex">
-            <NavLink to="/marketplace" className={linkClass}>Mua sam</NavLink>
-            <NavLink to="/cho-thue" className={linkClass}>Cho thue</NavLink>
+            <NavLink to="/marketplace" className={linkClass}>Mua sắm</NavLink>
+            <NavLink to="/cho-thue" className={linkClass}>Cho thuê</NavLink>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="hidden w-52 items-center gap-2 rounded-full border border-surface-variant bg-surface-container-low px-4 py-2 lg:flex">
+          <div className="hidden w-56 items-center gap-2 rounded-full border border-surface-variant/60 bg-surface-container-low px-4 py-2 lg:flex">
             <span className="material-symbols-outlined text-[17px] text-on-surface-variant">search</span>
             <input
               className="w-full border-none bg-transparent text-sm text-on-surface outline-none placeholder:text-on-surface-variant"
-              placeholder="Tim kiem..."
+              placeholder="Tìm kiếm sản phẩm..."
               onKeyDown={(event) => event.key === "Enter" && navigate(`/marketplace?q=${event.target.value}`)}
             />
           </div>
@@ -59,7 +59,7 @@ const Navbar = () => {
               className="hidden items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:opacity-90 md:flex"
             >
               <span className="material-symbols-outlined text-[16px]">add</span>
-              Dang tin
+              Đăng tin
             </Link>
           ) : null}
 
@@ -79,7 +79,7 @@ const Navbar = () => {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen((value) => !value)}
-                className="flex items-center gap-2 rounded-full border border-surface-variant px-2.5 py-1.5 transition-colors hover:bg-surface-container-low"
+                className="flex items-center gap-2 rounded-full border border-surface-variant/60 px-2.5 py-1.5 transition-colors hover:bg-surface-container-low"
               >
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
                   {displayName.charAt(0).toUpperCase() || "U"}
@@ -91,33 +91,33 @@ const Navbar = () => {
               </button>
 
               {userMenuOpen ? (
-                <div className="absolute right-0 top-12 z-50 w-56 rounded-xl border border-surface-variant bg-surface-container-lowest py-2 shadow-apple-md">
+                <div className="absolute right-0 top-12 z-50 w-60 rounded-2xl border border-surface-variant/70 bg-surface-container-lowest py-2 shadow-apple-md">
                   <div className="border-b border-surface-variant/50 px-4 py-3">
                     <p className="truncate text-sm font-semibold text-on-surface">{displayName}</p>
-                    <p className="mt-0.5 text-xs text-on-surface-variant">{roleLabel[user.role] || "Nguoi dung"}</p>
+                    <p className="mt-0.5 text-xs text-on-surface-variant">{roleLabel[user.role] || "Người dùng"}</p>
                   </div>
 
                   {user.role !== "admin" ? (
                     <>
                       <Link to="/ho-so" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">person</span>
-                        Ho so ca nhan
+                        Hồ sơ cá nhân
                       </Link>
                       <Link to="/quan-ly/bai-dang" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">inventory_2</span>
-                        Bai dang cua toi
+                        Bài đăng của tôi
                       </Link>
                       <Link to="/don-hang" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">shopping_bag</span>
-                        Don mua
+                        Đơn mua
                       </Link>
                       <Link to="/gio-hang" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">shopping_cart</span>
-                        Gio hang
+                        Giỏ hàng
                       </Link>
                       <Link to="/don-ban" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">storefront</span>
-                        Don ban
+                        Đơn bán
                         {pendingSalesCount > 0 ? (
                           <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1.5 text-[10px] font-bold text-warning-foreground">
                             {pendingSalesCount}
@@ -126,17 +126,17 @@ const Navbar = () => {
                       </Link>
                       <Link to="/thue-muon" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">handshake</span>
-                        Thue va muon
+                        Thuê và mượn
                       </Link>
                       <Link to="/tin-nhan" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">chat</span>
-                        Tin nhan
+                        Tin nhắn
                       </Link>
                     </>
                   ) : (
                     <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                       <span className="material-symbols-outlined text-[18px] text-on-surface-variant">admin_panel_settings</span>
-                      Trang quan tri
+                      Trang quản trị
                     </Link>
                   )}
 
@@ -150,21 +150,21 @@ const Navbar = () => {
                   <div className="my-1 border-t border-surface-variant" />
                   <button
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-error transition-colors hover:bg-error/5"
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-error transition-colors hover:bg-error/5"
                   >
                     <span className="material-symbols-outlined text-[18px]">logout</span>
-                    Dang xuat
+                    Đăng xuất
                   </button>
                 </div>
               ) : null}
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link to="/dang-nhap" className="rounded-full border border-primary/30 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-surface-container-low">
-                Dang nhap
+              <Link to="/dang-nhap" className="rounded-full border border-primary/30 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-surface-container-low">
+                Đăng nhập
               </Link>
               <Link to="/dang-ky" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:opacity-90">
-                Dang ky
+                Đăng ký
               </Link>
             </div>
           )}
@@ -177,26 +177,26 @@ const Navbar = () => {
 
       {menuOpen ? (
         <div className="absolute left-0 top-16 z-40 flex w-full flex-col gap-1 border-b border-surface-variant bg-surface px-6 py-4 shadow-md md:hidden">
-          <NavLink to="/marketplace" className={linkClass} onClick={() => setMenuOpen(false)}>Mua sam</NavLink>
-          <NavLink to="/cho-thue" className={linkClass} onClick={() => setMenuOpen(false)}>Cho thue</NavLink>
+          <NavLink to="/marketplace" className={linkClass} onClick={() => setMenuOpen(false)}>Mua sắm</NavLink>
+          <NavLink to="/cho-thue" className={linkClass} onClick={() => setMenuOpen(false)}>Cho thuê</NavLink>
           {user ? (
             <>
               {user.role !== "admin" ? (
                 <>
-                  <NavLink to="/ho-so" className={linkClass} onClick={() => setMenuOpen(false)}>Ho so ca nhan</NavLink>
-                  <NavLink to="/dang-tin" className={linkClass} onClick={() => setMenuOpen(false)}>Dang tin</NavLink>
-                  <NavLink to="/don-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Don mua</NavLink>
-                  <NavLink to="/gio-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Gio hang</NavLink>
-                  <NavLink to="/don-ban" className={linkClass} onClick={() => setMenuOpen(false)}>Don ban</NavLink>
+                  <NavLink to="/ho-so" className={linkClass} onClick={() => setMenuOpen(false)}>Hồ sơ cá nhân</NavLink>
+                  <NavLink to="/dang-tin" className={linkClass} onClick={() => setMenuOpen(false)}>Đăng tin</NavLink>
+                  <NavLink to="/don-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn mua</NavLink>
+                  <NavLink to="/gio-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Giỏ hàng</NavLink>
+                  <NavLink to="/don-ban" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn bán</NavLink>
                 </>
               ) : (
-                <NavLink to="/admin" className={linkClass} onClick={() => setMenuOpen(false)}>Trang quan tri</NavLink>
+                <NavLink to="/admin" className={linkClass} onClick={() => setMenuOpen(false)}>Trang quản trị</NavLink>
               )}
             </>
           ) : (
             <>
-              <Link to="/dang-nhap" className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Dang nhap</Link>
-              <Link to="/dang-ky" className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Dang ky</Link>
+              <Link to="/dang-nhap" className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Đăng nhập</Link>
+              <Link to="/dang-ky" className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Đăng ký</Link>
             </>
           )}
         </div>
