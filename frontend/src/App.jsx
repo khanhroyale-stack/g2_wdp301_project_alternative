@@ -1,5 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import { Toaster } from "react-hot-toast";
 
@@ -54,13 +54,39 @@ const ChatRoomRedirect = () => {
   return <Navigate to={`/tin-nhan/${roomId}`} replace />;
 };
 
+const RoleBasedRedirect = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-surface-variant border-t-primary rounded-full animate-spin" />
+          <p className="text-sm text-on-surface-variant">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    if (user.role === "shipper") {
+      return <Navigate to="/shipper" replace />;
+    }
+    if (user.role === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
+  }
+
+  return <Home />;
+};
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<RoleBasedRedirect />} />
           <Route path="/dang-nhap" element={<LoginPage />} />
           <Route path="/login" element={<Navigate to="/dang-nhap" replace />} />
           <Route path="/dang-ky" element={<RegisterPage />} />

@@ -22,8 +22,12 @@ const LoginPage = () => {
       if (from) {
         navigate(from, { replace: true });
       } else {
-        // If no saved location, redirect to home page
-        navigate("/", { replace: true });
+        // If no saved location, redirect based on role
+        if (data.user.role === "shipper") {
+          navigate("/shipper", { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || "Email hoặc mật khẩu không đúng.");
