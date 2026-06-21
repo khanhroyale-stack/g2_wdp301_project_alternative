@@ -13,11 +13,11 @@ export default function EcoTradeLayout({ children }) {
 
   const mainMenu = user?.role === "shipper"
     ? [
-        { label: "Marketplace", icon: Grid2x2, to: "/marketplace" },
+        { label: "Marketplace", icon: Grid2x2, to: "/marketplaces" },
         { label: "Đơn có thể nhận", icon: Truck, to: "/shipper" },
       ]
     : [
-        { label: "Marketplace", icon: Grid2x2, to: "/marketplace" },
+        { label: "Marketplace", icon: Grid2x2, to: "/marketplaces" },
         { label: "Giỏ hàng", icon: ShoppingCart, to: "/gio-hang" },
         { label: "Đơn mua", icon: Box, to: "/orders/my-orders" },
         { label: "Đơn bán", icon: Store, to: "/orders/my-sales" },

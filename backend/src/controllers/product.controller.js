@@ -1,13 +1,16 @@
 const ProductPost = require("../models/product_post.model");
 const ProductImage = require("../models/product_image.model");
 const Category = require("../models/category.model");
+const MediaFile = require("../models/media_file.model");
+const { createNotification } = require("./notification.controller");
+const { validateProductBusinessRules } = require("../utils/business-rules");
 const {
   attachImagesToProducts,
   getProductImageUrls,
 } = require("../utils/product-images.util");
 
-const MARKETPLACE_STATUSES = ["approved"];
-const ADMIN_POST_STATUSES = ["pending", "approved", "rejected", "closed"];
+const MARKETPLACE_STATUSES = ["approved", "available"];
+const ADMIN_POST_STATUSES = ["pending", "approved", "available", "rejected", "sold", "rented", "inactive", "closed"];
 
 const normalizeProductType = (value) => {
   if (!value) {
@@ -145,6 +148,20 @@ const syncProductImages = async (productId, imageIds = []) => {
   );
 };
 
+const validateProductImages = async (imageIds, userId) => {
+  if (!Array.isArray(imageIds) || imageIds.length < 1 || imageIds.length > 8) {
+    return "San pham phai co tu 1 den 8 hinh anh";
+  }
+  const uniqueIds = [...new Set(imageIds.map(String))];
+  if (uniqueIds.length !== imageIds.length) return "Danh sach hinh anh khong hop le";
+  const ownedCount = await MediaFile.countDocuments({
+    _id: { $in: imageIds },
+    uploadedBy: userId,
+    fileType: "product_image",
+  });
+  return ownedCount === imageIds.length ? null : "Hinh anh san pham khong hop le";
+};
+
 const getProducts = async (req, res) => {
   try {
     const page = Math.max(Number(req.query.page) || 1, 1);
@@ -211,6 +228,10 @@ const createProduct = async (req, res) => {
   try {
     const payload = mapProductPayload(req.body);
     const imageIds = req.body.imageIds || req.body.mediaIds || [];
+    const validationError = validateProductBusinessRules(payload) || await validateProductImages(imageIds, req.user._id);
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
 
     const product = await ProductPost.create({
       ...payload,
@@ -249,7 +270,21 @@ const updateProduct = async (req, res) => {
       return res.status(403).json({ success: false, message: "Ban khong co quyen cap nhat bai dang nay" });
     }
 
-    Object.assign(product, mapProductPayload(req.body));
+    const incomingPayload = mapProductPayload(req.body);
+    const validationError = validateProductBusinessRules({ ...product.toObject(), ...incomingPayload });
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
+
+    const replacementImageIds = req.body.imageIds || req.body.mediaIds;
+    if (Array.isArray(replacementImageIds)) {
+      const imageError = await validateProductImages(replacementImageIds, req.user._id);
+      if (imageError) return res.status(400).json({ success: false, message: imageError });
+    } else if (await ProductImage.countDocuments({ postId: product._id }) < 1) {
+      return res.status(400).json({ success: false, message: "San pham phai co it nhat 1 hinh anh" });
+    }
+
+    Object.assign(product, incomingPayload);
     product.postStatus = "pending";
     product.approvedBy = null;
     product.approvedAt = null;
@@ -289,7 +324,7 @@ const deleteProduct = async (req, res) => {
       return res.status(403).json({ success: false, message: "Ban khong co quyen cap nhat bai dang nay" });
     }
 
-    product.postStatus = "closed";
+    product.postStatus = "inactive";
     await product.save();
 
     res.json({ success: true, message: "Da an bai dang" });
@@ -340,6 +375,11 @@ const adminChangeStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: "Trang thai khong hop le" });
     }
 
+    const existingProduct = await ProductPost.findById(req.params.id).select("postStatus ownerId title").lean();
+    if (!existingProduct) {
+      return res.status(404).json({ success: false, message: "Khong tim thay bai dang" });
+    }
+
     const update = { postStatus: status };
     if (status === "approved") {
       update.approvedBy = req.user._id;
@@ -366,6 +406,18 @@ const adminChangeStatus = async (req, res) => {
 
     product.images = await getProductImageUrls(product._id);
     product.thumbnailUrl = product.images[0] || null;
+
+    if (status === "approved" && existingProduct.postStatus !== "approved") {
+      await createNotification({
+        recipientId: existingProduct.ownerId,
+        type: "system",
+        title: "Bài đăng đã được duyệt",
+        content: `Bài đăng "${existingProduct.title}" đã được admin duyệt và hiện đang hiển thị trên chợ.`,
+        relatedType: "system",
+        relatedId: existingProduct._id,
+        link: "/quan-ly/bai-dang",
+      }, req.app.get("io"));
+    }
 
     res.json({ success: true, data: product });
   } catch (error) {

@@ -195,7 +195,7 @@ const Marketplace = () => {
                   : formatPrice(product.salePrice);
 
                 return (
-                  <article key={product._id} onClick={() => navigate(`/san-pham/${product._id}`)}
+                  <article key={product._id} onClick={() => navigate(`/marketplaces/${product._id}`)}
                     className="bg-surface-container-lowest rounded-2xl shadow-apple overflow-hidden flex flex-col hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group border border-transparent hover:border-surface-variant">
                     <div className="relative aspect-square bg-surface-container-low overflow-hidden">
                       {getImageUrl(product.thumbnailUrl) ? (

@@ -43,6 +43,9 @@ const adminService = {
     const response = await api.get(`/reputation/admin/${id}/history`);
     return response.data;
   },
+  getShippers: async () => (await api.get("/admin/shippers")).data,
+  getDeliveries: async (params) => (await api.get("/admin/deliveries", { params })).data,
+  getInspections: async (params) => (await api.get("/admin/inspections", { params })).data,
 };
 
 export default adminService;

@@ -73,6 +73,11 @@ export default function MySales() {
           setProcessingId(null);
           return;
         }
+        if (!reason.trim()) {
+          alert("Vui lòng nhập lý do từ chối đơn hàng.");
+          setProcessingId(null);
+          return;
+        }
         extra = { cancelReason: reason.trim() };
       }
 

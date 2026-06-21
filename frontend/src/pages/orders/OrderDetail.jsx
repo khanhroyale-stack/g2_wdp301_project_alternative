@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Clock3, Package, ShoppingBag, Truck, UserRoundSearch } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
@@ -36,7 +36,7 @@ export default function OrderDetail() {
   const [order, setOrder] = useState(null);
   const [processing, setProcessing] = useState(false);
 
-  const fetchOrder = async () => {
+  const fetchOrder = useCallback(async () => {
     setLoading(true);
     try {
       const res = await orderService.getOrderById(id);
@@ -49,11 +49,11 @@ export default function OrderDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
 
   useEffect(() => {
     fetchOrder();
-  }, [id]);
+  }, [fetchOrder]);
 
   const handleOrderAction = async (status) => {
     setProcessing(true);
@@ -66,6 +66,11 @@ export default function OrderDetail() {
           ""
         );
         if (reason === null) {
+          setProcessing(false);
+          return;
+        }
+        if (order?.actions?.canSellerReject && !reason.trim()) {
+          alert("Vui lòng nhập lý do từ chối đơn hàng.");
           setProcessing(false);
           return;
         }
@@ -145,7 +150,7 @@ export default function OrderDetail() {
               </Button>
             ) : null}
             <Button asChild>
-              <Link to="/marketplace">
+              <Link to="/marketplaces">
                 <ShoppingBag className="h-4 w-4" />
                 Về marketplace
               </Link>

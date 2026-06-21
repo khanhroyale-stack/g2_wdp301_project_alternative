@@ -3,12 +3,14 @@ const ProductPost = require("../models/product_post.model");
 const Delivery = require("../models/delivery.model");
 const User = require("../models/user.model");
 const { createNotification } = require("./notification.controller");
+const { getProductAvailabilityStatus, validateSellerCancellation } = require("../utils/business-rules");
 const {
   getProductImageUrls,
   getProductThumbnailUrl,
 } = require("../utils/product-images.util");
 
 const SHIPPING_FEE = 35000;
+const AVAILABLE_PRODUCT_STATUSES = ["approved", "available"];
 
 const sendOrderNotification = async (payload, io) => {
   await createNotification(
@@ -30,13 +32,13 @@ const syncProductPostStatus = async (productId, nextStatus) => {
   await ProductPost.findByIdAndUpdate(productId, { postStatus: nextStatus });
 };
 
-const syncProductAvailability = async (productId) => {
+const syncProductAvailability = async (productId, soldIfEmpty = false) => {
   const product = await ProductPost.findById(productId).select("quantity postStatus");
   if (!product) {
     return null;
   }
 
-  const nextStatus = product.quantity > 0 ? "approved" : "closed";
+  const nextStatus = getProductAvailabilityStatus(product.quantity, soldIfEmpty);
   if (product.postStatus !== nextStatus) {
     product.postStatus = nextStatus;
     await product.save();
@@ -51,7 +53,7 @@ const reserveProductQuantity = async (productId, requestedQuantity) => {
     {
       _id: productId,
       quantity: { $gte: quantity },
-      postStatus: "approved",
+      postStatus: { $in: AVAILABLE_PRODUCT_STATUSES },
     },
     { $inc: { quantity: -quantity } },
     { new: true }
@@ -80,7 +82,7 @@ const getProductAvailabilityError = (product, viewerId, seller) => {
     return { code: 404, message: "San pham khong ton tai" };
   }
 
-  if (product.postStatus !== "approved") {
+  if (!AVAILABLE_PRODUCT_STATUSES.includes(product.postStatus)) {
     return { code: 400, message: "San pham hien khong kha dung de dat mua" };
   }
 
@@ -328,6 +330,11 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
+    const cancellationError = validateSellerCancellation({ isSeller, status, cancelReason });
+    if (cancellationError) {
+      return res.status(400).json({ success: false, message: cancellationError });
+    }
+
     if (status === order.orderStatus) {
       const currentOrder = await buildOrderResponse(order._id, req.user._id);
       return res.json({
@@ -446,7 +453,7 @@ const updateOrderStatus = async (req, res) => {
         timestamp: new Date(),
       });
       await delivery.save();
-      await syncProductAvailability(order.postId);
+      await syncProductAvailability(order.postId, true);
 
       await sendOrderNotification(
         {

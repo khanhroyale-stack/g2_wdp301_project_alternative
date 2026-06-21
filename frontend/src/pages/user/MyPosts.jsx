@@ -6,7 +6,11 @@ import productService from "../../services/product.service";
 const STATUS = {
   pending: { label: "Cho duyet", color: "bg-surface-container text-on-surface-variant" },
   approved: { label: "Dang hien thi", color: "bg-secondary-container text-on-secondary-container" },
+  available: { label: "Dang mo ban", color: "bg-secondary-container text-on-secondary-container" },
   rejected: { label: "Bi tu choi", color: "bg-error-container text-on-error-container" },
+  sold: { label: "Da ban", color: "bg-surface-container-high text-on-surface" },
+  rented: { label: "Dang duoc thue", color: "bg-surface-container-high text-on-surface" },
+  inactive: { label: "Da an", color: "bg-surface-container-high text-on-surface" },
   closed: { label: "Da dong", color: "bg-surface-container-high text-on-surface" },
 };
 
@@ -117,7 +121,7 @@ const MyPosts = () => {
                           ? `${formatPrice(post.rentPricePerDay)}/ngay`
                           : formatPrice(post.salePrice);
                       const canEdit = post.postStatus !== "closed";
-                      const canHide = post.postStatus === "approved";
+                      const canHide = ["approved", "available"].includes(post.postStatus);
 
                       return (
                         <tr key={post._id} className="hover:bg-surface-bright/40 transition-colors group">

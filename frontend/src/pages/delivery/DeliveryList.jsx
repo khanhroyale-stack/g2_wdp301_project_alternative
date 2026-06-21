@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Clock3, MapPin, Package2, Phone, Truck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ShipperLayout from "../../components/shipper/ShipperLayout";
@@ -7,26 +7,30 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { formatDateTime, formatPrice } from "../../lib/utils";
 import deliveryService from "../../services/delivery.service";
+import { getDeliveryStatusInfo } from "../../lib/orderFlow";
 
 export default function DeliveryList() {
   const navigate = useNavigate();
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acceptingId, setAcceptingId] = useState(null);
+  const [view, setView] = useState("available");
 
-  const fetchDeliveries = async () => {
+  const fetchDeliveries = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await deliveryService.getAvailableDeliveries();
+      const res = view === "available"
+        ? await deliveryService.getAvailableDeliveries()
+        : await deliveryService.getMyDeliveries();
       if (res.success) setDeliveries(res.data);
     } finally {
       setLoading(false);
     }
-  };
+  }, [view]);
 
   useEffect(() => {
     fetchDeliveries();
-  }, []);
+  }, [fetchDeliveries]);
 
   const handleAcceptDelivery = async (id) => {
     setAcceptingId(id);
@@ -48,10 +52,16 @@ export default function DeliveryList() {
         <div className="mb-8 rounded-[28px] border border-surface-variant/40 bg-[linear-gradient(135deg,#ffffff_0%,#eef8f1_100%)] p-7 shadow-apple">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <h1 className="page-title">Đơn có thể nhận</h1>
+              <h1 className="page-title">{view === "available" ? "Đơn có thể nhận" : "Đơn giao của tôi"}</h1>
               <p className="page-subtitle">
-                Sau khi đăng nhập, shipper chỉ làm việc với danh sách đơn đang chờ nhận. Nhận đơn xong, hệ thống sẽ chuyển thẳng sang màn chi tiết để cập nhật trạng thái giao hàng.
+                {view === "available"
+                  ? "Chọn một đơn đang chờ và nhận đơn để bắt đầu quy trình giao hàng."
+                  : "Theo dõi các đơn đã nhận, tiếp tục giao hàng và xem lại các đơn đã giao thành công."}
               </p>
+            </div>
+            <div className="flex rounded-2xl border border-surface-variant/50 bg-white p-1.5 shadow-sm">
+              <Button variant={view === "available" ? undefined : "ghost"} onClick={() => setView("available")}>Đơn có thể nhận</Button>
+              <Button variant={view === "mine" ? undefined : "ghost"} onClick={() => setView("mine")}>Đơn của tôi</Button>
             </div>
             <Card className="border-success/20 bg-[#f5fdf8]">
               <CardContent className="flex items-center gap-4 pt-6">
@@ -59,7 +69,7 @@ export default function DeliveryList() {
                   <Truck className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-success">Đơn mở</div>
+                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-success">{view === "available" ? "Đơn mở" : "Tổng đơn"}</div>
                   <div className="mt-1 text-[2rem] font-extrabold text-on-surface">{deliveries.length}</div>
                 </div>
               </CardContent>
@@ -75,9 +85,13 @@ export default function DeliveryList() {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
                 <Truck className="h-7 w-7" />
               </div>
-              <h2 className="text-xl font-bold text-on-surface">Hiện chưa có đơn nào chờ nhận</h2>
+              <h2 className="text-xl font-bold text-on-surface">
+                {view === "available" ? "Hiện chưa có đơn nào chờ nhận" : "Bạn chưa nhận đơn giao nào"}
+              </h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
-                Khi seller xác nhận đơn hàng, delivery sẽ xuất hiện ở đây để shipper nhận và xử lý.
+                {view === "available"
+                  ? "Khi seller xác nhận đơn hàng, delivery sẽ xuất hiện ở đây để shipper nhận và xử lý."
+                  : "Các đơn bạn nhận sẽ xuất hiện ở đây cùng trạng thái giao hàng hiện tại."}
               </p>
             </CardContent>
           </Card>
@@ -100,7 +114,9 @@ export default function DeliveryList() {
                           {String(delivery._id).slice(-8).toUpperCase()}
                         </div>
                       </div>
-                      <Badge variant="warning">Chờ nhận</Badge>
+                      <Badge variant={view === "available" ? "warning" : getDeliveryStatusInfo(delivery.deliveryStatus).variant}>
+                        {view === "available" ? "Chờ nhận" : getDeliveryStatusInfo(delivery.deliveryStatus).label}
+                      </Badge>
                     </div>
 
                     <div className="space-y-5 border-t border-surface-variant/40 pt-5">
@@ -157,9 +173,11 @@ export default function DeliveryList() {
                         <Button asChild variant="outline">
                           <Link to={`/shipper/don/${delivery._id}`}>Xem chi tiết</Link>
                         </Button>
-                        <Button onClick={() => handleAcceptDelivery(delivery._id)} disabled={isAccepting}>
-                          {isAccepting ? "Đang nhận..." : "Nhận đơn"}
-                        </Button>
+                        {view === "available" ? (
+                          <Button onClick={() => handleAcceptDelivery(delivery._id)} disabled={isAccepting}>
+                            {isAccepting ? "Đang nhận..." : "Nhận đơn"}
+                          </Button>
+                        ) : null}
                       </div>
                     </div>
                   </CardContent>

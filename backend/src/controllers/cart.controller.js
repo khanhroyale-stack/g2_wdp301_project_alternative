@@ -4,8 +4,10 @@ const ProductPost = require("../models/product_post.model");
 const User = require("../models/user.model");
 const Delivery = require("../models/delivery.model");
 const { getProductThumbnailUrl } = require("../utils/product-images.util");
+const { getProductAvailabilityStatus } = require("../utils/business-rules");
 
 const SHIPPING_FEE = 35000;
+const AVAILABLE_PRODUCT_STATUSES = ["approved", "available"];
 
 const mapCartItem = async (item) => {
   const product = item.postId;
@@ -58,7 +60,7 @@ const getProductAvailabilityError = (product, viewerId, seller) => {
     return { code: 404, message: "San pham khong ton tai" };
   }
 
-  if (product.postStatus !== "approved") {
+  if (!AVAILABLE_PRODUCT_STATUSES.includes(product.postStatus)) {
     return { code: 400, message: "San pham hien khong kha dung de dat mua" };
   }
 
@@ -216,7 +218,7 @@ const checkoutCart = async (req, res) => {
         {
           _id: product._id,
           quantity: { $gte: requestedQuantity },
-          postStatus: "approved",
+          postStatus: { $in: AVAILABLE_PRODUCT_STATUSES },
         },
         { $inc: { quantity: -requestedQuantity } },
         { new: true }
@@ -226,7 +228,7 @@ const checkoutCart = async (req, res) => {
         continue;
       }
 
-      const nextStatus = updatedProduct.quantity > 0 ? "approved" : "closed";
+      const nextStatus = getProductAvailabilityStatus(updatedProduct.quantity);
       if (updatedProduct.postStatus !== nextStatus) {
         updatedProduct.postStatus = nextStatus;
         await updatedProduct.save();
