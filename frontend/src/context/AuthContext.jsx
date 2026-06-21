@@ -86,6 +86,13 @@ export const AuthProvider = ({ children }) => {
 
   const clearUnread = () => setUnreadCount(0);
 
+  const refreshUser = async () => {
+    try {
+      const data = await authService.getMe();
+      setUser(data.user);
+    } catch { /* token invalid — already handled by interceptor */ }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -95,6 +102,7 @@ export const AuthProvider = ({ children }) => {
         register,
         verifyEmail,
         logout,
+        refreshUser,
         unreadCount,
         clearUnread,
         notifications,

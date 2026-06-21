@@ -39,6 +39,7 @@ const buildMarketplaceFilter = (query) => {
     keyword,
     minPrice,
     maxPrice,
+    sort
   } = query;
   const type = normalizeProductType(query.type || query.listingType || query.productType);
 
@@ -168,10 +169,14 @@ const getProducts = async (req, res) => {
     const limit = Math.max(Number(req.query.limit) || 20, 1);
     const filter = buildMarketplaceFilter(req.query);
 
+    let sortQuery = { createdAt: -1 };
+    if (req.query.sort === "price_asc") sortQuery = { salePrice: 1, rentPricePerDay: 1 };
+    if (req.query.sort === "price_desc") sortQuery = { salePrice: -1, rentPricePerDay: -1 };
+
     const products = await ProductPost.find(filter)
       .populate("ownerId", "fullName email avatarUrl phone reputationScore")
-      .populate("categoryId", "name")
-      .sort({ createdAt: -1 })
+      .populate("categoryId", "name icon")
+      .sort(sortQuery)
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
@@ -198,8 +203,8 @@ const getProducts = async (req, res) => {
 const getProductById = async (req, res) => {
   try {
     const product = await ProductPost.findById(req.params.id)
-      .populate("ownerId", "fullName email phone avatarUrl address reputationScore")
-      .populate("categoryId", "name")
+      .populate("ownerId", "fullName email phone avatarUrl address reputationScore averageRating")
+      .populate("categoryId", "name icon")
       .lean();
 
     if (!product) {
@@ -336,7 +341,7 @@ const deleteProduct = async (req, res) => {
 const getMyProducts = async (req, res) => {
   try {
     const products = await ProductPost.find({ ownerId: req.user._id })
-      .populate("categoryId", "name")
+      .populate("categoryId", "name icon")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -345,7 +350,6 @@ const getMyProducts = async (req, res) => {
     res.json({ success: true, data: products });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
-
   }
 };
 

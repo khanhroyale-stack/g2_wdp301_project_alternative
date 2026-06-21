@@ -2,20 +2,19 @@ import api from "./api";
 
 const shipperService = {
   getAvailableOrders: async () => {
-    const response = await api.get("/orders/shipper/available");
+    const response = await api.get("/deliveries/available");
     return response.data;
   },
   acceptOrder: async (id) => {
-    const response = await api.patch(`/orders/shipper/${id}/accept`);
+    const response = await api.post(`/deliveries/${id}/accept`);
     return response.data;
   },
   getMyDeliveries: async () => {
-    const response = await api.get("/orders/shipper/my-deliveries");
+    const response = await api.get("/deliveries/my-deliveries");
     return response.data;
   },
-  updateDeliveryStatus: async (id, status) => {
-    // We can reuse the order update status endpoint
-    const response = await api.patch(`/orders/${id}/status`, { status });
+  updateDeliveryStatus: async (id, status, note, failureReason) => {
+    const response = await api.patch(`/deliveries/${id}/status`, { status, note, failureReason });
     return response.data;
   }
 };

@@ -15,6 +15,7 @@ const PostApprovals = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
 
   const fetchPosts = async () => {
@@ -144,7 +145,7 @@ const PostApprovals = () => {
                       )}
 
                       <div className="flex flex-wrap gap-2.5">
-                        <button onClick={() => window.open(`/san-pham/${post._id}`, "_blank")}
+                        <button onClick={() => setShowDetailModal(post)}
                           className="px-4 py-2 border border-surface-variant text-on-surface-variant rounded-lg text-sm font-medium hover:bg-surface-container-low transition-all flex items-center gap-1">
                           <span className="material-symbols-outlined text-[16px]">visibility</span>
                           Xem chi tiết
@@ -244,6 +245,92 @@ const PostApprovals = () => {
                 onClick={handleReject}>
                 Xác nhận từ chối
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDetailModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4 overflow-y-auto py-8">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl border border-surface-variant/20">
+            <div className="p-8">
+              <div className="flex items-start justify-between gap-6 mb-6">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-extrabold text-on-surface mb-2">{showDetailModal.title}</h2>
+                  <p className="text-sm text-on-surface-variant">
+                    Tạo lúc: {new Date(showDetailModal.createdAt).toLocaleString("vi-VN")}
+                  </p>
+                </div>
+                <button onClick={() => setShowDetailModal(null)} className="p-2 hover:bg-surface-container-low rounded-xl transition-all text-on-surface-variant">
+                  <span className="material-symbols-outlined text-2xl">close</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  {showDetailModal.thumbnailUrl ? (
+                    <img
+                      src={getImageUrl(showDetailModal.thumbnailUrl)}
+                      alt={showDetailModal.title}
+                      className="w-full h-64 object-cover rounded-2xl shadow-inner"
+                    />
+                  ) : (
+                    <div className="w-full h-64 bg-surface-container-low rounded-2xl flex items-center justify-center">
+                      <span className="material-symbols-outlined text-6xl text-on-surface-variant">image</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Thông tin người đăng</h3>
+                    <p className="text-base text-on-surface font-semibold">{showDetailModal.ownerId?.fullName || "N/A"}</p>
+                    {showDetailModal.ownerId?.email && <p className="text-sm text-on-surface-variant">{showDetailModal.ownerId.email}</p>}
+                    {showDetailModal.ownerId?.phone && <p className="text-sm text-on-surface-variant">Điện thoại: {showDetailModal.ownerId.phone}</p>}
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Danh mục & loại</h3>
+                    <p className="text-base text-on-surface">{showDetailModal.categoryId?.name || "N/A"} • {showDetailModal.productType === "rent" ? "Cho thuê" : "Bán"}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Giá</h3>
+                    <p className="text-2xl font-black text-primary">{formatPrice(showDetailModal.productType === "rent" ? showDetailModal.rentPricePerDay : showDetailModal.salePrice)}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Vị trí</h3>
+                    <p className="text-base text-on-surface">{showDetailModal.location || "Không xác định"}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Tình trạng sản phẩm</h3>
+                    <p className="text-base text-on-surface">{showDetailModal.conditionStatus || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2">Mô tả</h3>
+                <p className="text-base text-on-surface leading-relaxed whitespace-pre-line">{showDetailModal.description || "Không có mô tả"}</p>
+              </div>
+
+              {showDetailModal.postStatus === "rejected" && showDetailModal.rejectReason && (
+                <div className="mt-6 p-4 bg-error-container/30 border border-error/30 rounded-xl">
+                  <h4 className="font-semibold text-error mb-1">Lý do từ chối:</h4>
+                  <p className="text-sm text-error">{showDetailModal.rejectReason}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-8 pb-8 pt-4 border-t border-surface-variant/20">
+              <div className="flex flex-wrap gap-3 justify-end">
+                <button onClick={() => setShowDetailModal(null)}
+                  className="px-6 py-2.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all text-on-surface-variant">
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>

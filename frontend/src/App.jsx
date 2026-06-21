@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
+import { Toaster } from "react-hot-toast";
 
 import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
@@ -13,12 +13,15 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 
 import Profile from "./pages/user/Profile";
+import PublicProfile from "./pages/user/PublicProfile";
 import MyPosts from "./pages/user/MyPosts";
 import CreatePost from "./pages/product/CreatePost";
 import Rentals from "./pages/user/Rentals";
+import RentalDetail from "./pages/user/RentalDetail";
 import Messages from "./pages/user/Messages";
 import Notifications from "./pages/user/Notifications";
 import Cart from "./pages/user/Cart";
+import MyOrders from "./pages/user/MyOrders";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountApprovals from "./pages/admin/AccountApprovals";
@@ -68,7 +71,6 @@ function App() {
           <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/dat-lai-mat-khau" element={<ResetPasswordPage />} />
-
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           <Route path="/marketplaces" element={<Marketplace />} />
@@ -76,28 +78,37 @@ function App() {
           <Route path="/product" element={<Navigate to="/marketplaces" replace />} />
           <Route path="/products" element={<Navigate to="/marketplaces" replace />} />
           <Route path="/cho-thue" element={<Marketplace />} />
+          <Route path="/san-pham" element={<Navigate to="/marketplaces" replace />} />
           <Route path="/marketplaces/:id" element={<ProductDetail />} />
           <Route path="/products/:id" element={<LegacyProductRedirect />} />
           <Route path="/product/:id" element={<LegacyProductRedirect />} />
           <Route path="/san-pham/:id" element={<LegacyProductRedirect />} />
           <Route path="/chat/:roomId" element={<ChatRoomRedirect />} />
+          <Route path="/nguoi-dung/:id" element={<PublicProfile />} />
 
           <Route path="/ho-so" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/quan-ly/bai-dang" element={<PrivateRoute><MyPosts /></PrivateRoute>} />
           <Route path="/dang-tin" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
           <Route path="/dang-tin/:id" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
           <Route path="/thue-muon" element={<PrivateRoute><Rentals /></PrivateRoute>} />
+          <Route path="/thue-muon/:id" element={<PrivateRoute><RentalDetail /></PrivateRoute>} />
           <Route path="/tin-nhan" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/tin-nhan/:roomId" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />
           <Route path="/gio-hang" element={<PrivateRoute><Cart /></PrivateRoute>} />
 
           <Route path="/don-hang" element={<PrivateRoute><OrderList /></PrivateRoute>} />
+          <Route path="/don-hang/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
           <Route path="/don-ban" element={<PrivateRoute><MySales /></PrivateRoute>} />
           <Route path="/orders/create/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
+          <Route path="/dat-hang/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
           <Route path="/orders/my-orders" element={<PrivateRoute><OrderList /></PrivateRoute>} />
           <Route path="/orders/my-sales" element={<PrivateRoute><MySales /></PrivateRoute>} />
           <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
+
+          <Route path="/giao-hang" element={<PrivateRoute><DeliveryList /></PrivateRoute>} />
+          <Route path="/giao-hang/:id" element={<PrivateRoute><DeliveryDetail /></PrivateRoute>} />
+          <Route path="/giao-hang/:id/kiem-tra" element={<PrivateRoute><DeliveryInspection /></PrivateRoute>} />
 
           <Route path="/admin" element={<PrivateRoute adminOnly><AdminDashboard /></PrivateRoute>} />
           <Route path="/admin/duyet-tai-khoan" element={<PrivateRoute adminOnly><AccountApprovals /></PrivateRoute>} />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import adminService from "../../services/admin.service";
+import userService from "../../services/user.service";
 import toast from "react-hot-toast";
 
 // accountStatus trong model: "active" | "inactive" | "banned"
@@ -22,10 +23,22 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  // Deduct modal
   const [showDeduct, setShowDeduct] = useState(null);
   const [violationLevel, setViolationLevel] = useState("warning");
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Change role modal
+  const [showRole, setShowRole] = useState(null);
+  const [newRole, setNewRole] = useState("user");
+  const [roleSubmitting, setRoleSubmitting] = useState(false);
+
+  // Reputation history modal
+  const [showHistory, setShowHistory] = useState(null);
+  const [historyLogs, setHistoryLogs] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -59,6 +72,38 @@ const UserManagement = () => {
       toast.error(err.response?.data?.message || "Lỗi trừ điểm");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Đổi vai trò
+  const handleChangeRole = async () => {
+    setRoleSubmitting(true);
+    try {
+      const res = await adminService.updateUser(showRole._id, { role: newRole });
+      if (res.success) {
+        toast.success(`Đã đổi vai trò thành ${ROLE_MAP[newRole]}`);
+        setShowRole(null);
+        fetchUsers();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Lỗi đổi vai trò");
+    } finally {
+      setRoleSubmitting(false);
+    }
+  };
+
+  // Xem lịch sử uy tín
+  const handleViewHistory = async (u) => {
+    setShowHistory(u);
+    setHistoryLogs([]);
+    setHistoryLoading(true);
+    try {
+      const res = await userService.getAdminReputationHistory(u._id);
+      if (res.success) setHistoryLogs(res.logs || []);
+    } catch {
+      toast.error("Không thể tải lịch sử uy tín");
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -168,6 +213,14 @@ const UserManagement = () => {
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex gap-1">
+                              <button onClick={() => handleViewHistory(u)}
+                                className="p-1.5 text-on-surface-variant hover:text-primary transition-colors" title="Lịch sử uy tín">
+                                <span className="material-symbols-outlined text-[18px]">history</span>
+                              </button>
+                              <button onClick={() => { setShowRole(u); setNewRole(u.role); }}
+                                className="p-1.5 text-on-surface-variant hover:text-secondary transition-colors" title="Đổi vai trò">
+                                <span className="material-symbols-outlined text-[18px]">manage_accounts</span>
+                              </button>
                               <button onClick={() => setShowDeduct(u)}
                                 className="p-1.5 text-on-surface-variant hover:text-error transition-colors" title="Trừ điểm">
                                 <span className="material-symbols-outlined text-[18px]">remove_circle</span>
@@ -191,6 +244,105 @@ const UserManagement = () => {
           </div>
         </div>
       </main>
+
+      {/* Modal đổi vai trò */}
+      {showRole && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-apple-md border border-surface-variant w-full max-w-sm">
+            <h3 className="font-bold text-on-surface mb-1">Đổi vai trò</h3>
+            <p className="text-sm text-on-surface-variant mb-5">
+              {showRole.fullName || showRole.name} — Hiện tại: <strong>{ROLE_MAP[showRole.role]}</strong>
+            </p>
+
+            <div className="grid grid-cols-3 gap-2 mb-6">
+              {[
+                { v: "user", label: "Người dùng", icon: "person" },
+                { v: "shipper", label: "Shipper", icon: "local_shipping" },
+                { v: "admin", label: "Quản trị", icon: "admin_panel_settings" },
+              ].map((opt) => (
+                <button key={opt.v} type="button" onClick={() => setNewRole(opt.v)}
+                  className={`py-3 rounded-xl text-sm font-semibold border-2 transition-all flex flex-col items-center gap-1 ${newRole === opt.v
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-surface-variant text-on-surface-variant hover:border-primary/40"
+                    }`}>
+                  <span className="material-symbols-outlined text-[20px]">{opt.icon}</span>
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowRole(null)} disabled={roleSubmitting}
+                className="flex-1 py-2.5 border border-surface-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-all">
+                Hủy
+              </button>
+              <button onClick={handleChangeRole} disabled={roleSubmitting || newRole === showRole.role}
+                className="flex-1 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50">
+                {roleSubmitting ? "Đang lưu..." : "Xác nhận"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal lịch sử uy tín */}
+      {showHistory && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-apple-md border border-surface-variant w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-surface-variant/30 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-on-surface">Lịch sử điểm uy tín</h3>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  {showHistory.fullName || showHistory.name} — Điểm hiện tại: <strong>{showHistory.reputationScore}</strong>
+                </p>
+              </div>
+              <button onClick={() => setShowHistory(null)}
+                className="p-1.5 text-on-surface-variant hover:text-on-surface transition-colors">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1">
+              {historyLoading ? (
+                <div className="p-10 flex justify-center">
+                  <span className="material-symbols-outlined animate-spin text-2xl text-primary">refresh</span>
+                </div>
+              ) : historyLogs.length === 0 ? (
+                <div className="p-10 text-center flex flex-col items-center gap-2 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-4xl opacity-30">verified_user</span>
+                  <p className="text-sm">Chưa có lần trừ điểm nào.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-surface-variant/30">
+                  {historyLogs.map((log, i) => (
+                    <div key={i} className="px-6 py-4 flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-full bg-error/10 text-error flex items-center justify-center font-black text-sm flex-shrink-0">
+                        {log.changeAmount}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-on-surface text-sm">{log.reason}</p>
+                        <div className="flex flex-wrap gap-3 text-xs text-on-surface-variant mt-1">
+                          <span>{new Date(log.createdAt).toLocaleDateString("vi-VN")}</span>
+                          <span>Bởi: {log.changedBy?.fullName || "Admin"}</span>
+                          <span className={`font-semibold ${
+                            log.violationLevel === "major" ? "text-error"
+                            : log.violationLevel === "minor" ? "text-amber-600"
+                            : "text-on-surface-variant"
+                          }`}>
+                            {log.violationLevel === "major" ? "Vi phạm nặng"
+                              : log.violationLevel === "minor" ? "Vi phạm vừa"
+                              : "Cảnh báo"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal trừ điểm */}
       {showDeduct && (

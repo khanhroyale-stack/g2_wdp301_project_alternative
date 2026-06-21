@@ -62,7 +62,7 @@ export default function CreateOrder() {
     try {
       const res = await orderService.createOrder({ productId, quantity: requestedQuantity, ...form });
       if (res.success) {
-        navigate("/orders/my-orders");
+        navigate("/don-hang");
       }
     } catch (error) {
       alert(error.response?.data?.message || "Không thể tạo đơn hàng");
