@@ -16,6 +16,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // User pages
 import Profile from './pages/user/Profile';
+import PublicProfile from './pages/user/PublicProfile';
 import MyPosts from './pages/user/MyPosts';
 import CreatePost from './pages/product/CreatePost';
 import MyOrders from './pages/user/MyOrders';
@@ -70,6 +71,7 @@ function App() {
           <Route path="/cho-thue" element={<Marketplace />} />
           <Route path="/san-pham/:id" element={<ProductDetail />} />
           <Route path="/san-pham" element={<Navigate to="/marketplace" replace />} />
+          <Route path="/nguoi-dung/:id" element={<PublicProfile />} />
 
           {/* Redirect alias — tương thích link cũ */}
           <Route path="/login" element={<Navigate to="/dang-nhap" replace />} />

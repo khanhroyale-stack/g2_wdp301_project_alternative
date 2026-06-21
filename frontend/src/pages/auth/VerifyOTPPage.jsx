@@ -1,24 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { authService } from "../../services/auth.service";
+
+const RESEND_COOLDOWN = 60;
 
 const VerifyOTPPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { verifyEmail } = useAuth();
-  
-  // Lấy email từ state truyền sang lúc navigate, nếu không có thì đẩy về trang đăng nhập
+
   const email = location.state?.email || "";
 
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendMsg, setResendMsg] = useState("");
 
-  // Nếu người dùng truy cập trực tiếp url mà ko có email, đẩy về trang đăng nhập
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
   if (!email) {
     navigate("/dang-nhap");
     return null;
   }
+
+  const handleResend = async () => {
+    setResendMsg("");
+    setError("");
+    try {
+      await authService.resendOTP(email);
+      setResendCooldown(RESEND_COOLDOWN);
+      setResendMsg("Mã OTP mới đã được gửi đến email của bạn.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Không thể gửi lại OTP. Vui lòng thử lại.");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,19 +75,24 @@ const VerifyOTPPage = () => {
               <span className="material-symbols-outlined text-[18px]">error</span>{error}
             </div>
           )}
+          {resendMsg && (
+            <div className="flex items-center gap-2 text-on-secondary-container mb-5 p-3.5 bg-secondary-container/30 rounded-xl text-sm border border-secondary-container">
+              <span className="material-symbols-outlined text-[18px]">check_circle</span>{resendMsg}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label className="block text-sm font-medium text-on-surface mb-1.5 text-center">Mã OTP</label>
-              <input 
-                type="text" 
-                placeholder="123456" 
+              <input
+                type="text"
+                placeholder="123456"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))} 
-                required 
-                className="w-full text-center tracking-[1em] text-2xl px-4 py-4 border border-surface-variant rounded-xl font-bold bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" 
+                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                required
+                className="w-full text-center tracking-[1em] text-2xl px-4 py-4 border border-surface-variant rounded-xl font-bold bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
               />
             </div>
-            
+
             <button type="submit" disabled={loading || otp.length < 6}
               className="w-full mt-2 py-3.5 bg-primary text-on-primary font-semibold rounded-xl hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60">
               {loading ? (
@@ -77,6 +103,20 @@ const VerifyOTPPage = () => {
               ) : "Xác nhận OTP"}
             </button>
           </form>
+
+          <div className="mt-5 text-center">
+            <p className="text-sm text-on-surface-variant mb-2">Không nhận được mã?</p>
+            {resendCooldown > 0 ? (
+              <p className="text-sm text-on-surface-variant">
+                Gửi lại sau <span className="font-semibold text-primary">{resendCooldown}s</span>
+              </p>
+            ) : (
+              <button onClick={handleResend}
+                className="text-sm font-semibold text-primary hover:underline transition-all">
+                Gửi lại OTP
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

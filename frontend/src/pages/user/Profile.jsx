@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
 import userService from "../../services/user.service";
 import { authService } from "../../services/auth.service";
+import toast from "react-hot-toast";
 
 const VER_BADGE = {
   unverified: { label: "Chưa xác minh", cls: "bg-surface-container text-on-surface-variant" },
@@ -13,13 +14,17 @@ const VER_BADGE = {
 };
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
 
   // Password state
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
   const [passLoading, setPassLoading] = useState(false);
   const [passMsg, setPassMsg] = useState(null); // { type: "success"|"error", text }
+
+  // Edit profile state
+  const [editForm, setEditForm] = useState({ fullName: "", phone: "", address: "", avatarUrl: "" });
+  const [editLoading, setEditLoading] = useState(false);
 
   // Reputation history
   const [history, setHistory] = useState([]);
@@ -30,6 +35,14 @@ const Profile = () => {
 
   useEffect(() => {
     if (activeTab === "reputation" && user) fetchHistory();
+    if (activeTab === "edit" && user) {
+      setEditForm({
+        fullName: user.fullName || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        avatarUrl: user.avatarUrl || "",
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -40,6 +53,22 @@ const Profile = () => {
       if (res.success) setHistory(res.logs || res.data || []);
     } catch { setHistory([]); }
     finally { setHistLoading(false); }
+  };
+
+  const handleEditProfile = async (e) => {
+    e.preventDefault();
+    if (!editForm.fullName.trim()) return toast.error("Họ tên không được để trống");
+    setEditLoading(true);
+    try {
+      await userService.updateProfile(editForm);
+      await refreshUser();
+      toast.success("Cập nhật thông tin thành công!");
+      setActiveTab("overview");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Lỗi khi cập nhật thông tin");
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const handleChangePassword = async (e) => {
@@ -61,6 +90,7 @@ const Profile = () => {
 
   const TABS = [
     { key: "overview", label: "Tổng quan", icon: "person" },
+    { key: "edit", label: "Chỉnh sửa", icon: "edit" },
     { key: "security", label: "Bảo mật", icon: "lock" },
     { key: "reputation", label: "Lịch sử uy tín", icon: "history" },
   ];
@@ -160,6 +190,62 @@ const Profile = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Edit profile */}
+            {activeTab === "edit" && (
+              <div>
+                <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
+                  <h2 className="font-bold text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-[20px]">edit</span>
+                    Chỉnh sửa thông tin cá nhân
+                  </h2>
+                </div>
+                <form onSubmit={handleEditProfile} className="p-6 max-w-lg">
+                  <div className="flex flex-col gap-4">
+                    {[
+                      { key: "fullName", label: "Họ và tên", ph: "Nguyễn Văn A", required: true },
+                      { key: "phone", label: "Số điện thoại", ph: "0901234567" },
+                      { key: "address", label: "Địa chỉ", ph: "Khu Công nghệ cao Hòa Lạc, Hà Nội" },
+                      { key: "avatarUrl", label: "URL ảnh đại diện", ph: "https://..." },
+                    ].map((f) => (
+                      <div key={f.key}>
+                        <label className="block text-sm font-medium text-on-surface mb-1.5">
+                          {f.label} {f.required && <span className="text-error">*</span>}
+                        </label>
+                        <input
+                          type="text"
+                          required={!!f.required}
+                          placeholder={f.ph}
+                          value={editForm[f.key]}
+                          onChange={(e) => setEditForm({ ...editForm, [f.key]: e.target.value })}
+                          className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                        />
+                      </div>
+                    ))}
+
+                    {editForm.avatarUrl && (
+                      <div className="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl border border-surface-variant/30">
+                        <img src={editForm.avatarUrl} alt="preview"
+                          className="w-12 h-12 rounded-full object-cover border-2 border-surface-variant"
+                          onError={(e) => { e.target.style.display = "none"; }} />
+                        <p className="text-xs text-on-surface-variant">Xem trước ảnh đại diện</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 mt-2">
+                      <button type="button" onClick={() => setActiveTab("overview")}
+                        className="flex-1 py-3 border border-surface-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-all">
+                        Hủy
+                      </button>
+                      <button type="submit" disabled={editLoading}
+                        className="flex-1 py-3 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60">
+                        {editLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
             )}
 
