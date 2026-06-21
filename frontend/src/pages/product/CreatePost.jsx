@@ -373,7 +373,7 @@ const CreatePost = () => {
                 {isEditMode ? "Nhan de thay anh moi" : "Nhan de them anh"}
               </p>
               <p className="text-xs text-on-surface-variant mt-1">PNG, JPG - toi da 8 anh, moi anh 5MB</p>
-              <input type="file" accept="image/*" multiple required={!isEditMode} className="hidden" onChange={handleImageChange} />
+              <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
             </label>
           </div>
 
