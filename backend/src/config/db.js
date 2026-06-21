@@ -2,10 +2,17 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    const dbName = process.env.MONGODB_DB_NAME || "WDP301";
+    console.log(`Connecting to MongoDB database "${dbName}"...`);
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      dbName,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 10000,
+    });
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`MongoDB Database: ${conn.connection.name}`);
 
-    // Xóa Atlas validator cũ trên collection users nếu có (tránh lỗi "Document failed validation")
+    // Disable old Atlas validator on users to avoid legacy validation failures.
     try {
       await conn.connection.db.command({
         collMod: "users",
@@ -13,10 +20,10 @@ const connectDB = async () => {
         validationLevel: "off",
       });
     } catch (_) {
-      // Collection chưa tồn tại — bỏ qua
+      // Ignore when the collection does not exist yet.
     }
   } catch (error) {
-    console.error(`❌ MongoDB Connection Error: ${error.message}`);
+    console.error(`MongoDB Connection Error: ${error.message}`);
     process.exit(1);
   }
 };

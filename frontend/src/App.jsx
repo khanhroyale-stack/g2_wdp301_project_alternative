@@ -1,42 +1,44 @@
+
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
-import { Toaster } from "react-hot-toast";
-// Public pages
+
 import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import VerifyOTPPage from "./pages/auth/VerifyOTPPage";
-import AccountVerification from './pages/auth/AccountVerification';
-import Marketplace from "./pages/product/Marketplace";
-import ProductDetail from "./pages/product/ProductDetail";
-
+import AccountVerification from "./pages/auth/AccountVerification";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 
-// User pages
-import Profile from './pages/user/Profile';
-import MyPosts from './pages/user/MyPosts';
-import CreatePost from './pages/product/CreatePost';
-import MyOrders from './pages/user/MyOrders';
-import Rentals from './pages/user/Rentals';
-import Messages from './pages/user/Messages';
-import Notifications from './pages/user/Notifications';
+import Profile from "./pages/user/Profile";
+import MyPosts from "./pages/user/MyPosts";
+import CreatePost from "./pages/product/CreatePost";
+import Rentals from "./pages/user/Rentals";
+import Messages from "./pages/user/Messages";
+import Notifications from "./pages/user/Notifications";
+import Cart from "./pages/user/Cart";
 
-// Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AccountApprovals from './pages/admin/AccountApprovals';
-import PostApprovals from './pages/admin/PostApprovals';
-import UserManagement from './pages/admin/UserManagement';
-import CategoryManagement from './pages/admin/CategoryManagement';
-import ViolationReports from './pages/admin/ViolationReports';
-import OrderManagement from './pages/admin/OrderManagement';
-import ContractManagement from './pages/admin/ContractManagement';
+import AccountApprovals from "./pages/admin/AccountApprovals";
+import PostApprovals from "./pages/admin/PostApprovals";
+import UserManagement from "./pages/admin/UserManagement";
+import CategoryManagement from "./pages/admin/CategoryManagement";
+import ViolationReports from "./pages/admin/ViolationReports";
+import OrderManagement from "./pages/admin/OrderManagement";
+import ContractManagement from "./pages/admin/ContractManagement";
 
-// Shipper pages
-import ShipperDashboard from "./pages/shipper/ShipperDashboard";
-import PendingDeliveries from './pages/shipper/PendingDeliveries';
-import DeliveringOrders from './pages/shipper/DeliveringOrders';
+import Marketplace from "./pages/product/Marketplace";
+import ProductDetail from "./pages/product/ProductDetail";
+import CreateOrder from "./pages/orders/CreateOrder";
+import OrderList from "./pages/orders/OrderList";
+import OrderDetail from "./pages/orders/OrderDetail";
+import MySales from "./pages/orders/MySales";
+import DeliveryList from "./pages/delivery/DeliveryList";
+import DeliveryDetail from "./pages/delivery/DeliveryDetail";
+import DeliveryInspection from "./pages/delivery/DeliveryInspection";
 
 const ChatRoomRedirect = () => {
   const { roomId } = useParams();
@@ -49,39 +51,43 @@ function App() {
       <AuthProvider>
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
-          {/* ── Công khai ──────────────────────────── */}
           <Route path="/" element={<Home />} />
           <Route path="/dang-nhap" element={<LoginPage />} />
+          <Route path="/login" element={<Navigate to="/dang-nhap" replace />} />
           <Route path="/dang-ky" element={<RegisterPage />} />
+          <Route path="/register" element={<Navigate to="/dang-ky" replace />} />
           <Route path="/xac-minh-otp" element={<VerifyOTPPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/xac-minh-tai-khoan" element={<AccountVerification />} />
           <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/dat-lai-mat-khau" element={<ResetPasswordPage />} />
+
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+
           <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/products" element={<Navigate to="/marketplace" replace />} />
           <Route path="/cho-thue" element={<Marketplace />} />
+          <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/san-pham/:id" element={<ProductDetail />} />
-          <Route path="/san-pham" element={<Navigate to="/marketplace" replace />} />
-
-          {/* Redirect alias — tương thích link cũ */}
-          <Route path="/login" element={<Navigate to="/dang-nhap" replace />} />
-          <Route path="/register" element={<Navigate to="/dang-ky" replace />} />
-          <Route path="/forgot-password" element={<Navigate to="/quen-mat-khau" replace />} />
-          <Route path="/reset-password" element={<Navigate to="/dat-lai-mat-khau" replace />} />
-          <Route path="/dashboard" element={<Navigate to="/ho-so" replace />} />
-          <Route path="/reputation" element={<Navigate to="/ho-so" replace />} />
           <Route path="/chat/:roomId" element={<ChatRoomRedirect />} />
-
-          {/* ── Người dùng (cần đăng nhập) ─────────── */}
           <Route path="/ho-so" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/quan-ly/bai-dang" element={<PrivateRoute><MyPosts /></PrivateRoute>} />
           <Route path="/dang-tin" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
-          <Route path="/don-hang" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
+          <Route path="/dang-tin/:id" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
           <Route path="/thue-muon" element={<PrivateRoute><Rentals /></PrivateRoute>} />
           <Route path="/tin-nhan" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/tin-nhan/:roomId" element={<PrivateRoute><Messages /></PrivateRoute>} />
           <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />
+          <Route path="/gio-hang" element={<PrivateRoute><Cart /></PrivateRoute>} />
 
-          {/* ── Admin ───────────────────────────────── */}
+          <Route path="/don-hang" element={<PrivateRoute><OrderList /></PrivateRoute>} />
+          <Route path="/don-ban" element={<PrivateRoute><MySales /></PrivateRoute>} />
+          <Route path="/orders/create/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
+          <Route path="/orders/my-orders" element={<PrivateRoute><OrderList /></PrivateRoute>} />
+          <Route path="/orders/my-sales" element={<PrivateRoute><MySales /></PrivateRoute>} />
+          <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
+
           <Route path="/admin" element={<PrivateRoute adminOnly><AdminDashboard /></PrivateRoute>} />
           <Route path="/admin/duyet-tai-khoan" element={<PrivateRoute adminOnly><AccountApprovals /></PrivateRoute>} />
           <Route path="/admin/duyet-bai-dang" element={<PrivateRoute adminOnly><PostApprovals /></PrivateRoute>} />
@@ -91,12 +97,17 @@ function App() {
           <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><OrderManagement /></PrivateRoute>} />
           <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><ContractManagement /></PrivateRoute>} />
 
-          {/* ── Shipper ─────────────────────────────── */}
-          <Route path="/shipper" element={<PrivateRoute shipperOnly><ShipperDashboard /></PrivateRoute>} />
-          <Route path="/shipper/don-can-giao" element={<PrivateRoute shipperOnly><PendingDeliveries /></PrivateRoute>} />
-          <Route path="/shipper/dang-giao" element={<PrivateRoute shipperOnly><DeliveringOrders /></PrivateRoute>} />
+          <Route path="/shipper" element={<PrivateRoute shipperOnly><DeliveryList /></PrivateRoute>} />
+          <Route path="/shipper/don/:id" element={<PrivateRoute shipperOnly><DeliveryDetail /></PrivateRoute>} />
+          <Route path="/shipper/don/:id/inspection" element={<PrivateRoute shipperOnly><DeliveryInspection /></PrivateRoute>} />
+          <Route path="/shipper/inspection/:id" element={<PrivateRoute shipperOnly><DeliveryInspection /></PrivateRoute>} />
+          <Route path="/shipper/don-can-giao" element={<Navigate to="/shipper" replace />} />
+          <Route path="/shipper/dang-giao" element={<Navigate to="/shipper" replace />} />
+          <Route path="/deliveries" element={<Navigate to="/shipper" replace />} />
+          <Route path="/deliveries/:id" element={<Navigate to="/shipper" replace />} />
+          <Route path="/deliveries/:id/inspection" element={<Navigate to="/shipper" replace />} />
+          <Route path="/inspections/:id" element={<Navigate to="/shipper" replace />} />
 
-          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

@@ -1,22 +1,23 @@
 const express = require("express");
-const router = express.Router();
-const { protect, adminOnly, shipperOnly } = require("../middleware/auth.middleware");
-const authorize = (role) => role === "admin" ? adminOnly : role === "shipper" ? shipperOnly : (req, res, next) => next();
 const {
-  createOrder, getMyOrders, getMySales, getOrder, updateOrderStatus,
-  shipperGetAvailableOrders, shipperAcceptOrder, shipperGetMyDeliveries
+  createOrder,
+  getMyOrders,
+  getMySales,
+  getOrderById,
+  updateOrderStatus,
+  getCheckoutPreview,
 } = require("../controllers/order.controller");
+const { protect, activeOnly } = require("../middleware/auth.middleware");
 
-router.post("/", protect, createOrder);
-router.get("/my-orders", protect, getMyOrders);
-router.get("/my-sales", protect, getMySales);
+const router = express.Router();
 
-// Shipper routes
-router.get("/shipper/available", protect, authorize("shipper"), shipperGetAvailableOrders);
-router.get("/shipper/my-deliveries", protect, authorize("shipper"), shipperGetMyDeliveries);
-router.patch("/shipper/:id/accept", protect, authorize("shipper"), shipperAcceptOrder);
+router.use(protect, activeOnly);
 
-router.get("/:id", protect, getOrder);
-router.patch("/:id/status", protect, updateOrderStatus);
+router.get("/checkout/:productId", getCheckoutPreview);
+router.post("/", createOrder);
+router.get("/my-orders", getMyOrders);
+router.get("/my-sales", getMySales);
+router.get("/:id", getOrderById);
+router.patch("/:id/status", updateOrderStatus);
 
 module.exports = router;

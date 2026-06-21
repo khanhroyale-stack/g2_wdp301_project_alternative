@@ -5,6 +5,7 @@ const RentalContract = require("../models/rental_contract.model");
 const Report = require("../models/report.model");
 const Review = require("../models/review.model");
 const ReputationLog = require("../models/reputation_log.model");
+const { attachImagesToProducts } = require("../utils/product-images.util");
 
 // GET /api/admin/stats — thống kê tổng quan
 const getStats = async (req, res) => {
@@ -80,7 +81,14 @@ const getAllOrders = async (req, res) => {
       .populate("sellerId", "fullName email phone")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
+
+    const products = orders
+      .map((order) => order.postId)
+      .filter(Boolean);
+    await attachImagesToProducts(products);
+
     res.json({ success: true, data: orders, total, page: Number(page), totalPages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

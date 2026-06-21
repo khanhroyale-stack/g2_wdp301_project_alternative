@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { authService } from "../services/auth.service";
 import notificationService from "../services/notification.service";
 import { connectSocket, disconnectSocket, getSocket } from "../services/socket";
@@ -11,38 +11,45 @@ export const AuthProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
-  // Kết nối socket và lắng nghe notification realtime
   const setupSocket = useCallback((userData) => {
     connectSocket(userData._id || userData.id);
     const socket = getSocket();
 
     socket.on("new_notification", (data) => {
-      setUnreadCount((c) => c + 1);
+      setUnreadCount((count) => count + 1);
       setNotifications((prev) => [data, ...prev]);
     });
 
-    socket.on("new_message", () => {
-      // Page TinNhan tự handle — ở đây chỉ tăng badge nếu cần
-    });
+    socket.on("new_message", () => { });
   }, []);
 
-  // Load user từ token đã lưu
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      authService
-        .getMe()
-        .then((data) => {
-          setUser(data.user);
-          setupSocket(data.user);
-          return notificationService.getUnreadCount();
-        })
-        .then((res) => { if (res?.count !== undefined) setUnreadCount(res.count); })
-        .catch(() => localStorage.removeItem("token"))
-        .finally(() => setLoading(false));
-    } else {
+    if (!token) {
       setLoading(false);
+      return () => {
+        disconnectSocket();
+      };
     }
+
+    authService
+      .getMe()
+      .then((data) => {
+        setUser(data.user);
+        setupSocket(data.user);
+        return notificationService.getUnreadCount();
+      })
+      .then((res) => {
+        if (res?.count !== undefined) {
+          setUnreadCount(res.count);
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem("token");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
     return () => {
       disconnectSocket();
@@ -58,14 +65,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (credentials) => {
-    const data = await authService.register(credentials);
-    // Register chỉ gửi OTP, chưa có token — KHÔNG set user
-    return data;
+    return authService.register(credentials);
   };
 
   const verifyEmail = async ({ email, otp }) => {
     const data = await authService.verifyEmail({ email, otp });
-    // Sau verify mới có token
     localStorage.setItem("token", data.token);
     setUser(data.user);
     setupSocket(data.user);
@@ -83,12 +87,19 @@ export const AuthProvider = ({ children }) => {
   const clearUnread = () => setUnreadCount(0);
 
   return (
-    <AuthContext.Provider value={{
-      user, loading,
-      login, register, verifyEmail, logout,
-      unreadCount, clearUnread,
-      notifications,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        verifyEmail,
+        logout,
+        unreadCount,
+        clearUnread,
+        notifications,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -96,6 +107,8 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth phải được dùng trong AuthProvider");
+  if (!ctx) {
+    throw new Error("useAuth phai duoc dung trong AuthProvider");
+  }
   return ctx;
 };

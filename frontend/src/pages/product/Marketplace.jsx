@@ -61,7 +61,7 @@ const Marketplace = () => {
         };
         if (keyword) params.keyword = keyword;
         if (selectedCat !== "Tất cả") params.category = selectedCat;
-        if (selectedCond !== "Tất cả") params.conditionStatus = mapConditionToStatus(selectedCond);
+        if (selectedCond !== "Tất cả") params.condition = mapConditionToStatus(selectedCond);
         if (minPrice) params.minPrice = minPrice;
         if (maxPrice) params.maxPrice = maxPrice;
 
@@ -190,7 +190,9 @@ const Marketplace = () => {
                   ? "bg-secondary-container text-on-secondary-container"
                   : "bg-surface-variant text-on-surface";
 
-                const displayPrice = isRentPage ? formatPrice(product.rentPricePerDay) + "/ngày" : formatPrice(product.salePrice);
+                const displayPrice = product.productType === "rent"
+                  ? `${formatPrice(product.rentPricePerDay)}/ngày`
+                  : formatPrice(product.salePrice);
 
                 return (
                   <article key={product._id} onClick={() => navigate(`/san-pham/${product._id}`)}

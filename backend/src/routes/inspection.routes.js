@@ -1,13 +1,19 @@
 const express = require("express");
-const router = express.Router();
-const { protect, authorize } = require("../middleware/auth.middleware");
-const { createInspection, getInspection, getInspectionsByOrder, getInspectionsByRental, updateInspection, adminGetAllInspections } = require("../controllers/inspection.controller");
+const {
+  createInspection,
+  getInspectionsByDelivery,
+  getInspectionById,
+  getMyInspections,
+} = require("../controllers/inspection.controller");
+const { protect, shipperOnly, activeOnly } = require("../middleware/auth.middleware");
 
-router.post("/", protect, authorize("shipper"), createInspection);
-router.get("/order/:orderId", protect, getInspectionsByOrder);
-router.get("/rental/:rentalId", protect, getInspectionsByRental);
-router.get("/admin", protect, authorize("admin"), adminGetAllInspections);
-router.get("/:id", protect, getInspection);
-router.put("/:id", protect, authorize("shipper"), updateInspection);
+const router = express.Router();
+
+router.use(protect, activeOnly);
+
+router.post("/", shipperOnly, createInspection);
+router.get("/my-inspections", shipperOnly, getMyInspections);
+router.get("/delivery/:deliveryId", getInspectionsByDelivery);
+router.get("/:id", getInspectionById);
 
 module.exports = router;

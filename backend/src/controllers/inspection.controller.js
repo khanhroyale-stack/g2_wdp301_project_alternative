@@ -1,123 +1,208 @@
 const DeliveryInspection = require("../models/delivery_inspection.model");
-const RentalInspection = require("../models/rental_inspection.model");
+const Delivery = require("../models/delivery.model");
+const Order = require("../models/order.model");
+const InspectionImage = require("../models/inspection_image.model");
+const ProductPost = require("../models/product_post.model");
 
 const createInspection = async (req, res) => {
   try {
-    const { order, rental, inspectionType, notes, issueDescription } = req.body;
-    
-    if (rental) {
-        const inspection = await RentalInspection.create({
-            contractId: rental,
-            inspectorId: req.user._id,
-            inspectionType: inspectionType === 'pre_rental' ? 'handover' : 'return',
-            conditionNote: notes,
-            damageNote: issueDescription
+    const {
+      deliveryId,
+      inspectionType,
+      conditionNote,
+      isMatchDescription,
+      isDamagedByShipper,
+      isCorrectProduct,
+      isCorrectImage,
+      isCorrectModel,
+      isCorrectCondition,
+      isAccessoriesEnough,
+      result,
+    } = req.body;
+
+    if (!deliveryId || !inspectionType || !result) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui long dien day du thong tin",
+      });
+    }
+
+    const delivery = await Delivery.findById(deliveryId);
+    if (!delivery) {
+      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
+    }
+
+    if (String(delivery.shipperId) !== String(req.user._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Ban khong co quyen tao bien ban cho don nay",
+      });
+    }
+
+    if (!["picked_up", "in_transit"].includes(delivery.deliveryStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Chi co the lap bien ban sau khi da lay hang",
+      });
+    }
+
+    const existingInspection = await DeliveryInspection.findOne({
+      deliveryId,
+      inspectionType,
+    }).lean();
+    if (existingInspection) {
+      return res.status(400).json({
+        success: false,
+        message: "Bien ban kiem tra cho buoc nay da ton tai",
+      });
+    }
+
+    const inspection = await DeliveryInspection.create({
+      deliveryId,
+      shipperId: req.user._id,
+      inspectionType,
+      conditionNote: conditionNote || "",
+      isMatchDescription: isMatchDescription !== false,
+      isDamagedByShipper: !!isDamagedByShipper,
+      isCorrectProduct: isCorrectProduct !== false,
+      isCorrectImage: isCorrectImage !== false,
+      isCorrectModel: isCorrectModel !== false,
+      isCorrectCondition: isCorrectCondition !== false,
+      isAccessoriesEnough: isAccessoriesEnough !== false,
+      result,
+    });
+
+    if (result !== "passed") {
+      delivery.deliveryStatus = "failed";
+      delivery.failureReason =
+        result === "failed_seller_fault"
+          ? "San pham khong dung mo ta cua seller."
+          : "San pham bi hu hong trong qua trinh xu ly cua shipper.";
+      delivery.history.push({
+        status: "failed",
+        note: delivery.failureReason,
+        timestamp: new Date(),
+      });
+      await delivery.save();
+
+      const order = await Order.findByIdAndUpdate(delivery.orderId, {
+        orderStatus: "cancelled",
+        cancelReason: delivery.failureReason,
+      }, { new: true }).lean();
+
+      if (order?.postId) {
+        await ProductPost.findByIdAndUpdate(order.postId, {
+          postStatus: "approved",
         });
-        return res.status(201).json({ success: true, data: inspection });
-    } else if (order) {
-        const inspection = await DeliveryInspection.create({
-            deliveryId: order, // Assuming order id maps to delivery
-            shipperId: req.user._id,
-            inspectionType: inspectionType === 'pre_delivery' ? 'pickup' : 'receive',
-            conditionNote: notes,
-            isDamagedByShipper: false // Set based on issueType if needed
-        });
-        return res.status(201).json({ success: true, data: inspection });
-    } else {
-        return res.status(400).json({ success: false, message: "Cần order hoặc rental ID" });
+      }
     }
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+
+    const populatedInspection = await DeliveryInspection.findById(inspection._id)
+      .populate("shipperId", "fullName phone")
+      .populate({
+        path: "deliveryId",
+        populate: {
+          path: "orderId",
+          populate: { path: "postId", select: "title" },
+        },
+      })
+      .lean();
+
+    res.status(201).json({
+      success: true,
+      message: "Tao bien ban kiem tra thanh cong",
+      data: populatedInspection,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const getInspection = async (req, res) => {
+const getInspectionsByDelivery = async (req, res) => {
   try {
-    let inspection = await RentalInspection.findById(req.params.id)
-      .populate("inspectorId", "name phone")
-      .populate("contractId");
-      
-    if (!inspection) {
-        inspection = await DeliveryInspection.findById(req.params.id)
-          .populate("shipperId", "name phone")
-          .populate("deliveryId");
+    const inspections = await DeliveryInspection.find({
+      deliveryId: req.params.deliveryId,
+    })
+      .populate("shipperId", "fullName phone")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    for (const inspection of inspections) {
+      const images = await InspectionImage.find({ inspectionId: inspection._id })
+        .select("imageUrl description")
+        .lean();
+      inspection.images = images;
     }
 
-    if (!inspection) return res.status(404).json({ success: false, message: "Không tìm thấy biên bản" });
-    res.json({ success: true, data: inspection });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-const getInspectionsByOrder = async (req, res) => {
-  try {
-    const inspections = await DeliveryInspection.find({ deliveryId: req.params.orderId })
-      .populate("shipperId", "name phone")
-      .sort({ createdAt: -1 });
     res.json({ success: true, data: inspections });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const getInspectionsByRental = async (req, res) => {
+const getInspectionById = async (req, res) => {
   try {
-    const inspections = await RentalInspection.find({ contractId: req.params.rentalId })
-      .populate("inspectorId", "name phone")
-      .sort({ createdAt: -1 });
-    res.json({ success: true, data: inspections });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
+    const inspection = await DeliveryInspection.findById(req.params.id)
+      .populate("shipperId", "fullName phone email")
+      .populate({
+        path: "deliveryId",
+        populate: [
+          {
+            path: "orderId",
+            populate: [
+              { path: "buyerId", select: "fullName phone" },
+              { path: "sellerId", select: "fullName phone" },
+              { path: "postId", select: "title salePrice" },
+            ],
+          },
+        ],
+      })
+      .lean();
 
-const updateInspection = async (req, res) => {
-  try {
-    const { notes, issueDescription } = req.body;
-    let isRental = true;
-    let inspection = await RentalInspection.findById(req.params.id);
-    
     if (!inspection) {
-        isRental = false;
-        inspection = await DeliveryInspection.findById(req.params.id);
+      return res.status(404).json({ success: false, message: "Khong tim thay bien ban kiem tra" });
     }
-    
-    if (!inspection) return res.status(404).json({ success: false, message: "Không tìm thấy" });
-    
-    const ownerField = isRental ? inspection.inspectorId : inspection.shipperId;
-    if (ownerField.toString() !== req.user._id.toString()) return res.status(403).json({ success: false, message: "Không có quyền" });
 
-    if (isRental) {
-        if (notes) inspection.conditionNote = notes;
-        if (issueDescription) inspection.damageNote = issueDescription;
-    } else {
-        if (notes) inspection.conditionNote = notes;
-    }
-    
-    await inspection.save();
+    const images = await InspectionImage.find({ inspectionId: inspection._id })
+      .select("imageUrl description")
+      .lean();
+    inspection.images = images;
+
     res.json({ success: true, data: inspection });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const adminGetAllInspections = async (req, res) => {
+const getMyInspections = async (req, res) => {
   try {
-    const rentalInspections = await RentalInspection.find()
-      .populate("inspectorId", "name")
-      .sort({ createdAt: -1 }).lean();
-      
-    const deliveryInspections = await DeliveryInspection.find()
-      .populate("shipperId", "name")
-      .sort({ createdAt: -1 }).lean();
-      
-    const combined = [...rentalInspections, ...deliveryInspections].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    res.json({ success: true, data: combined });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const inspections = await DeliveryInspection.find({ shipperId: req.user._id })
+      .populate({
+        path: "deliveryId",
+        populate: {
+          path: "orderId",
+          populate: { path: "postId", select: "title" },
+        },
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    for (const inspection of inspections) {
+      const images = await InspectionImage.find({ inspectionId: inspection._id })
+        .select("imageUrl description")
+        .lean();
+      inspection.images = images;
+    }
+
+    res.json({ success: true, data: inspections });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-module.exports = { createInspection, getInspection, getInspectionsByOrder, getInspectionsByRental, updateInspection, adminGetAllInspections };
+module.exports = {
+  createInspection,
+  getInspectionsByDelivery,
+  getInspectionById,
+  getMyInspections,
+};

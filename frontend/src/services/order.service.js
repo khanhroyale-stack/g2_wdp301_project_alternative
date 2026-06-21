@@ -1,6 +1,10 @@
 import api from "./api";
 
 const orderService = {
+  getCheckoutPreview: async (productId, quantity = 1) => {
+    const response = await api.get(`/orders/checkout/${productId}`, { params: { quantity } });
+    return response.data;
+  },
   createOrder: async (data) => {
     const response = await api.post("/orders", data);
     return response.data;
@@ -13,14 +17,18 @@ const orderService = {
     const response = await api.get("/orders/my-sales");
     return response.data;
   },
+  getOrderById: async (id) => {
+    const response = await api.get(`/orders/${id}`);
+    return response.data;
+  },
   getOrder: async (id) => {
     const response = await api.get(`/orders/${id}`);
     return response.data;
   },
-  updateOrderStatus: async (id, status) => {
-    const response = await api.patch(`/orders/${id}/status`, { status });
+  updateOrderStatus: async (id, status, extra = {}) => {
+    const response = await api.patch(`/orders/${id}/status`, { status, ...extra });
     return response.data;
-  }
+  },
 };
 
 export default orderService;
