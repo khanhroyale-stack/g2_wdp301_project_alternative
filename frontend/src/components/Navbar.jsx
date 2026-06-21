@@ -1,4 +1,4 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import usePendingSalesCount from "../hooks/usePendingSalesCount";
@@ -13,6 +13,7 @@ const Navbar = () => {
   const { user, logout, unreadCount } = useAuth();
   const pendingSalesCount = usePendingSalesCount();
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -160,7 +161,7 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link to="/dang-nhap" className="rounded-full border border-primary/30 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-surface-container-low">
+              <Link to="/dang-nhap" state={{ from: location }} className="rounded-full border border-primary/30 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-surface-container-low">
                 Đăng nhập
               </Link>
               <Link to="/dang-ky" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:opacity-90">
@@ -198,7 +199,7 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              <Link to="/dang-nhap" className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Đăng nhập</Link>
+              <Link to="/dang-nhap" state={{ from: location }} className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Đăng nhập</Link>
               <Link to="/dang-ky" className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Đăng ký</Link>
             </>
           )}

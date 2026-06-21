@@ -17,10 +17,14 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const data = await login(form);
-      // Route theo role
-      if (data.user.role === "admin") navigate("/admin");
-      else if (data.user.role === "shipper") navigate("/shipper");
-      else navigate("/ho-so");
+      // Check if we have a saved location to return to
+      const from = location.state?.from?.pathname;
+      if (from) {
+        navigate(from, { replace: true });
+      } else {
+        // If no saved location, redirect to home page
+        navigate("/", { replace: true });
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Email hoặc mật khẩu không đúng.");
     } finally {

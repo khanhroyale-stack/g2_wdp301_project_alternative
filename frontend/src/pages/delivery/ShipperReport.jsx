@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Textarea } from "../../components/ui/textarea";
 import deliveryService from "../../services/delivery.service";
 import shipperReportService from "../../services/shipper-report.service";
+import { ArrowLeft } from "lucide-react";
 
 const ISSUE_OPTIONS = [
   ["buyer_unavailable", "Không liên hệ được buyer"],
@@ -33,8 +34,9 @@ export default function ShipperReport() {
     if (!description.trim()) return;
     setSubmitting(true);
     try {
-      const res = await shipperReportService.create({ deliveryId: id, issueType, description });
-      if (res.success) navigate(`/shipper/don/${id}`);
+      await shipperReportService.create({ deliveryId: id, issueType, description });
+      await deliveryService.updateDeliveryStatus(id, "failed", { failureReason: description });
+      navigate(`/shipper/don/${id}`);
     } catch (error) {
       alert(error.response?.data?.message || "Không thể gửi báo cáo sự cố.");
     } finally {
@@ -44,30 +46,84 @@ export default function ShipperReport() {
 
   return (
     <ShipperLayout>
-      <Card className="mx-auto max-w-2xl">
-        <CardHeader>
-          <CardTitle className="text-3xl">Báo cáo sự cố giao hàng</CardTitle>
-          <p className="text-muted-foreground">Vận đơn #{String(delivery?._id || id).slice(-8).toUpperCase()}</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={submit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="font-semibold">Loại sự cố</label>
-              <select value={issueType} onChange={(event) => setIssueType(event.target.value)} className="w-full rounded-xl border border-border bg-white px-4 py-3">
-                {ISSUE_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="font-semibold">Mô tả chi tiết</label>
-              <Textarea value={description} onChange={(event) => setDescription(event.target.value)} required className="min-h-40" placeholder="Mô tả thời gian, địa điểm và tình trạng hiện tại..." />
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>
-              <Button type="submit" disabled={submitting || !description.trim()}>{submitting ? "Đang gửi..." : "Gửi báo cáo"}</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="max-w-2xl mx-auto w-full">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          className="mb-6 pl-0"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Quay lại
+        </Button>
+
+        <Card>
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-extrabold">
+              Báo cáo sự cố giao hàng
+            </CardTitle>
+            <p className="text-muted-foreground">
+              Vận đơn #{String(delivery?._id || id).slice(-8).toUpperCase()}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={submit} className="space-y-6">
+              {/* Issue Type */}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold flex items-center gap-1">
+                  Loại sự cố
+                  <span className="text-destructive">*</span>
+                </label>
+                <select
+                  value={issueType}
+                  onChange={(event) => setIssueType(event.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                >
+                  {ISSUE_OPTIONS.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold flex items-center gap-1">
+                  Mô tả chi tiết
+                  <span className="text-destructive">*</span>
+                </label>
+                <Textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  required
+                  className="min-h-[140px] resize-none"
+                  placeholder="Mô tả thời gian, địa điểm và tình trạng hiện tại..."
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                  disabled={submitting}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting || !description.trim()}
+                  className="min-w-[140px]"
+                >
+                  {submitting ? "Đang gửi..." : "Gửi báo cáo"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </ShipperLayout>
   );
 }

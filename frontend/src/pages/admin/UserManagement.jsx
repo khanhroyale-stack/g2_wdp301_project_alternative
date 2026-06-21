@@ -62,11 +62,13 @@ const UserManagement = () => {
     try {
       const res = await adminService.deductReputation(showDeduct._id, { violationLevel, reason });
       if (res.success) {
-        toast.success(`Đã trừ điểm uy tín`);
+        toast.success(res.message || `Đã trừ điểm uy tín`);
         setShowDeduct(null);
         setReason("");
         setViolationLevel("warning");
         fetchUsers();
+      } else {
+        toast.error(res.message || "Lỗi trừ điểm");
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Lỗi trừ điểm");
