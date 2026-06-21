@@ -9,6 +9,7 @@ import { Switch } from "../../components/ui/switch";
 import { Textarea } from "../../components/ui/textarea";
 import deliveryService from "../../services/delivery.service";
 import inspectionService from "../../services/inspection.service";
+import uploadService from "../../services/upload.service";
 import { formatPrice } from "../../lib/utils";
 
 function CheckRow({ label, checked, onChange, disabled }) {
@@ -33,6 +34,7 @@ export default function DeliveryInspection() {
   const [submitting, setSubmitting] = useState(false);
   const [delivery, setDelivery] = useState(null);
   const [inspection, setInspection] = useState(null);
+  const [inspectionFiles, setInspectionFiles] = useState({ front: null, back: null, accessories: null });
   const [form, setForm] = useState({
     isCorrectProduct: true,
     isCorrectImage: true,
@@ -41,6 +43,7 @@ export default function DeliveryInspection() {
     isAccessoriesEnough: true,
     conditionNote: "",
     result: "passed",
+    faultType: null,
   });
 
   useEffect(() => {
@@ -58,7 +61,8 @@ export default function DeliveryInspection() {
               isCorrectCondition: inspectionRes.data.isCorrectCondition !== false,
               isAccessoriesEnough: inspectionRes.data.isAccessoriesEnough !== false,
               conditionNote: inspectionRes.data.conditionNote || "",
-              result: inspectionRes.data.result || "passed",
+              result: inspectionRes.data.result?.startsWith("failed") ? "failed" : inspectionRes.data.result || "passed",
+              faultType: inspectionRes.data.faultType || (inspectionRes.data.result === "failed_seller_fault" ? "seller" : inspectionRes.data.result === "failed_shipper_fault" ? "shipper" : null),
             });
 
             const deliveryId = inspectionRes.data.deliveryId?._id || inspectionRes.data.deliveryId;
@@ -90,18 +94,35 @@ export default function DeliveryInspection() {
 
     setSubmitting(true);
     try {
+      const requiredTypes = ["front", "back", "accessories"];
+      if (requiredTypes.some((type) => !inspectionFiles[type])) {
+        alert("Vui lòng chụp đủ ảnh mặt trước, mặt sau và phụ kiện.");
+        return;
+      }
+
+      const uploadRes = await uploadService.uploadImages(
+        requiredTypes.map((type) => inspectionFiles[type]),
+        "inspection"
+      );
+      const inspectionImages = requiredTypes.map((imageType, index) => ({
+        imageType,
+        mediaId: uploadRes.mediaIds[index],
+      }));
+
       const res = await inspectionService.createInspection({
         deliveryId: id,
         inspectionType: "pickup",
         conditionNote: form.conditionNote,
         isMatchDescription: form.result === "passed",
-        isDamagedByShipper: form.result === "failed_shipper_fault",
+        isDamagedByShipper: form.result === "failed" && form.faultType === "shipper",
         isCorrectProduct: form.isCorrectProduct,
         isCorrectImage: form.isCorrectImage,
         isCorrectModel: form.isCorrectModel,
         isCorrectCondition: form.isCorrectCondition,
         isAccessoriesEnough: form.isAccessoriesEnough,
         result: form.result,
+        faultType: form.faultType,
+        inspectionImages,
       });
       if (res.success) navigate(`/shipper/don/${id}`);
     } catch (error) {
@@ -179,22 +200,53 @@ export default function DeliveryInspection() {
               <label className="text-[1.1rem] font-semibold">Kết luận kiểm tra</label>
               <div className="grid gap-3 md:grid-cols-3">
                 {[
-                  { value: "passed", label: "Đạt", variant: "success" },
-                  { value: "failed_seller_fault", label: "Lỗi từ seller", variant: "warning" },
-                  { value: "failed_shipper_fault", label: "Lỗi từ shipper", variant: "danger" },
+                  { result: "passed", faultType: null, label: "Đạt", variant: "success" },
+                  { result: "failed", faultType: "seller", label: "Lỗi từ seller", variant: "warning" },
+                  { result: "failed", faultType: "shipper", label: "Lỗi từ shipper", variant: "danger" },
                 ].map((option) => (
                   <button
-                    key={option.value}
+                    key={`${option.result}-${option.faultType || "none"}`}
                     type="button"
                     disabled={readOnly}
-                    onClick={() => setForm((prev) => ({ ...prev, result: option.value }))}
+                    onClick={() => setForm((prev) => ({ ...prev, result: option.result, faultType: option.faultType }))}
                     className={`rounded-[20px] border px-4 py-4 text-left transition ${
-                      form.result === option.value ? "border-success bg-success-soft" : "border-border bg-white"
+                      form.result === option.result && form.faultType === option.faultType ? "border-success bg-success-soft" : "border-border bg-white"
                     } ${readOnly ? "cursor-default" : "cursor-pointer"}`}
                   >
                     <Badge variant={option.variant}>{option.label}</Badge>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[1.1rem] font-semibold">Ảnh kiểm định bắt buộc</label>
+              <div className="grid gap-4 md:grid-cols-3">
+                {[
+                  { type: "front", label: "Mặt trước" },
+                  { type: "back", label: "Mặt sau" },
+                  { type: "accessories", label: "Phụ kiện" },
+                ].map((item) => {
+                  const existingImage = inspection?.images?.find((image) => image.imageType === item.type);
+                  return (
+                    <label key={item.type} className="rounded-[20px] border border-dashed border-border bg-muted/40 p-4">
+                      <span className="mb-3 block font-semibold">{item.label}</span>
+                      {existingImage?.imageUrl ? (
+                        <img src={existingImage.imageUrl} alt={item.label} className="h-36 w-full rounded-xl object-cover" />
+                      ) : (
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          required
+                          disabled={readOnly}
+                          onChange={(event) => setInspectionFiles((prev) => ({ ...prev, [item.type]: event.target.files?.[0] || null }))}
+                          className="block w-full text-sm"
+                        />
+                      )}
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

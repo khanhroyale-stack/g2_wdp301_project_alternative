@@ -121,7 +121,7 @@ export default function Cart() {
               <div className="text-2xl font-bold">Gio hang dang trong</div>
               <div className="max-w-md text-muted-foreground">Ban chua them san pham nao vao gio hang.</div>
               <Button asChild>
-                <Link to="/marketplace">Tiep tuc mua sam</Link>
+                <Link to="/marketplaces">Tiep tuc mua sam</Link>
               </Button>
             </CardContent>
           </Card>

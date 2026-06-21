@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Clock3, MapPin, Package2, ShieldCheck, Truck } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ShipperLayout from "../../components/shipper/ShipperLayout";
@@ -13,6 +13,7 @@ import deliveryService from "../../services/delivery.service";
 const nextActionMap = {
   accepted: { label: "Đang đến lấy hàng", nextStatus: "picking_up", variant: "sky" },
   picking_up: { label: "Đã lấy hàng", nextStatus: "picked_up", variant: "default" },
+  picked_up: { label: "Bắt đầu giao hàng", nextStatus: "in_transit", variant: "sky" },
   in_transit: { label: "Đã giao thành công", nextStatus: "delivered", variant: "success" },
 };
 
@@ -23,7 +24,7 @@ export default function DeliveryDetail() {
   const [delivery, setDelivery] = useState(null);
   const [updating, setUpdating] = useState(false);
 
-  const fetchDelivery = async () => {
+  const fetchDelivery = useCallback(async () => {
     setLoading(true);
     try {
       const res = await deliveryService.getDeliveryById(id);
@@ -34,11 +35,11 @@ export default function DeliveryDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
 
   useEffect(() => {
     fetchDelivery();
-  }, [id]);
+  }, [fetchDelivery]);
 
   const updateStatus = async (status, extra = {}) => {
     setUpdating(true);
@@ -96,6 +97,11 @@ export default function DeliveryDetail() {
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
+            {!(["delivered", "completed", "failed"].includes(delivery.deliveryStatus)) ? (
+              <Button asChild variant="outline" size="lg">
+                <Link to={`/shipper/don/${delivery._id}/bao-cao`}>Báo cáo sự cố</Link>
+              </Button>
+            ) : null}
             {mustInspect ? (
               <Button asChild size="lg">
                 <Link to={pickupInspection ? `/shipper/inspection/${pickupInspection._id}` : `/shipper/don/${delivery._id}/inspection`}>
@@ -103,7 +109,7 @@ export default function DeliveryDetail() {
                 </Link>
               </Button>
             ) : null}
-            {nextAction ? (
+            {nextAction && (!mustInspect || pickupInspection?.result === "passed") ? (
               <Button
                 variant={nextAction.variant === "default" ? undefined : nextAction.variant}
                 size="lg"

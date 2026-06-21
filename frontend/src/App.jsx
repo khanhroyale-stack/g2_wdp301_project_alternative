@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
@@ -29,6 +28,7 @@ import CategoryManagement from "./pages/admin/CategoryManagement";
 import ViolationReports from "./pages/admin/ViolationReports";
 import OrderManagement from "./pages/admin/OrderManagement";
 import ContractManagement from "./pages/admin/ContractManagement";
+import LogisticsManagement from "./pages/admin/LogisticsManagement";
 
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
@@ -39,6 +39,12 @@ import MySales from "./pages/orders/MySales";
 import DeliveryList from "./pages/delivery/DeliveryList";
 import DeliveryDetail from "./pages/delivery/DeliveryDetail";
 import DeliveryInspection from "./pages/delivery/DeliveryInspection";
+import ShipperReport from "./pages/delivery/ShipperReport";
+
+function LegacyProductRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/marketplaces/${id}`} replace />;
+}
 
 const ChatRoomRedirect = () => {
   const { roomId } = useParams();
@@ -65,12 +71,17 @@ function App() {
 
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-          <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/products" element={<Navigate to="/marketplace" replace />} />
+          <Route path="/marketplaces" element={<Marketplace />} />
+          <Route path="/marketplace" element={<Navigate to="/marketplaces" replace />} />
+          <Route path="/product" element={<Navigate to="/marketplaces" replace />} />
+          <Route path="/products" element={<Navigate to="/marketplaces" replace />} />
           <Route path="/cho-thue" element={<Marketplace />} />
-          <Route path="/products/:id" element={<ProductDetail />} />
-          <Route path="/san-pham/:id" element={<ProductDetail />} />
+          <Route path="/marketplaces/:id" element={<ProductDetail />} />
+          <Route path="/products/:id" element={<LegacyProductRedirect />} />
+          <Route path="/product/:id" element={<LegacyProductRedirect />} />
+          <Route path="/san-pham/:id" element={<LegacyProductRedirect />} />
           <Route path="/chat/:roomId" element={<ChatRoomRedirect />} />
+
           <Route path="/ho-so" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/quan-ly/bai-dang" element={<PrivateRoute><MyPosts /></PrivateRoute>} />
           <Route path="/dang-tin" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
@@ -96,10 +107,15 @@ function App() {
           <Route path="/admin/bao-cao" element={<PrivateRoute adminOnly><ViolationReports /></PrivateRoute>} />
           <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><OrderManagement /></PrivateRoute>} />
           <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><ContractManagement /></PrivateRoute>} />
+          <Route path="/admin/shippers" element={<PrivateRoute adminOnly><LogisticsManagement mode="shippers" /></PrivateRoute>} />
+          <Route path="/admin/giao-hang" element={<PrivateRoute adminOnly><LogisticsManagement mode="deliveries" /></PrivateRoute>} />
+          <Route path="/admin/kiem-dinh" element={<PrivateRoute adminOnly><LogisticsManagement mode="inspections" /></PrivateRoute>} />
+          <Route path="/admin/bao-cao-giao-hang" element={<PrivateRoute adminOnly><LogisticsManagement mode="reports" /></PrivateRoute>} />
 
           <Route path="/shipper" element={<PrivateRoute shipperOnly><DeliveryList /></PrivateRoute>} />
           <Route path="/shipper/don/:id" element={<PrivateRoute shipperOnly><DeliveryDetail /></PrivateRoute>} />
           <Route path="/shipper/don/:id/inspection" element={<PrivateRoute shipperOnly><DeliveryInspection /></PrivateRoute>} />
+          <Route path="/shipper/don/:id/bao-cao" element={<PrivateRoute shipperOnly><ShipperReport /></PrivateRoute>} />
           <Route path="/shipper/inspection/:id" element={<PrivateRoute shipperOnly><DeliveryInspection /></PrivateRoute>} />
           <Route path="/shipper/don-can-giao" element={<Navigate to="/shipper" replace />} />
           <Route path="/shipper/dang-giao" element={<Navigate to="/shipper" replace />} />

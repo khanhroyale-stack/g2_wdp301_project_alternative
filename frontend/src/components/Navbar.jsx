@@ -25,7 +25,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/marketplace");
+    navigate("/marketplaces");
     setMenuOpen(false);
     setUserMenuOpen(false);
   };
@@ -34,11 +34,11 @@ const Navbar = () => {
     <nav className="fixed left-0 top-0 z-50 h-16 w-full border-b border-surface-variant/50 bg-surface/90 shadow-[0px_8px_30px_rgba(17,38,28,0.05)] backdrop-blur-xl">
       <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between gap-4 px-4 md:px-10">
         <div className="flex items-center gap-8">
-          <Link to="/marketplace" className="select-none text-[1.35rem] font-extrabold tracking-tight text-primary">
+          <Link to="/marketplaces" className="select-none text-[1.35rem] font-extrabold tracking-tight text-primary">
             EcoTrade
           </Link>
           <div className="hidden gap-5 md:flex">
-            <NavLink to="/marketplace" className={linkClass}>Mua sắm</NavLink>
+            <NavLink to="/marketplaces" className={linkClass}>Mua sắm</NavLink>
             <NavLink to="/cho-thue" className={linkClass}>Cho thuê</NavLink>
           </div>
         </div>
@@ -49,7 +49,7 @@ const Navbar = () => {
             <input
               className="w-full border-none bg-transparent text-sm text-on-surface outline-none placeholder:text-on-surface-variant"
               placeholder="Tìm kiếm sản phẩm..."
-              onKeyDown={(event) => event.key === "Enter" && navigate(`/marketplace?q=${event.target.value}`)}
+              onKeyDown={(event) => event.key === "Enter" && navigate(`/marketplaces?q=${event.target.value}`)}
             />
           </div>
 
@@ -177,7 +177,7 @@ const Navbar = () => {
 
       {menuOpen ? (
         <div className="absolute left-0 top-16 z-40 flex w-full flex-col gap-1 border-b border-surface-variant bg-surface px-6 py-4 shadow-md md:hidden">
-          <NavLink to="/marketplace" className={linkClass} onClick={() => setMenuOpen(false)}>Mua sắm</NavLink>
+          <NavLink to="/marketplaces" className={linkClass} onClick={() => setMenuOpen(false)}>Mua sắm</NavLink>
           <NavLink to="/cho-thue" className={linkClass} onClick={() => setMenuOpen(false)}>Cho thuê</NavLink>
           {user ? (
             <>

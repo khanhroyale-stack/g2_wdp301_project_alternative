@@ -6,7 +6,7 @@ const { createNotification } = require("./notification.controller");
 const createRentalRequest = async (req, res) => {
   try {
     const product = await ProductPost.findById(req.body.productId).populate("ownerId", "name");
-    if (!product || product.postStatus !== "approved" || product.productType === "sale")
+    if (!product || !["approved", "available"].includes(product.postStatus) || product.productType === "sale")
       return res.status(400).json({ success: false, message: "Sản phẩm không khả dụng để thuê" });
 
     if (product.ownerId._id.toString() === req.user._id.toString())
@@ -134,7 +134,7 @@ const updateRentalStatus = async (req, res) => {
             contractStatus: "active"
          });
          
-         await ProductPost.findByIdAndUpdate(request.postId._id, { postStatus: "closed" }); // or renting if we had it
+         await ProductPost.findByIdAndUpdate(request.postId._id, { postStatus: "rented" });
        } else if (status === "REJECTED" || status === "rejected") {
          request.requestStatus = "rejected";
          if (reason) request.note = reason;
@@ -156,7 +156,7 @@ const updateRentalStatus = async (req, res) => {
     if (compensationReason) contract.accessoriesNote = compensationReason; // Using accessoriesNote as reason for now
 
     if (["completed", "cancelled"].includes(contract.contractStatus)) {
-      await ProductPost.findByIdAndUpdate(contract.postId._id, { postStatus: "approved" });
+      await ProductPost.findByIdAndUpdate(contract.postId._id, { postStatus: "available" });
     }
 
     await contract.save();

@@ -6,12 +6,23 @@ const {
   getProductImageUrls,
   getProductThumbnailUrl,
 } = require("../utils/product-images.util");
+const { buildAvailableDeliveryClaimFilter, isDeliveryTransitionAllowed } = require("../utils/business-rules");
 
 const appendDeliveryHistory = (delivery, status, note) => {
   delivery.history.push({
     status,
     note,
     timestamp: new Date(),
+  });
+};
+
+const restoreOrderInventory = async (orderId) => {
+  const order = await Order.findById(orderId).select("postId quantity").lean();
+  if (!order?.postId) return;
+
+  await ProductPost.findByIdAndUpdate(order.postId, {
+    $inc: { quantity: Math.max(Number(order.quantity) || 1, 1) },
+    $set: { postStatus: "available" },
   });
 };
 
@@ -50,27 +61,28 @@ const getAvailableDeliveries = async (req, res) => {
 
 const acceptDelivery = async (req, res) => {
   try {
-    const delivery = await Delivery.findById(req.params.id);
+    const delivery = await Delivery.findOneAndUpdate(
+      buildAvailableDeliveryClaimFilter(req.params.id),
+      {
+        $set: { shipperId: req.user._id, deliveryStatus: "accepted" },
+        $push: {
+          history: {
+            status: "accepted",
+            note: "Shipper da nhan don giao hang.",
+            timestamp: new Date(),
+          },
+        },
+      },
+      { new: true }
+    );
 
     if (!delivery) {
-      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
-    }
-
-    if (delivery.shipperId) {
+      const exists = await Delivery.exists({ _id: req.params.id });
       return res.status(400).json({
         success: false,
-        message: "Don nay da co shipper nhan",
+        message: exists ? "Don nay da co shipper nhan" : "Khong tim thay don giao hang",
       });
     }
-
-    delivery.shipperId = req.user._id;
-    delivery.deliveryStatus = "accepted";
-    appendDeliveryHistory(delivery, "accepted", "Shipper da nhan don giao hang.");
-    await delivery.save();
-
-    await Order.findByIdAndUpdate(delivery.orderId, {
-      orderStatus: "shipping",
-    });
 
     const updatedDelivery = await Delivery.findById(delivery._id)
       .populate("shipperId", "fullName phone")
@@ -184,19 +196,8 @@ const updateDeliveryStatus = async (req, res) => {
       });
     }
 
-    const validTransitions = {
-      accepted: ["picking_up", "failed"],
-      picking_up: ["picked_up", "failed"],
-      picked_up: ["in_transit", "failed"],
-      in_transit: ["delivered", "failed"],
-      delivered: [],
-      completed: [],
-      failed: [],
-      pending: [],
-    };
-
     const currentStatus = delivery.deliveryStatus;
-    if (!validTransitions[currentStatus] || !validTransitions[currentStatus].includes(status)) {
+    if (!isDeliveryTransitionAllowed(currentStatus, status)) {
       return res.status(400).json({
         success: false,
         message: "Khong the chuyen sang trang thai nay",
@@ -232,7 +233,11 @@ const updateDeliveryStatus = async (req, res) => {
     );
     await delivery.save();
 
-    if (status === "delivered") {
+    if (status === "in_transit") {
+      await Order.findByIdAndUpdate(delivery.orderId, {
+        orderStatus: "shipping",
+      });
+    } else if (status === "delivered") {
       await Order.findByIdAndUpdate(delivery.orderId, {
         orderStatus: "delivered",
       });
@@ -243,9 +248,7 @@ const updateDeliveryStatus = async (req, res) => {
       }, { new: true }).lean();
 
       if (order?.postId) {
-        await ProductPost.findByIdAndUpdate(order.postId, {
-          postStatus: "approved",
-        });
+        await restoreOrderInventory(delivery.orderId);
       }
     }
 

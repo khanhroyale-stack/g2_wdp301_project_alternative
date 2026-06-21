@@ -3,6 +3,40 @@ const Delivery = require("../models/delivery.model");
 const Order = require("../models/order.model");
 const InspectionImage = require("../models/inspection_image.model");
 const ProductPost = require("../models/product_post.model");
+const MediaFile = require("../models/media_file.model");
+const { normalizeInspectionOutcome, validateInspectionOutcome } = require("../utils/business-rules");
+
+const REQUIRED_IMAGE_TYPES = ["front", "back", "accessories"];
+
+const canAccessDelivery = async (deliveryId, user) => {
+  if (user.role === "admin") return true;
+  const delivery = await Delivery.findById(deliveryId).populate("orderId", "buyerId sellerId").lean();
+  if (!delivery) return false;
+  const userId = String(user._id);
+  return String(delivery.shipperId || "") === userId
+    || String(delivery.orderId?.buyerId || "") === userId
+    || String(delivery.orderId?.sellerId || "") === userId;
+};
+
+const attachInspectionImages = async (inspection) => {
+  const images = await InspectionImage.find({ inspectionId: inspection._id })
+    .populate("mediaId", "publicUrl originalName")
+    .lean();
+  inspection.images = images.map((image) => ({
+    _id: image._id,
+    imageType: image.imageType,
+    mediaId: image.mediaId?._id || image.mediaId,
+    imageUrl: image.mediaId?.publicUrl || null,
+  }));
+};
+
+const restoreOrderInventory = async (order) => {
+  if (!order?.postId) return;
+  await ProductPost.findByIdAndUpdate(order.postId, {
+    $inc: { quantity: Math.max(Number(order.quantity) || 1, 1) },
+    $set: { postStatus: "available" },
+  });
+};
 
 const createInspection = async (req, res) => {
   try {
@@ -18,13 +52,44 @@ const createInspection = async (req, res) => {
       isCorrectCondition,
       isAccessoriesEnough,
       result,
+      faultType,
+      inspectionImages,
     } = req.body;
+
+    const outcome = normalizeInspectionOutcome(result, faultType);
 
     if (!deliveryId || !inspectionType || !result) {
       return res.status(400).json({
         success: false,
         message: "Vui long dien day du thong tin",
       });
+    }
+    const outcomeError = validateInspectionOutcome({
+      ...outcome,
+      checks: [isCorrectProduct, isCorrectImage, isCorrectModel, isCorrectCondition, isAccessoriesEnough],
+    });
+    if (outcomeError) return res.status(400).json({ success: false, message: outcomeError });
+
+    const normalizedImages = Array.isArray(inspectionImages) ? inspectionImages : [];
+    const providedTypes = new Set(normalizedImages.map((image) => image.imageType));
+    if (normalizedImages.length !== REQUIRED_IMAGE_TYPES.length || REQUIRED_IMAGE_TYPES.some((type) => !providedTypes.has(type))) {
+      return res.status(400).json({
+        success: false,
+        message: "Bat buoc co du anh mat truoc, mat sau va phu kien",
+      });
+    }
+
+    const mediaIds = normalizedImages.map((image) => image.mediaId);
+    if (new Set(mediaIds.map(String)).size !== REQUIRED_IMAGE_TYPES.length) {
+      return res.status(400).json({ success: false, message: "Anh kiem dinh khong duoc trung lap" });
+    }
+    const ownedMediaCount = await MediaFile.countDocuments({
+      _id: { $in: mediaIds },
+      uploadedBy: req.user._id,
+      fileType: "inspection",
+    });
+    if (ownedMediaCount !== REQUIRED_IMAGE_TYPES.length) {
+      return res.status(400).json({ success: false, message: "Anh kiem dinh khong hop le" });
     }
 
     const delivery = await Delivery.findById(deliveryId);
@@ -69,13 +134,20 @@ const createInspection = async (req, res) => {
       isCorrectModel: isCorrectModel !== false,
       isCorrectCondition: isCorrectCondition !== false,
       isAccessoriesEnough: isAccessoriesEnough !== false,
-      result,
+      result: outcome.result,
+      faultType: outcome.faultType,
     });
 
-    if (result !== "passed") {
+    await InspectionImage.insertMany(normalizedImages.map((image) => ({
+      inspectionId: inspection._id,
+      mediaId: image.mediaId,
+      imageType: image.imageType,
+    })));
+
+    if (outcome.result === "failed") {
       delivery.deliveryStatus = "failed";
       delivery.failureReason =
-        result === "failed_seller_fault"
+        outcome.faultType === "seller"
           ? "San pham khong dung mo ta cua seller."
           : "San pham bi hu hong trong qua trinh xu ly cua shipper.";
       delivery.history.push({
@@ -90,11 +162,7 @@ const createInspection = async (req, res) => {
         cancelReason: delivery.failureReason,
       }, { new: true }).lean();
 
-      if (order?.postId) {
-        await ProductPost.findByIdAndUpdate(order.postId, {
-          postStatus: "approved",
-        });
-      }
+      await restoreOrderInventory(order);
     }
 
     const populatedInspection = await DeliveryInspection.findById(inspection._id)
@@ -107,6 +175,7 @@ const createInspection = async (req, res) => {
         },
       })
       .lean();
+    await attachInspectionImages(populatedInspection);
 
     res.status(201).json({
       success: true,
@@ -120,6 +189,9 @@ const createInspection = async (req, res) => {
 
 const getInspectionsByDelivery = async (req, res) => {
   try {
+    if (!(await canAccessDelivery(req.params.deliveryId, req.user))) {
+      return res.status(403).json({ success: false, message: "Ban khong co quyen xem bien ban nay" });
+    }
     const inspections = await DeliveryInspection.find({
       deliveryId: req.params.deliveryId,
     })
@@ -128,10 +200,7 @@ const getInspectionsByDelivery = async (req, res) => {
       .lean();
 
     for (const inspection of inspections) {
-      const images = await InspectionImage.find({ inspectionId: inspection._id })
-        .select("imageUrl description")
-        .lean();
-      inspection.images = images;
+      await attachInspectionImages(inspection);
     }
 
     res.json({ success: true, data: inspections });
@@ -163,10 +232,13 @@ const getInspectionById = async (req, res) => {
       return res.status(404).json({ success: false, message: "Khong tim thay bien ban kiem tra" });
     }
 
-    const images = await InspectionImage.find({ inspectionId: inspection._id })
-      .select("imageUrl description")
-      .lean();
-    inspection.images = images;
+
+    const deliveryId = inspection.deliveryId?._id || inspection.deliveryId;
+    if (!(await canAccessDelivery(deliveryId, req.user))) {
+      return res.status(403).json({ success: false, message: "Ban khong co quyen xem bien ban nay" });
+    }
+
+    await attachInspectionImages(inspection);
 
     res.json({ success: true, data: inspection });
   } catch (error) {
@@ -188,10 +260,7 @@ const getMyInspections = async (req, res) => {
       .lean();
 
     for (const inspection of inspections) {
-      const images = await InspectionImage.find({ inspectionId: inspection._id })
-        .select("imageUrl description")
-        .lean();
-      inspection.images = images;
+      await attachInspectionImages(inspection);
     }
 
     res.json({ success: true, data: inspections });

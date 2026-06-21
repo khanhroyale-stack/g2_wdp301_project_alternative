@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import usePendingSalesCount from "../hooks/usePendingSalesCount";
 
 const USER_NAV = [
-  { label: "Marketplace", icon: "storefront", to: "/marketplace" },
+  { label: "Marketplace", icon: "storefront", to: "/marketplaces" },
   { label: "Tổng quan", icon: "dashboard", to: "/ho-so" },
   { label: "Bài đăng của tôi", icon: "inventory_2", to: "/quan-ly/bai-dang" },
   { label: "Đơn mua", icon: "shopping_bag", to: "/don-hang" },
@@ -14,7 +14,7 @@ const USER_NAV = [
 ];
 
 const ADMIN_NAV = [
-  { label: "Marketplace", icon: "storefront", to: "/marketplace" },
+  { label: "Marketplace", icon: "storefront", to: "/marketplaces" },
   { label: "Tổng quan", icon: "dashboard", to: "/admin" },
   { label: "Duyệt tài khoản", icon: "how_to_reg", to: "/admin/duyet-tai-khoan" },
   { label: "Duyệt bài đăng", icon: "fact_check", to: "/admin/duyet-bai-dang" },
@@ -23,10 +23,14 @@ const ADMIN_NAV = [
   { label: "Báo cáo vi phạm", icon: "report", to: "/admin/bao-cao" },
   { label: "Đơn hàng", icon: "receipt_long", to: "/admin/don-hang" },
   { label: "Hợp đồng thuê", icon: "description", to: "/admin/hop-dong" },
+  { label: "Quản lý shipper", icon: "local_shipping", to: "/admin/shippers" },
+  { label: "Lịch sử giao hàng", icon: "route", to: "/admin/giao-hang" },
+  { label: "Biên bản kiểm định", icon: "fact_check", to: "/admin/kiem-dinh" },
+  { label: "Báo cáo giao hàng", icon: "warning", to: "/admin/bao-cao-giao-hang" },
 ];
 
 const SHIPPER_NAV = [
-  { label: "Marketplace", icon: "storefront", to: "/marketplace" },
+  { label: "Marketplace", icon: "storefront", to: "/marketplaces" },
   { label: "Đơn có thể nhận", icon: "local_shipping", to: "/shipper" },
 ];
 
@@ -97,7 +101,7 @@ const Sidebar = ({ variant = "user" }) => {
         <button
           onClick={() => {
             logout();
-            navigate("/marketplace");
+            navigate("/marketplaces");
           }}
           className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold text-error transition-all hover:bg-error/5"
         >

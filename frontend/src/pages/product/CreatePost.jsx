@@ -92,6 +92,10 @@ const CreatePost = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!isEditMode && imageFiles.length === 0) {
+      alert("Vui lòng thêm ít nhất một hình ảnh sản phẩm.");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -369,7 +373,7 @@ const CreatePost = () => {
                 {isEditMode ? "Nhan de thay anh moi" : "Nhan de them anh"}
               </p>
               <p className="text-xs text-on-surface-variant mt-1">PNG, JPG - toi da 8 anh, moi anh 5MB</p>
-              <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
+              <input type="file" accept="image/*" multiple required={!isEditMode} className="hidden" onChange={handleImageChange} />
             </label>
           </div>
 

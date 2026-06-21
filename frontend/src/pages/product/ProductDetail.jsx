@@ -154,7 +154,7 @@ const ProductDetail = () => {
             Trang chu
           </Link>
           <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-          <Link to={product.productType === "rent" ? "/cho-thue" : "/marketplace"} className="hover:text-primary transition-colors">
+          <Link to={product.productType === "rent" ? "/cho-thue" : "/marketplaces"} className="hover:text-primary transition-colors">
             {product.productType === "rent" ? "Thue do" : "Mua sam"}
           </Link>
           <span className="material-symbols-outlined text-[14px]">chevron_right</span>
@@ -235,7 +235,7 @@ const ProductDetail = () => {
             </div>
 
             <div className="flex flex-col gap-3 mt-2">
-              {product.productType === "sale" && product.postStatus !== "closed" ? (
+              {product.productType === "sale" && ["approved", "available"].includes(product.postStatus) ? (
                 <div className="rounded-2xl border border-surface-variant/30 bg-surface-container-lowest p-4">
                   <label className="mb-2 block text-sm font-bold text-on-surface">So luong mua</label>
                   <input

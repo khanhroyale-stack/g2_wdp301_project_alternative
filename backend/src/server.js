@@ -62,6 +62,7 @@ app.use("/api/orders", require("./routes/order.routes"));
 app.use("/api/cart", require("./routes/cart.routes"));
 app.use("/api/deliveries", require("./routes/delivery.routes"));
 app.use("/api/inspections", require("./routes/inspection.routes"));
+app.use("/api/shipper-reports", require("./routes/shipper_report.routes"));
 app.use("/api/rentals", require("./routes/rental.routes"));
 app.use("/api/chat", require("./routes/chat.routes"));
 app.use("/api/notifications", require("./routes/notification.routes"));
