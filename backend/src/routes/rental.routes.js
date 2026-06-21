@@ -28,10 +28,10 @@ router.patch("/:id/status", protect, updateRentalStatus);
 // Gia hạn thuê
 router.post("/:id/extend", protect, extendRental);
 
-// Yêu cầu trả sản phẩm
+// Renter gửi yêu cầu trả đồ
 router.post("/:id/return", protect, requestReturn);
 
-// Xử lý tiền cọc
+// Xử lý tiền cọc (owner hoặc admin)
 router.post("/:id/resolve-deposit", protect, resolveDeposit);
 
 module.exports = router;
