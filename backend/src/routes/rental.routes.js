@@ -8,6 +8,8 @@ const {
   getMyLendings,
   updateRentalStatus,
   extendRental,
+  requestReturn,
+  resolveDeposit,
 } = require("../controllers/rental.controller");
 
 // Tạo yêu cầu thuê
@@ -25,5 +27,11 @@ router.patch("/:id/status", protect, updateRentalStatus);
 
 // Gia hạn thuê
 router.post("/:id/extend", protect, extendRental);
+
+// Yêu cầu trả sản phẩm
+router.post("/:id/return", protect, requestReturn);
+
+// Xử lý tiền cọc
+router.post("/:id/resolve-deposit", protect, resolveDeposit);
 
 module.exports = router;

@@ -200,4 +200,82 @@ const extendRental = async (req, res) => {
   }
 };
 
-module.exports = { createRentalRequest, getRental, getMyRentals, getMyLendings, updateRentalStatus, extendRental };
+// POST /api/rentals/:id/return — Renter gửi yêu cầu trả sản phẩm
+const requestReturn = async (req, res) => {
+  try {
+    const contract = await RentalContract.findById(req.params.id)
+      .populate("postId", "title")
+      .populate("ownerId", "_id fullName");
+
+    if (!contract) return res.status(404).json({ success: false, message: "Không tìm thấy hợp đồng" });
+
+    if (contract.renterId.toString() !== req.user._id.toString())
+      return res.status(403).json({ success: false, message: "Không có quyền" });
+
+    if (contract.contractStatus !== "renting" && contract.contractStatus !== "active")
+      return res.status(400).json({ success: false, message: "Chỉ có thể trả sản phẩm khi đang thuê" });
+
+    contract.contractStatus = "return_requested";
+    await contract.save();
+
+    await createNotification({
+      recipientId: contract.ownerId._id,
+      title: "Yêu cầu trả sản phẩm 📦",
+      message: `Người thuê gửi yêu cầu trả lại "${contract.postId.title}". Vui lòng kiểm tra và xử lý tiền cọc.`,
+      type: "RETURN_REQUESTED",
+      link: "/thue-muon",
+    });
+
+    res.json({ success: true, data: contract, message: "Gửi yêu cầu trả sản phẩm thành công" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/rentals/:id/resolve-deposit — Owner hoặc Admin xử lý tiền cọc
+const resolveDeposit = async (req, res) => {
+  try {
+    const { compensationAmount, compensationReason } = req.body;
+
+    const contract = await RentalContract.findById(req.params.id)
+      .populate("postId", "title")
+      .populate("renterId", "_id fullName");
+
+    if (!contract) return res.status(404).json({ success: false, message: "Không tìm thấy hợp đồng" });
+
+    const isOwner = contract.ownerId.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin)
+      return res.status(403).json({ success: false, message: "Không có quyền xử lý cọc" });
+
+    if (!["return_requested", "disputed"].includes(contract.contractStatus))
+      return res.status(400).json({ success: false, message: "Chỉ xử lý cọc khi yêu cầu trả hoặc tranh chấp" });
+
+    const comp = Math.max(0, compensationAmount || 0);
+    const refund = Math.max(0, contract.depositAmount - comp);
+
+    contract.compensationAmount = comp;
+    contract.depositRefundAmount = refund;
+    if (compensationReason) contract.accessoriesNote = compensationReason;
+    contract.contractStatus = "completed";
+
+    await ProductPost.findByIdAndUpdate(contract.postId._id, { postStatus: "available" });
+    await contract.save();
+
+    await createNotification({
+      recipientId: contract.renterId._id,
+      title: "Kết quả xử lý tiền cọc 💰",
+      message: comp > 0
+        ? `Tiền cọc của bạn: bồi thường ${comp.toLocaleString("vi-VN")}đ, hoàn lại ${refund.toLocaleString("vi-VN")}đ. Lý do: ${compensationReason || "Hư hỏng sản phẩm"}`
+        : `Tiền cọc của bạn được hoàn 100% (${refund.toLocaleString("vi-VN")}đ).`,
+      type: "DEPOSIT_RESOLVED",
+      link: "/thue-muon",
+    });
+
+    res.json({ success: true, data: contract, message: "Xử lý tiền cọc thành công" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { createRentalRequest, getRental, getMyRentals, getMyLendings, updateRentalStatus, extendRental, requestReturn, resolveDeposit };
