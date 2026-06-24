@@ -43,6 +43,15 @@ io.on("connection", (socket) => {
     socket.leave(`chat_${roomId}`);
   });
 
+  // Support chat
+  socket.on("join_support", (customerId) => {
+    socket.join(`support_${customerId}`);
+  });
+
+  socket.on("leave_support", (customerId) => {
+    socket.leave(`support_${customerId}`);
+  });
+
   socket.on("disconnect", () => { });
 });
 
@@ -71,6 +80,7 @@ app.use("/api/products", require("./routes/product.routes"));
 app.use("/api/orders", require("./routes/order.routes"));
 app.use("/api/rentals", require("./routes/rental.routes"));
 app.use("/api/chat", require("./routes/chat.routes"));
+app.use("/api/support-chat", require("./routes/support_chat.routes"));
 app.use("/api/notifications", require("./routes/notification.routes"));
 app.use("/api/reports", require("./routes/report.routes"));
 app.use("/api/reviews", require("./routes/review.routes"));

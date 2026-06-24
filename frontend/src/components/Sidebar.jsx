@@ -19,6 +19,7 @@ const ADMIN_NAV = [
   { label: "Quản lý người dùng", icon: "group", to: "/admin/nguoi-dung" },
   { label: "Quản lý danh mục", icon: "category", to: "/admin/danh-muc" },
   { label: "Báo cáo vi phạm", icon: "report", to: "/admin/bao-cao" },
+  { label: "Hỗ trợ trực tuyến", icon: "support_agent", to: "/admin/support" },
   { label: "Đơn hàng", icon: "receipt_long", to: "/admin/don-hang" },
   { label: "Hợp đồng thuê", icon: "description", to: "/admin/hop-dong" },
 ];
