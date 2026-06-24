@@ -1,7 +1,14 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
-const { generateOTP, saveOTP, verifyOTP } = require("../utils/otp");
+const { generateOTP, saveOTP, verifyOTP, getResendCooldown } = require("../utils/otp");
 const { sendOTPEmail } = require("../config/email");
+
+// Map kết quả verifyOTP (thất bại) sang message tiếng Việt
+const otpErrorMessage = (result) => {
+  if (result.reason === "locked") return "Bạn đã nhập sai OTP quá nhiều lần. Vui lòng yêu cầu mã mới.";
+  if (result.reason === "invalid") return `Mã OTP không đúng. Bạn còn ${result.attemptsLeft} lần thử.`;
+  return "OTP không hợp lệ hoặc đã hết hạn";
+};
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -15,6 +22,8 @@ const formatUser = (user) => ({
   phone: user.phone,
   avatarUrl: user.avatarUrl,
   address: user.address,
+  dateOfBirth: user.dateOfBirth,
+  gender: user.gender,
   role: user.role,
   verificationStatus: user.verificationStatus,
   reputationScore: user.reputationScore,
@@ -24,10 +33,32 @@ const formatUser = (user) => ({
 // @route POST /api/auth/register
 const register = async (req, res) => {
   try {
-    const { fullName, email, password, phone } = req.body;
+    const { fullName, email, password, phone, address, dateOfBirth, gender } = req.body;
 
     if (!fullName || !email || !password) {
       return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
+    }
+
+    // Validate ngày sinh (nếu có): không ở tương lai, tuổi >= 13
+    let dob = undefined;
+    if (dateOfBirth) {
+      dob = new Date(dateOfBirth);
+      if (isNaN(dob.getTime())) {
+        return res.status(400).json({ success: false, message: "Ngày sinh không hợp lệ" });
+      }
+      const now = new Date();
+      if (dob > now) {
+        return res.status(400).json({ success: false, message: "Ngày sinh không được ở tương lai" });
+      }
+      const age = (now - dob) / (365.25 * 24 * 60 * 60 * 1000);
+      if (age < 13) {
+        return res.status(400).json({ success: false, message: "Bạn phải từ 13 tuổi trở lên để đăng ký" });
+      }
+    }
+
+    // Validate giới tính (nếu có)
+    if (gender && !["male", "female", "other"].includes(gender)) {
+      return res.status(400).json({ success: false, message: "Giới tính không hợp lệ" });
     }
 
     const existing = await User.findOne({ email });
@@ -35,7 +66,15 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email đã được sử dụng" });
     }
 
-    const user = await User.create({ fullName, email, passwordHash: password, phone });
+    const user = await User.create({
+      fullName,
+      email,
+      passwordHash: password,
+      phone,
+      address,
+      dateOfBirth: dob,
+      gender: gender || undefined,
+    });
 
     const otp = generateOTP();
     saveOTP(email, otp, "register");
@@ -63,13 +102,19 @@ const verifyEmail = async (req, res) => {
       return res.status(400).json({ success: false, message: "Thiếu email hoặc OTP" });
     }
 
-    if (!verifyOTP(email, otp, "register")) {
-      return res.status(400).json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
+    const result = verifyOTP(email, otp, "register");
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: otpErrorMessage(result) });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản" });
+    }
+
+    if (user.verificationStatus !== "verified") {
+      user.verificationStatus = "verified";
+      await user.save();
     }
 
     const token = generateToken(user._id);
@@ -93,9 +138,22 @@ const login = async (req, res) => {
       return res.status(403).json({ success: false, message: "Tài khoản đã bị khóa do vi phạm" });
     }
 
-    // TEMPORARY: Allow login without email verification for development
-    // TODO: Remove this in production
-    console.log(`⚠️  DEV MODE: User ${email} logged in without email verification`);
+    if (user.verificationStatus !== "verified") {
+      // Chỉ gửi OTP mới nếu không còn trong cooldown (tránh spam khi login lại liên tục)
+      if (getResendCooldown(user.email, "register") === 0) {
+        const otp = generateOTP();
+        saveOTP(user.email, otp, "register");
+        sendOTPEmail(user.email, otp, "register").catch((err) =>
+          console.error("[Email Error - login unverified]", err.message)
+        );
+      }
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản chưa xác thực email. Mã OTP mới đã được gửi, vui lòng nhập để kích hoạt.",
+        needVerification: true,
+        email: user.email,
+      });
+    }
 
     const token = generateToken(user._id);
     res.json({ success: true, token, user: formatUser(user) });
@@ -111,6 +169,15 @@ const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ success: false, message: "Email không tồn tại trong hệ thống" });
+    }
+
+    const cooldown = getResendCooldown(email, "reset");
+    if (cooldown > 0) {
+      return res.status(429).json({
+        success: false,
+        message: `Vui lòng đợi ${cooldown}s trước khi gửi lại OTP`,
+        retryAfter: cooldown,
+      });
     }
 
     const otp = generateOTP();
@@ -133,8 +200,9 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
     }
 
-    if (!verifyOTP(email, otp, "reset")) {
-      return res.status(400).json({ success: false, message: "OTP không hợp lệ hoặc đã hết hạn" });
+    const result = verifyOTP(email, otp, "reset");
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: otpErrorMessage(result) });
     }
 
     const user = await User.findOne({ email });
@@ -181,6 +249,16 @@ const resendOTP = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "Email không tồn tại trong hệ thống" });
     }
+
+    const cooldown = getResendCooldown(email, "register");
+    if (cooldown > 0) {
+      return res.status(429).json({
+        success: false,
+        message: `Vui lòng đợi ${cooldown}s trước khi gửi lại OTP`,
+        retryAfter: cooldown,
+      });
+    }
+
     const otp = generateOTP();
     saveOTP(email, otp, "register");
     sendOTPEmail(email, otp, "register").catch((err) =>

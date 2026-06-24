@@ -4,9 +4,7 @@ import userService from "../../services/user.service";
 
 const VER_BADGE = {
   unverified: { label: "Chưa xác minh", cls: "bg-surface-container text-on-surface-variant" },
-  pending: { label: "Chờ duyệt KYC", cls: "bg-surface-container-high text-on-surface" },
   verified: { label: "Đã xác minh ✓", cls: "bg-secondary-container text-on-secondary-container" },
-  rejected: { label: "Bị từ chối", cls: "bg-error-container text-on-error-container" },
 };
 
 const ACC_BADGE = {

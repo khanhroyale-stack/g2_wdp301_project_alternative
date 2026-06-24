@@ -51,8 +51,8 @@ const VerifyOTPPage = () => {
     setLoading(true);
     try {
       await verifyEmail({ email, otp });
-      // Thành công sẽ tự động cập nhật token trong context và nhảy tiếp sang trang upload CCCD
-      navigate("/xac-minh-tai-khoan");
+      // Xác thực OTP thành công → có token, dùng được ngay (không có KYC)
+      navigate("/ho-so");
     } catch (err) {
       setError(err.response?.data?.message || "Xác thực thất bại. Vui lòng kiểm tra lại mã OTP.");
     } finally {

@@ -14,7 +14,6 @@ const USER_NAV = [
 const ADMIN_NAV = [
   { label: "Trang chủ", icon: "home", to: "/" },
   { label: "Tổng quan", icon: "dashboard", to: "/admin" },
-  { label: "Duyệt tài khoản", icon: "how_to_reg", to: "/admin/duyet-tai-khoan" },
   { label: "Duyệt bài đăng", icon: "fact_check", to: "/admin/duyet-bai-dang" },
   { label: "Quản lý người dùng", icon: "group", to: "/admin/nguoi-dung" },
   { label: "Quản lý danh mục", icon: "category", to: "/admin/danh-muc" },

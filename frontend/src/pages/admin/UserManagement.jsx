@@ -4,18 +4,15 @@ import adminService from "../../services/admin.service";
 import userService from "../../services/user.service";
 import toast from "react-hot-toast";
 
-// accountStatus trong model: "active" | "inactive" | "banned"
-// verificationStatus:        "unverified" | "pending" | "verified" | "rejected"
+// accountStatus trong model: "active" | "banned"
+// verificationStatus (xác minh email OTP, KHÔNG KYC): "unverified" | "verified"
 const ACC_BADGE = {
   active: { label: "Hoạt động", color: "bg-secondary-container text-on-secondary-container" },
-  inactive: { label: "Chưa kích hoạt", color: "bg-surface-container text-on-surface-variant" },
   banned: { label: "Bị khóa", color: "bg-error text-on-error" },
 };
 const VER_BADGE = {
   unverified: { label: "Chưa XM", color: "bg-surface-container text-on-surface-variant" },
-  pending: { label: "Chờ duyệt", color: "bg-surface-container-high text-on-surface" },
   verified: { label: "Đã XM", color: "bg-secondary-container text-on-secondary-container" },
-  rejected: { label: "Từ chối", color: "bg-error-container text-on-error-container" },
 };
 const ROLE_MAP = { user: "Người dùng", admin: "Quản trị", shipper: "Shipper" };
 

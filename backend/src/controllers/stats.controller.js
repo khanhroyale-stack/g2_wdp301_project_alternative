@@ -31,7 +31,7 @@ const getStats = async (req, res) => {
       totalReviews,
     ] = await Promise.all([
       User.countDocuments({}),
-      User.countDocuments({ verificationStatus: "pending" }),
+      User.countDocuments({ verificationStatus: "unverified" }),
       User.countDocuments({ verificationStatus: "verified" }),
       User.countDocuments({ accountStatus: "banned" }),
       ProductPost.countDocuments({}),

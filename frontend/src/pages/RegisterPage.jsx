@@ -5,7 +5,7 @@ import { authService } from "../services/auth.service";
 
 // ─── Step 1: Form đăng ký ────────────────────────────────
 const RegisterForm = ({ onSuccess }) => {
-  const [form, setForm] = useState({ fullName: "", email: "", phone: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({ fullName: "", email: "", phone: "", address: "", dateOfBirth: "", gender: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +15,15 @@ const RegisterForm = ({ onSuccess }) => {
     if (form.password.length < 6) { setError("Mật khẩu tối thiểu 6 ký tự."); return; }
     setError(""); setLoading(true);
     try {
-      await authService.register({ fullName: form.fullName, email: form.email, phone: form.phone, password: form.password });
+      await authService.register({
+        fullName: form.fullName,
+        email: form.email,
+        phone: form.phone,
+        address: form.address || undefined,
+        dateOfBirth: form.dateOfBirth || undefined,
+        gender: form.gender || undefined,
+        password: form.password,
+      });
       onSuccess(form.email);
     } catch (err) {
       setError(err.response?.data?.message || "Đăng ký thất bại.");
@@ -45,6 +53,29 @@ const RegisterForm = ({ onSuccess }) => {
         <label className="block text-sm font-medium text-on-surface mb-1.5">Số điện thoại</label>
         <input type="tel" placeholder="0912 345 678" className={cls} value={form.phone}
           onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-on-surface mb-1.5">Ngày sinh</label>
+          <input type="date" className={cls} value={form.dateOfBirth}
+            max={new Date().toISOString().split("T")[0]}
+            onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-on-surface mb-1.5">Giới tính</label>
+          <select className={cls} value={form.gender}
+            onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+            <option value="">-- Chọn --</option>
+            <option value="male">Nam</option>
+            <option value="female">Nữ</option>
+            <option value="other">Khác</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-on-surface mb-1.5">Địa chỉ</label>
+        <input type="text" placeholder="Khu Công nghệ cao Hòa Lạc, Hà Nội" className={cls} value={form.address}
+          onChange={(e) => setForm({ ...form, address: e.target.value })} />
       </div>
       <div>
         <label className="block text-sm font-medium text-on-surface mb-1.5">Mật khẩu <span className="text-error">*</span></label>
@@ -153,8 +184,8 @@ const RegisterPage = () => {
   };
 
   const handleOTPVerified = (user) => {
-    // Điều hướng sang trang xác minh giấy tờ
-    navigate("/xac-minh-tai-khoan");
+    // Xác thực OTP xong là dùng được ngay (không có KYC) → vào hồ sơ
+    navigate("/ho-so");
   };
 
   return (

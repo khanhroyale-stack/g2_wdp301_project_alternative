@@ -22,7 +22,13 @@ const LoginPage = () => {
       else if (data.user.role === "shipper") navigate("/shipper");
       else navigate("/ho-so");
     } catch (err) {
-      setError(err.response?.data?.message || "Email hoặc mật khẩu không đúng.");
+      const data = err.response?.data;
+      // Chưa xác thực email → chuyển sang trang nhập OTP (backend đã gửi mã mới)
+      if (data?.needVerification) {
+        navigate("/xac-minh-otp", { state: { email: data.email || form.email } });
+        return;
+      }
+      setError(data?.message || "Email hoặc mật khẩu không đúng.");
     } finally {
       setLoading(false);
     }

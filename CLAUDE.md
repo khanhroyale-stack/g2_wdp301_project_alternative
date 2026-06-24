@@ -69,8 +69,7 @@ File `.env` nằm ở `backend/.env` (không commit). Xem `backend/.env.example`
 ### Users & Auth
 | Model | Collection | Mô tả |
 |---|---|---|
-| `User` | `users` | Role: `user`, `shipper`, `admin` |
-| `VerificationRequest` | `verification_requests` | Flow xác minh CCCD/thẻ SV |
+| `User` | `users` | Role: `user`, `shipper`, `admin`. `verificationStatus`: `unverified`/`verified` (xác thực email OTP, KHÔNG có KYC). `accountStatus`: `active`/`banned` |
 
 ### Sản phẩm
 | Model | Collection | Mô tả |

@@ -35,22 +35,24 @@ const userSchema = new mongoose.Schema(
       default: null,
       trim: true,
     },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other"],
+      default: null,
+    },
     role: {
       type: String,
       enum: ["user", "shipper", "admin"],
       default: "user",
     },
-    studentCardUrl: {
-      type: String,
-      default: null,
-    },
-    citizenIdUrl: {
-      type: String,
-      default: null,
-    },
+    // Trạng thái xác thực email qua OTP (không có KYC). "verified" sau khi nhập đúng OTP.
     verificationStatus: {
       type: String,
-      enum: ["unverified", "pending", "verified", "rejected"],
+      enum: ["unverified", "verified"],
       default: "unverified",
     },
     reputationScore: {
@@ -66,7 +68,7 @@ const userSchema = new mongoose.Schema(
     },
     accountStatus: {
       type: String,
-      enum: ["active", "inactive", "banned"],
+      enum: ["active", "banned"],
       default: "active",
     },
   },

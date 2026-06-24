@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
 import userService from "../../services/user.service";
@@ -8,9 +7,7 @@ import toast from "react-hot-toast";
 
 const VER_BADGE = {
   unverified: { label: "Chưa xác minh", cls: "bg-surface-container text-on-surface-variant" },
-  pending: { label: "Chờ duyệt KYC", cls: "bg-surface-container-high text-on-surface" },
   verified: { label: "Đã xác minh", cls: "bg-white text-primary" },
-  rejected: { label: "Bị từ chối", cls: "bg-error text-on-error" },
 };
 
 const Profile = () => {
@@ -23,7 +20,7 @@ const Profile = () => {
   const [passMsg, setPassMsg] = useState(null); // { type: "success"|"error", text }
 
   // Edit profile state
-  const [editForm, setEditForm] = useState({ fullName: "", phone: "", address: "", avatarUrl: "" });
+  const [editForm, setEditForm] = useState({ fullName: "", phone: "", address: "", avatarUrl: "", dateOfBirth: "", gender: "" });
   const [editLoading, setEditLoading] = useState(false);
 
   // Reputation history
@@ -41,6 +38,8 @@ const Profile = () => {
         phone: user.phone || "",
         address: user.address || "",
         avatarUrl: user.avatarUrl || "",
+        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split("T")[0] : "",
+        gender: user.gender || "",
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -132,19 +131,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Warning chưa xác minh */}
-          {user?.verificationStatus === "unverified" && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-8 flex items-start gap-3">
-              <span className="material-symbols-outlined text-orange-500 flex-shrink-0">warning</span>
-              <div>
-                <p className="font-semibold text-orange-900">Tài khoản chưa xác minh</p>
-                <p className="text-sm text-orange-800 mt-0.5">
-                  Vui lòng <Link to="/xac-minh-tai-khoan" className="font-bold underline">tải lên giấy tờ</Link> để bắt đầu giao dịch.
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Tabs */}
           <div className="flex bg-surface-container-lowest p-1 rounded-xl mb-6 shadow-sm border border-surface-variant/30 w-fit gap-0.5">
             {TABS.map((t) => (
@@ -177,6 +163,8 @@ const Profile = () => {
                     { label: "Email", value: user?.email },
                     { label: "Số điện thoại", value: user?.phone || "Chưa cập nhật" },
                     { label: "Địa chỉ", value: user?.address || "Chưa cập nhật" },
+                    { label: "Ngày sinh", value: user?.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString("vi-VN") : "Chưa cập nhật" },
+                    { label: "Giới tính", value: { male: "Nam", female: "Nữ", other: "Khác" }[user?.gender] || "Chưa cập nhật" },
                     { label: "Vai trò", value: { admin: "Quản trị viên", shipper: "Shipper", user: "Người dùng" }[user?.role] || "Người dùng" },
                     { label: "Trạng thái TK", value: user?.accountStatus === "active" ? "Đang hoạt động" : "Bị khóa" },
                   ].map((item) => (
@@ -224,6 +212,32 @@ const Profile = () => {
                         />
                       </div>
                     ))}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-on-surface mb-1.5">Ngày sinh</label>
+                        <input
+                          type="date"
+                          max={new Date().toISOString().split("T")[0]}
+                          value={editForm.dateOfBirth}
+                          onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                          className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-on-surface mb-1.5">Giới tính</label>
+                        <select
+                          value={editForm.gender}
+                          onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                          className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                        >
+                          <option value="">-- Chọn --</option>
+                          <option value="male">Nam</option>
+                          <option value="female">Nữ</option>
+                          <option value="other">Khác</option>
+                        </select>
+                      </div>
+                    </div>
 
                     {editForm.avatarUrl && (
                       <div className="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl border border-surface-variant/30">

@@ -7,7 +7,6 @@ import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import VerifyOTPPage from "./pages/auth/VerifyOTPPage";
-import AccountVerification from './pages/auth/AccountVerification';
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
 
@@ -31,7 +30,6 @@ import MySales from './pages/orders/MySales';
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AccountApprovals from './pages/admin/AccountApprovals';
 import PostApprovals from './pages/admin/PostApprovals';
 import UserManagement from './pages/admin/UserManagement';
 import CategoryManagement from './pages/admin/CategoryManagement';
@@ -64,7 +62,6 @@ function App() {
           <Route path="/dang-nhap" element={<LoginPage />} />
           <Route path="/dang-ky" element={<RegisterPage />} />
           <Route path="/xac-minh-otp" element={<VerifyOTPPage />} />
-          <Route path="/xac-minh-tai-khoan" element={<AccountVerification />} />
           <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
           <Route path="/dat-lai-mat-khau" element={<ResetPasswordPage />} />
           <Route path="/marketplace" element={<Marketplace />} />
@@ -103,7 +100,6 @@ function App() {
 
           {/* ── Admin ───────────────────────────────── */}
           <Route path="/admin" element={<PrivateRoute adminOnly><AdminDashboard /></PrivateRoute>} />
-          <Route path="/admin/duyet-tai-khoan" element={<PrivateRoute adminOnly><AccountApprovals /></PrivateRoute>} />
           <Route path="/admin/duyet-bai-dang" element={<PrivateRoute adminOnly><PostApprovals /></PrivateRoute>} />
           <Route path="/admin/nguoi-dung" element={<PrivateRoute adminOnly><UserManagement /></PrivateRoute>} />
           <Route path="/admin/danh-muc" element={<PrivateRoute adminOnly><CategoryManagement /></PrivateRoute>} />

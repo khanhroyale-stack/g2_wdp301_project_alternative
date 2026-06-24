@@ -36,9 +36,9 @@ const AdminDashboard = () => {
       bg: "bg-secondary-container text-on-secondary-container",
     },
     {
-      icon: "pending_actions", label: "Chờ xác minh KYC",
+      icon: "pending_actions", label: "Chưa xác minh email",
       value: stats?.users?.pendingVerify ?? 0,
-      badge: "Cần duyệt", badgeColor: "text-error bg-error/10",
+      badge: "Chưa xác minh", badgeColor: "text-error bg-error/10",
       bg: "bg-error-container text-on-error-container",
     },
     {
@@ -148,12 +148,6 @@ const AdminDashboard = () => {
             </h3>
             <div className="flex flex-col gap-2 flex-1">
               {[
-                {
-                  to: "/admin/duyet-tai-khoan",
-                  icon: "how_to_reg",
-                  label: "Duyệt KYC",
-                  badge: stats?.users?.pendingVerify > 0 ? stats.users.pendingVerify : null,
-                },
                 {
                   to: "/admin/duyet-bai-dang",
                   icon: "fact_check",

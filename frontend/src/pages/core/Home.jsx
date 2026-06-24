@@ -14,7 +14,7 @@ const CATEGORIES = [
 ];
 
 const FEATURES = [
-  { icon: "shield", title: "Xác minh CCCD", desc: "An toàn tuyệt đối cho mọi giao dịch." },
+  { icon: "shield", title: "Xác minh email OTP", desc: "An toàn tuyệt đối cho mọi giao dịch." },
   { icon: "star", title: "Hệ thống điểm uy tín", desc: "Đánh giá minh bạch từ cộng đồng." },
   { icon: "local_shipping", title: "Shipper kiểm tra hàng", desc: "Đảm bảo chất lượng trước khi thanh toán." },
 ];
