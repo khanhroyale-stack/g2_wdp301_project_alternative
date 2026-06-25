@@ -13,13 +13,35 @@ const VER_BADGE = {
 };
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
   const [passLoading, setPassLoading] = useState(false);
   const [passMsg, setPassMsg] = useState(null);
   const [history, setHistory] = useState([]);
   const [histLoading, setHistLoading] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: "",
+    phone: "",
+    address: "",
+    avatarUrl: "",
+    dateOfBirth: "",
+    gender: ""
+  });
+
+  useEffect(() => {
+    if (user) {
+      setEditForm({
+        fullName: user.fullName || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        avatarUrl: user.avatarUrl || "",
+        dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : "",
+        gender: user.gender || ""
+      });
+    }
+  }, [user]);
 
   const displayName = user?.fullName || user?.name || "";
   const verBadge = VER_BADGE[user?.verificationStatus] || VER_BADGE.unverified;
@@ -60,8 +82,23 @@ const Profile = () => {
     }
   };
 
+  const handleEditProfile = async (e) => {
+    e.preventDefault();
+    setEditLoading(true);
+    try {
+      await userService.updateProfile(editForm);
+      await refreshUser();
+      setActiveTab("overview");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const tabs = [
     { key: "overview", label: "Tổng quan", icon: "person" },
+    { key: "edit", label: "Chỉnh sửa", icon: "edit" },
     { key: "security", label: "Bảo mật", icon: "lock" },
     { key: "reputation", label: "Lịch sử uy tín", icon: "history" },
   ];
@@ -115,9 +152,8 @@ const Profile = () => {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
-                  activeTab === tab.key ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
-                }`}
+                className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${activeTab === tab.key ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
+                  }`}
               >
                 <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
                 {tab.label}
@@ -140,6 +176,8 @@ const Profile = () => {
                     { label: "Email", value: user?.email },
                     { label: "Số điện thoại", value: user?.phone || "Chưa cập nhật" },
                     { label: "Địa chỉ", value: user?.address || "Chưa cập nhật" },
+                    { label: "Ngày sinh", value: user?.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString("vi-VN") : "Chưa cập nhật" },
+                    { label: "Giới tính", value: user?.gender ? { male: "Nam", female: "Nữ", other: "Khác" }[user.gender] : "Chưa cập nhật" },
                     { label: "Vai trò", value: { admin: "Quản trị viên", shipper: "Shipper", user: "Người dùng" }[user?.role] || "Người dùng" },
                     { label: "Trạng thái tài khoản", value: user?.accountStatus === "active" ? "Đang hoạt động" : "Bị khóa" },
                   ].map((item) => (
@@ -156,6 +194,85 @@ const Profile = () => {
               </div>
             ) : null}
 
+            {activeTab === "edit" && (
+              <div>
+                <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
+                  <h2 className="font-bold text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                    Chỉnh sửa hồ sơ
+                  </h2>
+                </div>
+                <form onSubmit={handleEditProfile} className="p-6">
+                  {[
+                    { key: "fullName", label: "Họ và tên", ph: "Nguyễn Văn A", required: true },
+                    { key: "phone", label: "Số điện thoại", ph: "0901234567" },
+                    { key: "address", label: "Địa chỉ", ph: "Khu Công nghệ cao Hòa Lạc, Hà Nội" },
+                    { key: "avatarUrl", label: "URL ảnh đại diện", ph: "https://..." },
+                  ].map((f) => (
+                    <div key={f.key} className="mb-4">
+                      <label className="block text-sm font-medium text-on-surface mb-1.5">
+                        {f.label} {f.required && <span className="text-error">*</span>}
+                      </label>
+                      <input
+                        type="text"
+                        required={!!f.required}
+                        placeholder={f.ph}
+                        value={editForm[f.key]}
+                        onChange={(e) => setEditForm({ ...editForm, [f.key]: e.target.value })}
+                        className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                      />
+                    </div>
+                  ))}
+
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-on-surface mb-1.5">Ngày sinh</label>
+                      <input
+                        type="date"
+                        max={new Date().toISOString().split("T")[0]}
+                        value={editForm.dateOfBirth}
+                        onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                        className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-on-surface mb-1.5">Giới tính</label>
+                      <select
+                        value={editForm.gender}
+                        onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                        className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                      >
+                        <option value="">-- Chọn --</option>
+                        <option value="male">Nam</option>
+                        <option value="female">Nữ</option>
+                        <option value="other">Khác</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {editForm.avatarUrl && (
+                    <div className="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl border border-surface-variant/30 mb-4">
+                      <img src={editForm.avatarUrl} alt="preview"
+                        className="w-12 h-12 rounded-full object-cover border-2 border-surface-variant"
+                        onError={(e) => { e.target.style.display = "none"; }} />
+                      <p className="text-xs text-on-surface-variant">Xem trước ảnh đại diện</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 mt-2">
+                    <button type="button" onClick={() => setActiveTab("overview")}
+                      className="flex-1 py-3 border border-surface-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-all">
+                      Hủy
+                    </button>
+                    <button type="submit" disabled={editLoading}
+                      className="flex-1 py-3 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60">
+                      {editLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
             {activeTab === "security" ? (
               <div>
                 <div className="border-b border-surface-variant/30 bg-surface-bright/40 px-6 py-4">
@@ -166,11 +283,10 @@ const Profile = () => {
                 </div>
                 <form onSubmit={handleChangePassword} className="max-w-md p-6">
                   {passMsg ? (
-                    <div className={`mb-5 flex items-center gap-2 rounded-xl border p-3.5 text-sm ${
-                      passMsg.type === "success"
-                        ? "border-secondary-container bg-secondary-container/30 text-on-secondary-container"
-                        : "border-error/20 bg-error-container/30 text-error"
-                    }`}>
+                    <div className={`mb-5 flex items-center gap-2 rounded-xl border p-3.5 text-sm ${passMsg.type === "success"
+                      ? "border-secondary-container bg-secondary-container/30 text-on-secondary-container"
+                      : "border-error/20 bg-error-container/30 text-error"
+                      }`}>
                       <span className="material-symbols-outlined text-[16px]">
                         {passMsg.type === "success" ? "check_circle" : "error"}
                       </span>

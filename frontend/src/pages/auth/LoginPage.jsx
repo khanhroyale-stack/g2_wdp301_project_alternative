@@ -30,7 +30,12 @@ const LoginPage = () => {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Email hoặc mật khẩu không đúng.");
+      const data = err.response?.data;
+      if (data?.needVerification) {
+        navigate("/xac-minh-otp", { state: { email: data.email || form.email } });
+        return;
+      }
+      setError(data?.message || "Email hoặc mật khẩu không đúng.");
     } finally {
       setLoading(false);
     }
