@@ -35,6 +35,7 @@ import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
 import CreateOrder from "./pages/orders/CreateOrder";
 import OrderList from "./pages/orders/OrderList";
+import OrderHistory from "./pages/orders/OrderHistory";
 import OrderDetail from "./pages/orders/OrderDetail";
 import MySales from "./pages/orders/MySales";
 import DeliveryList from "./pages/delivery/DeliveryList";
@@ -126,6 +127,7 @@ function App() {
           <Route path="/orders/create/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
           <Route path="/dat-hang/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
           <Route path="/orders/my-orders" element={<PrivateRoute><OrderList /></PrivateRoute>} />
+          <Route path="/orders/history" element={<PrivateRoute><OrderHistory /></PrivateRoute>} />
           <Route path="/orders/my-sales" element={<PrivateRoute><MySales /></PrivateRoute>} />
           <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
 
