@@ -297,7 +297,7 @@ export default function CreateOrder() {
     try {
       const res = await orderService.createOrder({ productId, quantity: requestedQuantity, ...form });
       if (res.success) {
-        navigate("/don-hang");
+        navigate(`/don-hang/${res.data._id}`);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Không thể tạo đơn hàng");

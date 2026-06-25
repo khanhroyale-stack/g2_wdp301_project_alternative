@@ -111,11 +111,10 @@ const PublicProfile = () => {
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           {[
             { label: "Điểm uy tín", value: reputation, icon: "verified_user", color: reputation < 50 ? "text-error" : "text-primary" },
             { label: "Đánh giá TB", value: profile.averageRating ? `${profile.averageRating.toFixed(1)} ★` : "Chưa có", icon: "star", color: "text-amber-500" },
-            { label: "Xác minh", value: verBadge.label, icon: "badge", color: "text-secondary" },
           ].map((s) => (
             <div key={s.label} className="bg-surface-container-lowest rounded-2xl p-4 text-center shadow-apple border border-surface-variant/30">
               <span className={`material-symbols-outlined text-2xl mb-2 ${s.color}`}>{s.icon}</span>

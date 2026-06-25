@@ -31,11 +31,7 @@ const LoginPage = () => {
       }
     } catch (err) {
       const data = err.response?.data;
-      if (data?.needVerification) {
-        navigate("/xac-minh-otp", { state: { email: data.email || form.email } });
-        return;
-      }
-      setError(data?.message || "Email hoặc mật khẩu không đúng.");
+      setError(data?.message || "Email hoac mat khau khong dung.");
     } finally {
       setLoading(false);
     }

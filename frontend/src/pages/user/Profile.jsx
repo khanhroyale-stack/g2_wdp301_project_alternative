@@ -118,9 +118,6 @@ const Profile = () => {
                   <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-white/75">Hồ sơ cá nhân</p>
                   <h1 className="text-2xl font-black leading-tight text-white md:text-3xl">{displayName}</h1>
                   <p className="mt-0.5 text-sm text-white/75">{user?.email}</p>
-                  <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold ${verBadge.cls}`}>
-                    {verBadge.label}
-                  </span>
                 </div>
               </div>
               <div className="min-w-[150px] rounded-2xl border border-white/20 bg-white/10 p-5 text-center backdrop-blur">

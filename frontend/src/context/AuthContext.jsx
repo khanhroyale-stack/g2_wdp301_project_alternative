@@ -20,7 +20,6 @@ export const AuthProvider = ({ children }) => {
       setNotifications((prev) => [data, ...prev]);
     });
 
-    socket.on("new_message", () => { });
   }, []);
 
   useEffect(() => {
@@ -46,6 +45,7 @@ export const AuthProvider = ({ children }) => {
       })
       .catch(() => {
         localStorage.removeItem("token");
+        setUser(null);
       })
       .finally(() => {
         setLoading(false);
@@ -56,6 +56,14 @@ export const AuthProvider = ({ children }) => {
     };
   }, [setupSocket]);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+    };
+    window.addEventListener("auth-unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("auth-unauthorized", handleUnauthorized);
+  }, []);
+
   const login = async (credentials) => {
     const data = await authService.login(credentials);
     localStorage.setItem("token", data.token);
@@ -65,11 +73,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (credentials) => {
-    return authService.register(credentials);
-  };
-
-  const verifyEmail = async ({ email, otp }) => {
-    const data = await authService.verifyEmail({ email, otp });
+    const data = await authService.register(credentials);
     localStorage.setItem("token", data.token);
     setUser(data.user);
     setupSocket(data.user);
@@ -100,7 +104,6 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
-        verifyEmail,
         logout,
         refreshUser,
         unreadCount,

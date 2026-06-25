@@ -6,10 +6,9 @@ import { Toaster } from "react-hot-toast";
 import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import VerifyOTPPage from "./pages/auth/VerifyOTPPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-import VerifyEmailPage from "./pages/VerifyEmailPage";
+import NotFoundPage from "./pages/core/NotFoundPage";
 
 import Profile from "./pages/user/Profile";
 import PublicProfile from "./pages/user/PublicProfile";
@@ -90,8 +89,6 @@ function App() {
           <Route path="/login" element={<Navigate to="/dang-nhap" replace />} />
           <Route path="/dang-ky" element={<RegisterPage />} />
           <Route path="/register" element={<Navigate to="/dang-ky" replace />} />
-          <Route path="/xac-minh-otp" element={<VerifyOTPPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/dat-lai-mat-khau" element={<ResetPasswordPage />} />
@@ -124,7 +121,6 @@ function App() {
           <Route path="/don-hang" element={<PrivateRoute><OrderList /></PrivateRoute>} />
           <Route path="/don-hang/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
           <Route path="/don-ban" element={<PrivateRoute><MySales /></PrivateRoute>} />
-          <Route path="/orders/create/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
           <Route path="/dat-hang/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
           <Route path="/orders/my-orders" element={<PrivateRoute><OrderList /></PrivateRoute>} />
           <Route path="/orders/history" element={<PrivateRoute><OrderHistory /></PrivateRoute>} />
@@ -159,7 +155,7 @@ function App() {
           <Route path="/deliveries/:id/inspection" element={<Navigate to="/shipper" replace />} />
           <Route path="/inspections/:id" element={<Navigate to="/shipper" replace />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

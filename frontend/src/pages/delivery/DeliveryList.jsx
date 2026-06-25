@@ -40,7 +40,7 @@ export default function DeliveryList() {
         navigate(`/shipper/don/${id}`);
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể nhận đơn giao.");
+      toast.error(error.response?.data?.message || "Không thể nhận đơn giao.");
     } finally {
       setAcceptingId(null);
     }

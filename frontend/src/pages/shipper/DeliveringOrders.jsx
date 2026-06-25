@@ -15,8 +15,7 @@ const STEP_MAP = {
 
 const getImageUrl = (url) => {
   if (!url) return null; // Dùng null để hiển thị placeholder đẹp
-  if (url.startsWith("http")) return url;
-  return `http://localhost:5000${url}`;
+  return url;
 };
 
 const DeliveringOrders = () => {

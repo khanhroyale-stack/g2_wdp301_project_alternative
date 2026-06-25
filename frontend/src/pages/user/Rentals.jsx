@@ -38,8 +38,7 @@ const fmtDateTime = (d) =>
 
 const imgUrl = (src) => {
   if (!src) return null;
-  if (src.startsWith("http")) return src;
-  return `http://localhost:5000${src}`;
+  return src;
 };
 
 // ─── StatusBadge ─────────────────────────────────────────────────────────────
@@ -256,7 +255,7 @@ const RentalCard = ({ rental, isOwnerView, onAction, onExtend, onDeposit, onView
               Hủy yêu cầu
             </button>
           )}
-          {!isOwnerView && status === "active" && (
+          {!isOwnerView && status === "renting" && (
             <>
               <button onClick={() => onExtend(rental)} disabled={processing}
                 className="px-3 py-1.5 text-xs font-bold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-all disabled:opacity-50">

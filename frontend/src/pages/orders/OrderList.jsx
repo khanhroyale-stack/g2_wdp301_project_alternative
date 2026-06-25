@@ -14,7 +14,7 @@ const FILTERS = [
 
 const ORDER_STATUS = {
   pending: ["Chờ xác nhận", "amber"], confirmed: ["Đã chấp nhận", "green"],
-  shipping: ["Đã chấp nhận", "green"], delivered: ["Đã chấp nhận", "green"],
+  shipping: ["Đang vận chuyển", "blue"], delivered: ["Đã giao hàng", "green"],
   completed: ["Hoàn tất", "green"], cancelled: ["Đã hủy", "red"],
 };
 

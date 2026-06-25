@@ -51,7 +51,7 @@ const ProductDetail = () => {
   }, [id]);
 
   const totalDays = startDate && endDate
-      ? Math.max(0, Math.ceil((new Date(`${endDate}T${endTime}`) - new Date(`${startDate}T${startTime}`)) / 86400000))
+      ? Math.max(1, Math.ceil((new Date(`${endDate}T${endTime}`) - new Date(`${startDate}T${startTime}`)) / 86400000))
       : 0;
 
   const calcFee = (days, p) => {
@@ -72,8 +72,7 @@ const ProductDetail = () => {
 
   const getImageUrl = (img) => {
     if (!img) return "https://placehold.co/800x600?text=No+Image";
-    if (img.startsWith("http")) return img;
-    return `http://localhost:5000${img}`;
+    return img;
   };
 
   const formatPrice = (num) =>
@@ -81,7 +80,7 @@ const ProductDetail = () => {
 
   const handleBuy = async () => {
     if (!user) return navigate("/dang-nhap");
-    navigate(`/orders/create/${product._id}?quantity=${purchaseQuantity}`);
+    navigate(`/dat-hang/${product._id}?quantity=${purchaseQuantity}`);
   };
 
   const handleAddToCart = async () => {

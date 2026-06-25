@@ -43,7 +43,6 @@ const formatUser = (user) => ({
   gender: user.gender,
   addresses: buildAddresses(user),
   role: user.role,
-  verificationStatus: user.verificationStatus,
   reputationScore: user.reputationScore,
   accountStatus: user.accountStatus,
 });
@@ -82,56 +81,15 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email da duoc su dung" });
     }
 
-    await User.create({ fullName, email, passwordHash: password, phone, address, dateOfBirth: dob, gender });
-
-    const otp = generateOTP();
-    saveOTP(email, otp, "register");
-    sendOTPEmail(email, otp, "register").catch((err) =>
-      console.error("[Email Error - register]", err.message)
-    );
-
-    res.status(201).json({
-      success: true,
-      message: "Dang ky thanh cong. Vui long kiem tra email de lay ma OTP xac thuc.",
-      email,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const otpErrorMessage = (result) => {
-  if (result.reason === "locked") return "Ban da nhap sai OTP qua nhieu lan. Vui long yeu cau ma moi.";
-  if (result.reason === "invalid") return `Ma OTP khong dung. Ban con ${result.attemptsLeft} lan thu.`;
-  return "OTP khong hop le hoac da het han";
-};
-
-const verifyEmail = async (req, res) => {
-  try {
-    const { otp } = req.body;
-    const email = normalizeEmail(req.body.email);
-
-    if (!email || !otp) {
-      return res.status(400).json({ success: false, message: "Thieu email hoac OTP" });
-    }
-
-    const result = verifyOTP(email, otp, "register");
-    if (!result.success) {
-      return res.status(400).json({ success: false, message: otpErrorMessage(result) });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ success: false, message: "Khong tim thay tai khoan" });
-    }
-
-    if (user.verificationStatus !== "verified") {
-      user.verificationStatus = "verified";
-      await user.save();
-    }
+    const user = await User.create({ fullName, email, passwordHash: password, phone, address, dateOfBirth: dob, gender });
 
     const token = generateToken(user._id);
-    res.json({ success: true, token, user: formatUser(user) });
+    res.status(201).json({
+      success: true,
+      message: "Dang ky thanh cong.",
+      token,
+      user: formatUser(user),
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -164,22 +122,6 @@ const login = async (req, res) => {
 
     if (user.accountStatus === "banned") {
       return res.status(403).json({ success: false, message: "Tai khoan da bi khoa do vi pham" });
-    }
-
-    if (user.verificationStatus !== "verified") {
-      if (getResendCooldown(user.email, "register") === 0) {
-        const otp = generateOTP();
-        saveOTP(user.email, otp, "register");
-        sendOTPEmail(user.email, otp, "register").catch((err) =>
-          console.error("[Email Error - login unverified]", err.message)
-        );
-      }
-      return res.status(403).json({
-        success: false,
-        message: "Tai khoan chua xac thuc email. Ma OTP moi da duoc gui, vui long nhap de kich hoat.",
-        needVerification: true,
-        email: user.email,
-      });
     }
 
     const token = generateToken(user._id);
@@ -268,46 +210,15 @@ const changePassword = async (req, res) => {
   }
 };
 
-const resendOTP = async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body.email);
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: "Email khong ton tai trong he thong" });
-    }
-
-    const cooldown = getResendCooldown(email, "register");
-    if (cooldown > 0) {
-      return res.status(429).json({
-        success: false,
-        message: `Vui long doi ${cooldown}s truoc khi gui lai OTP`,
-        retryAfter: cooldown,
-      });
-    }
-
-    const otp = generateOTP();
-    saveOTP(email, otp, "register");
-    sendOTPEmail(email, otp, "register").catch((err) =>
-      console.error("[Email Error - resend-otp]", err.message)
-    );
-    res.json({ success: true, message: "OTP moi da duoc gui den email cua ban" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 const getMe = async (req, res) => {
   res.json({ success: true, user: formatUser(req.user) });
 };
 
 module.exports = {
   register,
-  verifyEmail,
   login,
   forgotPassword,
   resetPassword,
   changePassword,
   getMe,
-  resendOTP,
 };

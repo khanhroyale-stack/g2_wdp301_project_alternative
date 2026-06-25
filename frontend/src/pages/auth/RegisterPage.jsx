@@ -12,13 +12,13 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp.");
+      setError("Mat khau xac nhan khong khop.");
       return;
     }
     setError("");
     setLoading(true);
     try {
-      await register({
+      const data = await register({
         fullName: form.name,
         email: form.email,
         phone: form.phone,
@@ -26,9 +26,13 @@ const RegisterPage = () => {
         dateOfBirth: form.dateOfBirth || undefined,
         gender: form.gender || undefined
       });
-      navigate("/xac-minh-otp", { state: { email: form.email } });
+      if (data.user?.role === "shipper") {
+        navigate("/shipper", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.");
+      setError(err.response?.data?.message || "Dang ky that bai. Vui long thu lai.");
     } finally {
       setLoading(false);
     }

@@ -83,11 +83,6 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "shipper", "admin"],
       default: "user",
     },
-    verificationStatus: {
-      type: String,
-      enum: ["unverified", "verified"],
-      default: "unverified",
-    },
     reputationScore: {
       type: Number,
       default: 100,

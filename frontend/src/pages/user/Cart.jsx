@@ -69,10 +69,10 @@ export default function Cart() {
     try {
       const res = await cartService.checkoutCart(form);
       if (res.success) {
-        navigate("/orders/my-orders");
+        navigate("/don-hang");
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Khong the checkout gio hang");
+      toast.error(error.response?.data?.message || "Khong the checkout gio hang");
     } finally {
       setSubmitting(false);
     }

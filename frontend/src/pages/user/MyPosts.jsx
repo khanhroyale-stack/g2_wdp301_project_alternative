@@ -137,8 +137,7 @@ const MyPosts = () => {
 
   const getImageUrl = (image) => {
     if (!image) return "https://placehold.co/160x160/f0f2f4/8490a0?text=No+Image";
-    if (image.startsWith("http")) return image;
-    return `http://localhost:5000${image}`;
+    return image;
   };
 
   const categories = useMemo(() => [...new Set(posts.map((post) => post.categoryId?.name).filter(Boolean))], [posts]);

@@ -23,8 +23,7 @@ const formatDate = (d) =>
 
 const getImageUrl = (img) => {
   if (!img) return "https://placehold.co/400?text=No+Image";
-  if (img.startsWith("http")) return img;
-  return `http://localhost:5000${img}`;
+  return img;
 };
 
 const InfoRow = ({ label, value }) => (

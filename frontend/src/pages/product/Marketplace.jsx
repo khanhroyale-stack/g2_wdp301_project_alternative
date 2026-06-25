@@ -81,8 +81,7 @@ const Marketplace = () => {
   // Helper to get image URL — thumbnailUrl từ Cloudinary/upload đã là full URL
   const getImageUrl = (url) => {
     if (!url) return null; // Dùng null để hiển thị placeholder đẹp
-    if (url.startsWith("http")) return url;
-    return `http://localhost:5000${url}`;
+    return url;
   };
 
   const formatPrice = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);

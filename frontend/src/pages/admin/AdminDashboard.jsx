@@ -156,12 +156,6 @@ const AdminDashboard = () => {
             <div className="flex flex-1 flex-col gap-2">
               {[
                 {
-                  to: "/admin/duyet-tai-khoan",
-                  icon: "how_to_reg",
-                  label: "Duyệt KYC",
-                  badge: stats?.users?.pendingVerify > 0 ? stats.users.pendingVerify : null,
-                },
-                {
                   to: "/admin/duyet-bai-dang",
                   icon: "fact_check",
                   label: "Duyệt bài đăng",

@@ -1,6 +1,6 @@
 const User = require("../models/user.model");
 
-const publicFields = "fullName email avatarUrl reputationScore verificationStatus accountStatus role";
+const publicFields = "fullName email avatarUrl reputationScore accountStatus role";
 
 const normalizeAddresses = (addresses, fallback = {}) => {
   if (!Array.isArray(addresses)) return [];
@@ -111,11 +111,10 @@ const getPublicProfile = async (req, res) => {
 // @route GET /api/users  (admin)
 const getAllUsers = async (req, res) => {
   try {
-    const { role, status, verificationStatus, page = 1, limit = 20 } = req.query;
+    const { role, status, page = 1, limit = 20 } = req.query;
     const filter = {};
     if (role) filter.role = role;
     if (status) filter.accountStatus = status;
-    if (verificationStatus) filter.verificationStatus = verificationStatus;
 
     const skip = (page - 1) * limit;
     const [users, total] = await Promise.all([
