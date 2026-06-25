@@ -1,28 +1,18 @@
 const Delivery = require("../models/delivery.model");
 const Order = require("../models/order.model");
 const DeliveryInspection = require("../models/delivery_inspection.model");
-const ProductPost = require("../models/product_post.model");
 const {
   getProductImageUrls,
   getProductThumbnailUrl,
 } = require("../utils/product-images.util");
 const { buildAvailableDeliveryClaimFilter, isDeliveryTransitionAllowed } = require("../utils/business-rules");
+const { releaseOrderInventory } = require("../services/order-inventory.service");
 
 const appendDeliveryHistory = (delivery, status, note) => {
   delivery.history.push({
     status,
     note,
     timestamp: new Date(),
-  });
-};
-
-const restoreOrderInventory = async (orderId) => {
-  const order = await Order.findById(orderId).select("postId quantity").lean();
-  if (!order?.postId) return;
-
-  await ProductPost.findByIdAndUpdate(order.postId, {
-    $inc: { quantity: Math.max(Number(order.quantity) || 1, 1) },
-    $set: { postStatus: "available" },
   });
 };
 
@@ -248,7 +238,7 @@ const updateDeliveryStatus = async (req, res) => {
       }, { new: true }).lean();
 
       if (order?.postId) {
-        await restoreOrderInventory(delivery.orderId);
+        await releaseOrderInventory(delivery.orderId);
       }
     }
 

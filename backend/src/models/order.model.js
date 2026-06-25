@@ -68,6 +68,12 @@ const orderSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    inventoryStatus: {
+      type: String,
+      enum: ["reserved", "released", "committed"],
+      default: "reserved",
+      index: true,
+    },
     orderStatus: {
       type: String,
       enum: ["pending", "confirmed", "shipping", "delivered", "cancelled", "completed"],
