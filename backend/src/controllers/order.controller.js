@@ -3,7 +3,14 @@ const ProductPost = require("../models/product_post.model");
 const Delivery = require("../models/delivery.model");
 const User = require("../models/user.model");
 const { createNotification } = require("./notification.controller");
-const { getProductAvailabilityStatus, validateSellerCancellation } = require("../utils/business-rules");
+const { validateSellerCancellation } = require("../utils/business-rules");
+const {
+  commitOrderInventory,
+  releaseOrderInventory,
+  releaseProductQuantity,
+  reserveProductQuantity,
+  syncProductAvailability,
+} = require("../services/order-inventory.service");
 const {
   getProductImageUrls,
   getProductThumbnailUrl,
@@ -22,59 +29,6 @@ const sendOrderNotification = async (payload, io) => {
     },
     io
   );
-};
-
-const syncProductPostStatus = async (productId, nextStatus) => {
-  if (!productId || !nextStatus) {
-    return;
-  }
-
-  await ProductPost.findByIdAndUpdate(productId, { postStatus: nextStatus });
-};
-
-const syncProductAvailability = async (productId, soldIfEmpty = false) => {
-  const product = await ProductPost.findById(productId).select("quantity postStatus");
-  if (!product) {
-    return null;
-  }
-
-  const nextStatus = getProductAvailabilityStatus(product.quantity, soldIfEmpty);
-  if (product.postStatus !== nextStatus) {
-    product.postStatus = nextStatus;
-    await product.save();
-  }
-
-  return product;
-};
-
-const reserveProductQuantity = async (productId, requestedQuantity) => {
-  const quantity = Math.max(Number(requestedQuantity) || 1, 1);
-  const product = await ProductPost.findOneAndUpdate(
-    {
-      _id: productId,
-      quantity: { $gte: quantity },
-      postStatus: { $in: AVAILABLE_PRODUCT_STATUSES },
-    },
-    { $inc: { quantity: -quantity } },
-    { new: true }
-  );
-
-  if (!product) {
-    return null;
-  }
-
-  await syncProductAvailability(productId);
-  return product;
-};
-
-const releaseProductQuantity = async (productId, quantityToRelease) => {
-  const quantity = Math.max(Number(quantityToRelease) || 0, 0);
-  if (!quantity) {
-    return null;
-  }
-
-  await ProductPost.findByIdAndUpdate(productId, { $inc: { quantity: quantity } });
-  return syncProductAvailability(productId);
 };
 
 const getProductAvailabilityError = (product, viewerId, seller) => {
@@ -159,6 +113,9 @@ const buildOrderResponse = async (orderId, viewerId) => {
 };
 
 const createOrder = async (req, res) => {
+  let reservedProductId = null;
+  let reservedQuantity = 0;
+  let createdOrder = false;
   try {
     const { productId, buyerAddress, buyerPhone, recipientName, note, quantity: rawQuantity } = req.body;
     const io = req.app.get("io");
@@ -192,6 +149,8 @@ const createOrder = async (req, res) => {
         message: "So luong san pham hien khong con du de dat mua",
       });
     }
+    reservedProductId = productId;
+    reservedQuantity = quantity;
 
     const totalAmount = product.salePrice * quantity + SHIPPING_FEE;
     const order = await Order.create({
@@ -208,6 +167,7 @@ const createOrder = async (req, res) => {
       note: note || "",
       orderStatus: "pending",
     });
+    createdOrder = true;
 
     const populatedOrder = await Order.findById(order._id)
       .populate("buyerId", "fullName email phone")
@@ -232,6 +192,9 @@ const createOrder = async (req, res) => {
       data: populatedOrder,
     });
   } catch (error) {
+    if (reservedProductId && !createdOrder) {
+      await releaseProductQuantity(reservedProductId, reservedQuantity).catch(() => null);
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -407,7 +370,7 @@ const updateOrderStatus = async (req, res) => {
         await delivery.save();
       }
 
-      await releaseProductQuantity(order.postId, order.quantity);
+      await releaseOrderInventory(order._id);
 
       if (isSeller) {
         await sendOrderNotification(
@@ -453,6 +416,7 @@ const updateOrderStatus = async (req, res) => {
         timestamp: new Date(),
       });
       await delivery.save();
+      await commitOrderInventory(order._id);
       await syncProductAvailability(order.postId, true);
 
       await sendOrderNotification(

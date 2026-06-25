@@ -10,6 +10,28 @@ const generateToken = (id) =>
 
 const normalizeEmail = (email) => email?.trim().toLowerCase();
 
+const buildAddresses = (user) => {
+  const existing = Array.isArray(user.addresses) ? user.addresses : [];
+
+  if (existing.length) {
+    return existing;
+  }
+
+  if (!user.address && !user.phone && !user.fullName) {
+    return [];
+  }
+
+  return [
+    {
+      label: "Địa chỉ mặc định",
+      recipientName: user.fullName || "",
+      phone: user.phone || "",
+      address: user.address || "",
+      isDefault: true,
+    },
+  ];
+};
+
 const formatUser = (user) => ({
   id: user._id,
   fullName: user.fullName,
@@ -17,6 +39,7 @@ const formatUser = (user) => ({
   phone: user.phone,
   avatarUrl: user.avatarUrl,
   address: user.address,
+  addresses: buildAddresses(user),
   role: user.role,
   verificationStatus: user.verificationStatus,
   reputationScore: user.reputationScore,
