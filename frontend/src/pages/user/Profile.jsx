@@ -6,10 +6,8 @@ import userService from "../../services/user.service";
 import { authService } from "../../services/auth.service";
 
 const VER_BADGE = {
-  unverified: { label: "Chưa xác minh", cls: "bg-surface-container text-on-surface-variant" },
-  pending: { label: "Chờ duyệt KYC", cls: "bg-surface-container-high text-on-surface" },
+  unverified: { label: "Chưa xác minh email", cls: "bg-surface-container text-on-surface-variant" },
   verified: { label: "Đã xác minh", cls: "bg-white text-primary" },
-  rejected: { label: "Bị từ chối", cls: "bg-error text-on-error" },
 };
 
 const Profile = () => {
@@ -135,17 +133,7 @@ const Profile = () => {
             </div>
           </div>
 
-          {user?.verificationStatus === "unverified" ? (
-            <div className="mb-8 flex items-start gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4">
-              <span className="material-symbols-outlined flex-shrink-0 text-orange-500">warning</span>
-              <div>
-                <p className="font-semibold text-orange-900">Tài khoản chưa xác minh</p>
-                <p className="text-sm text-orange-800 mt-0.5">
-                  Vui lòng <Link to="/xac-minh-tai-khoan" className="font-bold underline">tải lên giấy tờ</Link> để bắt đầu giao dịch.
-                </p>
-              </div>
-            </div>
-          ) : null}
+
 
           <div className="mb-6 flex w-fit gap-0.5 rounded-2xl border border-surface-variant/30 bg-surface-container-lowest p-1 shadow-sm">
             {tabs.map((tab) => (

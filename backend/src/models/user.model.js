@@ -49,17 +49,9 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "shipper", "admin"],
       default: "user",
     },
-    studentCardUrl: {
-      type: String,
-      default: null,
-    },
-    citizenIdUrl: {
-      type: String,
-      default: null,
-    },
     verificationStatus: {
       type: String,
-      enum: ["unverified", "pending", "verified", "rejected"],
+      enum: ["unverified", "verified"],
       default: "unverified",
     },
     reputationScore: {
