@@ -228,9 +228,13 @@ const Marketplace = () => {
                       {/* Tên người cho thuê / người bán */}
                       {product.ownerId && (
                         <div className="flex items-center gap-1.5 mb-3">
-                          <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                            <span className="material-symbols-outlined text-[11px] text-primary">person</span>
-                          </div>
+                          {product.ownerId.avatarUrl ? (
+                            <img src={product.ownerId.avatarUrl} alt={product.ownerId.fullName} className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                              <span className="material-symbols-outlined text-[11px] text-primary">person</span>
+                            </div>
+                          )}
                           <span className="text-xs text-on-surface-variant truncate">
                             {product.ownerId.fullName || product.ownerId.name || "Ẩn danh"}
                           </span>

@@ -82,9 +82,13 @@ const Navbar = () => {
                 onClick={() => setUserMenuOpen((value) => !value)}
                 className="flex items-center gap-2 rounded-full border border-surface-variant/60 px-2.5 py-1.5 transition-colors hover:bg-surface-container-low"
               >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
-                  {displayName.charAt(0).toUpperCase() || "U"}
-                </div>
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
+                    {displayName.charAt(0).toUpperCase() || "U"}
+                  </div>
+                )}
                 <span className="hidden max-w-[90px] truncate text-sm font-medium text-on-surface md:block">
                   {displayName}
                 </span>
@@ -194,7 +198,7 @@ const Navbar = () => {
                 <NavLink to="/admin" className={linkClass} onClick={() => setMenuOpen(false)}>Trang quản trị</NavLink>
               )}
               {user.role === "shipper" && (
-                <NavLink to="/shipper" className={linkClass} onClick={() => setMenuOpen(false)}>Trang Shipper</NavLink>
+                <NavLink to="/shipper" className={linkClass} onClick={() => setMenuOpen(false)}>Trang shipper</NavLink>
               )}
             </>
           ) : (
