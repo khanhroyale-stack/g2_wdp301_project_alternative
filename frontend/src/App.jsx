@@ -4,6 +4,7 @@ import { ChatProvider } from "./context/ChatContext";
 import PrivateRoute from "./components/PrivateRoute";
 import { Toaster } from "react-hot-toast";
 import LiveChatWidget from "./components/support/LiveChatWidget";
+import UserChatWidget from "./components/chat/UserChatWidget";
 
 import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
@@ -89,6 +90,7 @@ function App() {
         <ChatProvider>
           <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
           <LiveChatWidget />
+          <UserChatWidget />
           <Routes>
             <Route path="/" element={<RoleBasedRedirect />} />
             <Route path="/dang-nhap" element={<LoginPage />} />

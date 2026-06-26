@@ -37,6 +37,7 @@ io.on("connection", (socket) => {
     socket.leave(`chat_${roomId}`);
   });
 
+  // Support chat
   socket.on("join_support", (customerId) => {
     socket.join(`support_${customerId}`);
   });
@@ -44,6 +45,8 @@ io.on("connection", (socket) => {
   socket.on("leave_support", (customerId) => {
     socket.leave(`support_${customerId}`);
   });
+
+  socket.on("disconnect", () => { });
 });
 
 module.exports.io = io;
@@ -72,11 +75,11 @@ app.use("/api/inspections", require("./routes/inspection.routes"));
 app.use("/api/shipper-reports", require("./routes/shipper_report.routes"));
 app.use("/api/rentals", require("./routes/rental.routes"));
 app.use("/api/chat", require("./routes/chat.routes"));
+app.use("/api/support-chat", require("./routes/support_chat.routes"));
 app.use("/api/notifications", require("./routes/notification.routes"));
 app.use("/api/reports", require("./routes/report.routes"));
 app.use("/api/reviews", require("./routes/review.routes"));
 app.use("/api/admin", require("./routes/stats.routes"));
-app.use("/api/support-chat", require("./routes/support_chat.routes"));
 app.use("/api/upload", require("./routes/upload.routes"));
 
 app.get("/api/health", (req, res) => {

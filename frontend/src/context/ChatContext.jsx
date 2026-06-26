@@ -10,6 +10,7 @@ export const ChatProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
+      // Lấy socket đã được khởi tạo bởi AuthContext
       const s = getSocket();
       setSocket(s);
     } else {

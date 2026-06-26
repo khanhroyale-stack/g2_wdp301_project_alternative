@@ -1,10 +1,13 @@
 const SupportMessage = require("../models/support_message.model");
 const User = require("../models/user.model");
 
+// GET /api/support-chat
+// Cho Customer lấy lịch sử chat của mình, hoặc Admin lấy lịch sử chat với 1 customer
 const getMessages = async (req, res) => {
   try {
     let customerId = req.user._id;
 
+    // Nếu là admin và truyền customerId vào query thì lấy lịch sử của khách hàng đó
     if (req.user.role === "admin" && req.query.customerId) {
       customerId = req.query.customerId;
     }
@@ -13,6 +16,7 @@ const getMessages = async (req, res) => {
       .populate("senderId", "fullName avatarUrl role")
       .sort({ createdAt: 1 });
 
+    // Mark as read cho tin nhắn người khác gửi
     await SupportMessage.updateMany(
       { customerId, senderId: { $ne: req.user._id }, isRead: false },
       { isRead: true }
@@ -24,20 +28,23 @@ const getMessages = async (req, res) => {
   }
 };
 
+// POST /api/support-chat
+// Gửi tin nhắn support
 const sendMessage = async (req, res) => {
   try {
     const { content, customerId } = req.body;
     let targetCustomerId = req.user._id;
 
+    // Nếu Admin rep thì sẽ phải có customerId
     if (req.user.role === "admin") {
       if (!customerId) {
-        return res.status(400).json({ success: false, message: "Admin cần xác định customerId" });
+        return res.status(400).json({ success: false, message: "Admin cần chỉ định customerId" });
       }
       targetCustomerId = customerId;
     }
 
     if (!content) {
-      return res.status(400).json({ success: false, message: "Nội dung không được trống" });
+      return res.status(400).json({ success: false, message: "Nội dung không được rỗng" });
     }
 
     const message = await SupportMessage.create({
@@ -48,9 +55,11 @@ const sendMessage = async (req, res) => {
 
     await message.populate("senderId", "fullName avatarUrl role");
 
+    // Emit realtime
     const io = req.app.get("io");
     if (io) {
       io.to(`support_${targetCustomerId}`).emit("new_support_message", message);
+      // Gửi event để admin update list danh sách user
       io.emit("support_list_updated");
     }
 
@@ -60,19 +69,24 @@ const sendMessage = async (req, res) => {
   }
 };
 
+// GET /api/support-chat/admin/users
+// Admin xem danh sách các khách hàng đã nhắn tin support
 const getActiveCustomers = async (req, res) => {
   try {
-    const uniqueCustomerIds = await SupportMessage.distinct("customerId");      
-
-    const customers = await User.find({ _id: { $in: uniqueCustomerIds } })      
+    // Tìm ra những user từng gửi/nhận support message
+    const uniqueCustomerIds = await SupportMessage.distinct("customerId");
+    
+    // Lấy thông tin user
+    const customers = await User.find({ _id: { $in: uniqueCustomerIds } })
       .select("fullName avatarUrl email")
       .lean();
 
+    // Tính tin nhắn cuối cùng & số lượng chưa đọc
     for (let c of customers) {
-      const lastMsg = await SupportMessage.findOne({ customerId: c._id })       
+      const lastMsg = await SupportMessage.findOne({ customerId: c._id })
         .sort({ createdAt: -1 })
         .lean();
-
+      
       const unreadCount = await SupportMessage.countDocuments({
         customerId: c._id,
         senderId: { $ne: req.user._id },

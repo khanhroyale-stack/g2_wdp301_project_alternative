@@ -42,7 +42,7 @@ const SupportManagement = () => {
         .catch(err => {
           toast.error("Lỗi lấy tin nhắn");
         });
-
+      
       if (socket) {
         socket.emit("join_support", selectedCustomer._id);
       }
@@ -112,11 +112,12 @@ const SupportManagement = () => {
         </header>
 
         <div className="flex-1 flex overflow-hidden">
+          {/* Sidebar danh sách khách hàng */}
           <div className="w-80 border-r border-gray-100 flex flex-col bg-gray-50/30">
             <div className="p-4 border-b border-gray-100">
-              <input
-                type="text"
-                placeholder="Tìm kiếm khách hàng..."
+              <input 
+                type="text" 
+                placeholder="Tìm kiếm khách hàng..." 
                 className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
@@ -125,17 +126,17 @@ const SupportManagement = () => {
                 <p className="text-center text-sm text-gray-500 mt-10">Chưa có khách hàng nào</p>
               )}
               {customers.map(c => (
-                <div
-                  key={c._id}
+                <div 
+                  key={c._id} 
                   onClick={() => setSelectedCustomer(c)}
                   className={`p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-100 transition-colors ${
                     selectedCustomer?._id === c._id ? "bg-primary/5 border-l-4 border-l-primary" : ""
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <img
-                      src={c.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.fullName)}`}
-                      alt={c.fullName}
+                    <img 
+                      src={c.avatarUrl || "https://ui-avatars.com/api/?name=" + c.fullName} 
+                      alt={c.fullName} 
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1 min-w-0">
@@ -155,13 +156,14 @@ const SupportManagement = () => {
             </div>
           </div>
 
+          {/* Cửa sổ Chat */}
           <div className="flex-1 flex flex-col bg-white">
             {selectedCustomer ? (
               <>
                 <div className="p-4 border-b border-gray-100 flex items-center gap-3">
-                  <img
-                    src={selectedCustomer.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedCustomer.fullName)}`}
-                    alt={selectedCustomer.fullName}
+                  <img 
+                    src={selectedCustomer.avatarUrl || "https://ui-avatars.com/api/?name=" + selectedCustomer.fullName} 
+                    alt={selectedCustomer.fullName} 
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div>
@@ -169,15 +171,15 @@ const SupportManagement = () => {
                     <p className="text-xs text-gray-500">{selectedCustomer.email}</p>
                   </div>
                 </div>
-
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-gray-50/50">
+                
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-slate-50/50">
                   {messages.map((msg, idx) => {
                     const isAdmin = msg.senderId.role === "admin" || msg.senderId === user._id;
                     return (
                       <div key={idx} className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[70%] rounded-2xl px-5 py-2.5 text-sm ${
-                          isAdmin
-                            ? "bg-primary text-white rounded-tr-sm"
+                          isAdmin 
+                            ? "bg-primary text-white rounded-tr-sm" 
                             : "bg-white border border-gray-200 text-gray-800 rounded-tl-sm shadow-sm"
                         }`}>
                           {msg.content}
@@ -196,8 +198,8 @@ const SupportManagement = () => {
                     placeholder="Nhập tin nhắn hỗ trợ..."
                     className="flex-1 bg-gray-100 rounded-full px-5 py-3 text-sm focus:outline-none focus:bg-white focus:ring-1 focus:ring-primary transition-all"
                   />
-                  <button
-                    type="submit"
+                  <button 
+                    type="submit" 
                     disabled={!input.trim()}
                     className="bg-primary hover:bg-primary/90 text-white w-11 h-11 flex items-center justify-center rounded-full disabled:opacity-50 transition-colors"
                   >
