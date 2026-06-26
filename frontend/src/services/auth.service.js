@@ -1,9 +1,21 @@
 import api from "./api";
 
 export const authService = {
-  // Đăng ký — trả về token + user trực tiếp
+  // Đăng ký — trả về email để chuyển sang verify OTP
   register: async (data) => {
     const res = await api.post("/auth/register", data);
+    return res.data;
+  },
+
+  // Verify email OTP
+  verifyEmail: async (data) => {
+    const res = await api.post("/auth/verify-email", data);
+    return res.data;
+  },
+
+  // Resend OTP
+  resendOTP: async (email) => {
+    const res = await api.post("/auth/resend-otp", { email });
     return res.data;
   },
 

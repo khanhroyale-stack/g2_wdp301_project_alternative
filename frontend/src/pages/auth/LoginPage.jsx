@@ -31,7 +31,11 @@ const LoginPage = () => {
       }
     } catch (err) {
       const data = err.response?.data;
-      setError(data?.message || "Email hoac mat khau khong dung.");
+      if (data?.needVerification && data?.email) {
+        navigate("/xac-thuc-email", { state: { email: data.email }, replace: true });
+      } else {
+        setError(data?.message || "Email hoac mat khau khong dung.");
+      }
     } finally {
       setLoading(false);
     }

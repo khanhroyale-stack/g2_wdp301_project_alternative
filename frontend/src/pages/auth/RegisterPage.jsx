@@ -26,11 +26,8 @@ const RegisterPage = () => {
         dateOfBirth: form.dateOfBirth || undefined,
         gender: form.gender || undefined
       });
-      if (data.user?.role === "shipper") {
-        navigate("/shipper", { replace: true });
-      } else {
-        navigate("/", { replace: true });
-      }
+      // Navigate to verify OTP page with email
+      navigate("/xac-thuc-email", { state: { email: data.email }, replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Dang ky that bai. Vui long thu lai.");
     } finally {

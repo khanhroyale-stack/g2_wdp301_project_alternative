@@ -36,6 +36,14 @@ io.on("connection", (socket) => {
   socket.on("leave_chat", (roomId) => {
     socket.leave(`chat_${roomId}`);
   });
+
+  socket.on("join_support", (customerId) => {
+    socket.join(`support_${customerId}`);
+  });
+
+  socket.on("leave_support", (customerId) => {
+    socket.leave(`support_${customerId}`);
+  });
 });
 
 module.exports.io = io;
@@ -68,6 +76,7 @@ app.use("/api/notifications", require("./routes/notification.routes"));
 app.use("/api/reports", require("./routes/report.routes"));
 app.use("/api/reviews", require("./routes/review.routes"));
 app.use("/api/admin", require("./routes/stats.routes"));
+app.use("/api/support-chat", require("./routes/support_chat.routes"));
 app.use("/api/upload", require("./routes/upload.routes"));
 
 app.get("/api/health", (req, res) => {

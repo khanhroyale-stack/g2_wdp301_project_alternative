@@ -74,6 +74,12 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (credentials) => {
     const data = await authService.register(credentials);
+    // Register doesn't return token yet, user needs to verify OTP first
+    return data;
+  };
+
+  const verifyEmail = async (credentials) => {
+    const data = await authService.verifyEmail(credentials);
     localStorage.setItem("token", data.token);
     setUser(data.user);
     setupSocket(data.user);
@@ -104,6 +110,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
+        verifyEmail,
         logout,
         refreshUser,
         unreadCount,
