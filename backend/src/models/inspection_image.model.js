@@ -12,6 +12,11 @@ const inspectionImageSchema = new mongoose.Schema(
       ref: "MediaFile",
       required: true,
     },
+    imageType: {
+      type: String,
+      enum: ["front", "back", "accessories"],
+      required: true,
+    },
   },
   {
     timestamps: true,

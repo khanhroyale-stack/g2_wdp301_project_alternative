@@ -5,12 +5,29 @@ const productImageSchema = new mongoose.Schema(
     postId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ProductPost",
-      required: true,
+      default: null,
     },
+    // Legacy seed data used this field name.
+    productPostId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ProductPost",
+      default: null,
+    },
+    mediaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MediaFile",
+      default: null,
+    },
+    // Backward compatibility for records created from the older branch.
     field: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "MediaFile",
-      required: true,
+      default: null,
+    },
+    // Legacy seed data stored raw image urls here.
+    imageUrl: {
+      type: String,
+      default: null,
     },
     isThumbnail: {
       type: Boolean,
@@ -22,7 +39,7 @@ const productImageSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false },  // chỉ createdAt, không updatedAt
+    timestamps: { createdAt: true, updatedAt: false },
     collection: "product_images",
   }
 );

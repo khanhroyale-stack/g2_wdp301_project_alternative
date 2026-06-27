@@ -5,8 +5,16 @@ const productService = {
     const response = await api.get("/products", { params });
     return response.data;
   },
+  getProductById: async (id) => {
+    const response = await api.get(`/products/${id}`);
+    return response.data;
+  },
   getProduct: async (id) => {
     const response = await api.get(`/products/${id}`);
+    return response.data;
+  },
+  getCategories: async () => {
+    const response = await api.get("/products/categories");
     return response.data;
   },
   createProduct: async (data) => {

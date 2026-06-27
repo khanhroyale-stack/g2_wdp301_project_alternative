@@ -1,6 +1,36 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+const addressSchema = new mongoose.Schema(
+  {
+    label: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    recipientName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: true, timestamps: true }
+);
+
 const userSchema = new mongoose.Schema(
   {
     fullName: {
@@ -35,6 +65,10 @@ const userSchema = new mongoose.Schema(
       default: null,
       trim: true,
     },
+    addresses: {
+      type: [addressSchema],
+      default: [],
+    },
     dateOfBirth: {
       type: Date,
       default: null,
@@ -49,7 +83,6 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "shipper", "admin"],
       default: "user",
     },
-    // Trạng thái xác thực email qua OTP (không có KYC). "verified" sau khi nhập đúng OTP.
     verificationStatus: {
       type: String,
       enum: ["unverified", "verified"],
@@ -85,6 +118,10 @@ userSchema.pre("save", async function (next) {
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!candidatePassword || !this.passwordHash) {
+    return false;
+  }
+
   return await bcrypt.compare(candidatePassword, this.passwordHash);
 };
 

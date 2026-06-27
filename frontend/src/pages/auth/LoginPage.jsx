@@ -17,18 +17,25 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const data = await login(form);
-      // Route theo role
-      if (data.user.role === "admin") navigate("/admin");
-      else if (data.user.role === "shipper") navigate("/shipper");
-      else navigate("/ho-so");
+      // Check if we have a saved location to return to
+      const from = location.state?.from?.pathname;
+      if (from) {
+        navigate(from, { replace: true });
+      } else {
+        // If no saved location, redirect based on role
+        if (data.user.role === "shipper") {
+          navigate("/shipper", { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
+      }
     } catch (err) {
       const data = err.response?.data;
-      // Chưa xác thực email → chuyển sang trang nhập OTP (backend đã gửi mã mới)
-      if (data?.needVerification) {
-        navigate("/xac-minh-otp", { state: { email: data.email || form.email } });
-        return;
+      if (data?.needVerification && data?.email) {
+        navigate("/xac-thuc-email", { state: { email: data.email }, replace: true });
+      } else {
+        setError(data?.message || "Email hoac mat khau khong dung.");
       }
-      setError(data?.message || "Email hoặc mật khẩu không đúng.");
     } finally {
       setLoading(false);
     }

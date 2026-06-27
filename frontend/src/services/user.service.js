@@ -1,11 +1,14 @@
 import api from "./api";
 
 const userService = {
-  updateProfile: (data) =>
-    api.put("/users/me", data).then((r) => r.data),
 
-  getPublicProfile: (id) =>
-    api.get(`/users/${id}`).then((r) => r.data),
+  // Lấy hồ sơ cá nhân hiện tại
+  getMyProfile: () => api.get("/users/me").then((r) => r.data),
+
+  // Cập nhật hồ sơ cá nhân hiện tại
+  updateProfile: (data) => api.put("/users/me", data).then((r) => r.data),
+
+  updateMyProfile: (data) => api.put("/users/me", data).then((r) => r.data),
 
   getReputationHistory: (userId) =>
     api.get(`/reputation/${userId}`).then((r) => r.data),

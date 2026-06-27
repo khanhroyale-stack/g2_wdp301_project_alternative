@@ -1,89 +1,110 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import usePendingSalesCount from "../hooks/usePendingSalesCount";
 
 const USER_NAV = [
-  { label: "Trang chủ", icon: "home", to: "/" },
+  { label: "Marketplace", icon: "storefront", to: "/marketplaces" },
   { label: "Tổng quan", icon: "dashboard", to: "/ho-so" },
   { label: "Bài đăng của tôi", icon: "inventory_2", to: "/quan-ly/bai-dang" },
-  { label: "Đơn mua hàng", icon: "shopping_bag", to: "/don-hang" },
-  { label: "Thuê & mượn", icon: "handshake", to: "/thue-muon" },
+  { label: "Đơn mua", icon: "shopping_bag", to: "/don-hang" },
+  { label: "Đơn bán", icon: "local_mall", to: "/don-ban" },
+  { label: "Thuê và mượn", icon: "handshake", to: "/thue-muon" },
   { label: "Tin nhắn", icon: "chat", to: "/tin-nhan" },
   { label: "Thông báo", icon: "notifications", to: "/thong-bao" },
 ];
 
 const ADMIN_NAV = [
-  { label: "Trang chủ", icon: "home", to: "/" },
+  { label: "Marketplace", icon: "storefront", to: "/marketplaces" },
   { label: "Tổng quan", icon: "dashboard", to: "/admin" },
   { label: "Duyệt bài đăng", icon: "fact_check", to: "/admin/duyet-bai-dang" },
   { label: "Quản lý người dùng", icon: "group", to: "/admin/nguoi-dung" },
   { label: "Quản lý danh mục", icon: "category", to: "/admin/danh-muc" },
   { label: "Báo cáo vi phạm", icon: "report", to: "/admin/bao-cao" },
+  { label: "Hỗ trợ trực tuyến", icon: "support_agent", to: "/admin/support" },
   { label: "Đơn hàng", icon: "receipt_long", to: "/admin/don-hang" },
   { label: "Hợp đồng thuê", icon: "description", to: "/admin/hop-dong" },
+  { label: "Quản lý shipper", icon: "local_shipping", to: "/admin/shippers" },
+  { label: "Lịch sử giao hàng", icon: "route", to: "/admin/giao-hang" },
+  { label: "Biên bản kiểm định", icon: "fact_check", to: "/admin/kiem-dinh" },
+  { label: "Báo cáo giao hàng", icon: "warning", to: "/admin/bao-cao-giao-hang" },
+  { label: "Hỗ trợ trực tuyến", icon: "support_agent", to: "/admin/hotro" },
 ];
 
 const SHIPPER_NAV = [
-  { label: "Trang chủ", icon: "home", to: "/" },
-  { label: "Tổng quan", icon: "dashboard", to: "/shipper" },
-  { label: "Đơn cần giao", icon: "local_shipping", to: "/shipper/don-can-giao" },
-  { label: "Đơn đang giao", icon: "pending_actions", to: "/shipper/dang-giao" },
+  { label: "Marketplace", icon: "storefront", to: "/marketplaces" },
+  { label: "Đơn có thể nhận", icon: "local_shipping", to: "/shipper" },
 ];
 
 const Sidebar = ({ variant = "user" }) => {
   const { user, logout, unreadCount } = useAuth();
+  const pendingSalesCount = usePendingSalesCount();
   const navigate = useNavigate();
   const navItems = variant === "admin" ? ADMIN_NAV : variant === "shipper" ? SHIPPER_NAV : USER_NAV;
-  const titleMap = { admin: "Quản trị viên", shipper: "Shipper", user: "Người dùng" };
+  const titleMap = {
+    admin: "Quản trị viên",
+    shipper: "Shipper",
+    user: "Người dùng",
+  };
   const displayName = user?.fullName || user?.name || "";
 
   return (
-    <aside className="hidden md:flex flex-col bg-surface-bright w-64 flex-shrink-0 fixed left-0 top-0 h-screen border-r border-surface-variant z-40">
-      {/* Header */}
-      <div className="px-5 py-5 flex items-center gap-3 border-b border-surface-variant/40">
-        <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-on-primary text-sm font-bold flex-shrink-0">
-          E
+
+    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 shrink-0 flex-col border-r border-surface-variant/60 bg-[linear-gradient(180deg,#fbfdfb_0%,#f0f6f2_100%)] font-sans md:flex">
+      <div className="flex items-center gap-3 border-b border-surface-variant/40 px-6 py-6">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-sm font-bold text-on-primary shadow-sm">
+          {displayName.charAt(0).toUpperCase() || "U"}
         </div>
         <div className="min-w-0">
-          <h1 className="font-bold text-primary text-sm tracking-tight truncate">EcoTrade</h1>
-          <p className="text-xs text-on-surface-variant">{titleMap[variant]}</p>
-        </div>      </div>
+          <h1 className="truncate text-base font-extrabold tracking-tight text-primary">EcoTrade</h1>
+          <p className="text-xs font-medium text-on-surface-variant">{titleMap[variant]}</p>
+        </div>
+      </div>
 
-      {/* Nav */}
-      <nav className="flex-1 flex flex-col gap-0.5 py-3 px-3 overflow-y-auto">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4">
         {navItems.map((item) => (
-          <NavLink key={item.label} to={item.to} end={item.to.split("/").length <= 2}
+          <NavLink
+            key={item.label}
+            to={item.to}
+            end={item.to.split("/").length <= 2}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm ${isActive
-                ? "bg-secondary-container text-on-secondary-container font-semibold"
-                : "text-on-surface-variant hover:bg-surface-container-low"
+              `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all ${isActive
+                ? "bg-primary font-semibold text-on-primary shadow-sm"
+                : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
               }`
             }
           >
             <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-            <span className="truncate flex-1">{item.label}</span>
-            {item.to === "/thong-bao" && unreadCount > 0 && (
-              <span className="w-5 h-5 bg-error text-on-error text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="flex-1 truncate">{item.label}</span>
+            {item.to === "/thong-bao" && unreadCount > 0 ? (
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-error text-[10px] font-bold text-on-error">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
-            )}
+            ) : null}
+            {item.to === "/don-ban" && pendingSalesCount > 0 ? (
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-warning px-1.5 text-[10px] font-bold text-warning-foreground">
+                {pendingSalesCount}
+              </span>
+            ) : null}
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 py-4 border-t border-surface-variant/40 space-y-0.5">
-        <div className="flex items-center gap-3 px-3 py-2 mb-1">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+      <div className="space-y-1 border-t border-surface-variant/40 px-4 py-4">
+        <div className="mb-1 flex items-center gap-3 rounded-2xl bg-surface-container-lowest/70 px-4 py-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-xs font-bold text-primary">
             {displayName.charAt(0).toUpperCase() || "?"}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-on-surface truncate">{displayName}</p>
+            <p className="truncate text-sm font-semibold text-on-surface">{displayName}</p>
             <p className="text-xs text-on-surface-variant">{titleMap[user?.role] || "Người dùng"}</p>
           </div>
         </div>
         <button
-          onClick={() => { logout(); navigate("/"); }}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-error hover:bg-error/5 transition-all w-full"
+          onClick={() => {
+            logout();
+            navigate("/marketplaces");
+          }}
+          className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold text-error transition-all hover:bg-error/5"
         >
           <span className="material-symbols-outlined text-[20px]">logout</span>
           Đăng xuất

@@ -1,188 +1,277 @@
 const DeliveryInspection = require("../models/delivery_inspection.model");
-const RentalInspection = require("../models/rental_inspection.model");
 const Delivery = require("../models/delivery.model");
+const Order = require("../models/order.model");
+const InspectionImage = require("../models/inspection_image.model");
+const ProductPost = require("../models/product_post.model");
+const MediaFile = require("../models/media_file.model");
+const { normalizeInspectionOutcome, validateInspectionOutcome } = require("../utils/business-rules");
+
+const REQUIRED_IMAGE_TYPES = ["front", "back", "accessories"];
+
+const canAccessDelivery = async (deliveryId, user) => {
+  if (user.role === "admin") return true;
+  const delivery = await Delivery.findById(deliveryId).populate("orderId", "buyerId sellerId").lean();
+  if (!delivery) return false;
+  const userId = String(user._id);
+  return String(delivery.shipperId || "") === userId
+    || String(delivery.orderId?.buyerId || "") === userId
+    || String(delivery.orderId?.sellerId || "") === userId;
+};
+
+const attachInspectionImages = async (inspection) => {
+  const images = await InspectionImage.find({ inspectionId: inspection._id })
+    .populate("mediaId", "publicUrl originalName")
+    .lean();
+  inspection.images = images.map((image) => ({
+    _id: image._id,
+    imageType: image.imageType,
+    mediaId: image.mediaId?._id || image.mediaId,
+    imageUrl: image.mediaId?.publicUrl || null,
+  }));
+};
+
+const restoreOrderInventory = async (order) => {
+  if (!order?.postId) return;
+  await ProductPost.findByIdAndUpdate(order.postId, {
+    $inc: { quantity: Math.max(Number(order.quantity) || 1, 1) },
+    $set: { postStatus: "available" },
+  });
+};
 
 const createInspection = async (req, res) => {
   try {
     const {
       deliveryId,
-      rentalContractId,
       inspectionType,
+      conditionNote,
+      isMatchDescription,
+      isDamagedByShipper,
       isCorrectProduct,
       isCorrectImage,
       isCorrectModel,
       isCorrectCondition,
       isAccessoriesEnough,
-      isMatchDescription,
-      conditionNote,
       result,
-      isDamagedByShipper,
+      faultType,
+      inspectionImages,
     } = req.body;
 
-    if (rentalContractId) {
-      const inspection = await RentalInspection.create({
-        contractId: rentalContractId,
-        inspectorId: req.user._id,
-        inspectionType: inspectionType || "handover",
-        conditionNote: conditionNote || "",
-        damageNote: conditionNote || "",
+    const outcome = normalizeInspectionOutcome(result, faultType);
+
+    if (!deliveryId || !inspectionType || !result) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui long dien day du thong tin",
       });
-      return res.status(201).json({ success: true, data: inspection });
-    } else if (deliveryId) {
-      // Kiểm tra xem shipper có phải là người nhận đơn này không
-      const delivery = await Delivery.findById(deliveryId);
-      if (!delivery) {
-        return res.status(404).json({ success: false, message: "Không tìm thấy đơn giao hàng" });
-      }
-
-      if (delivery.shipperId.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ success: false, message: "Bạn không có quyền tạo biên bản cho đơn này" });
-      }
-
-      const inspection = await DeliveryInspection.create({
-        deliveryId: deliveryId,
-        shipperId: req.user._id,
-        inspectionType: inspectionType || "pickup",
-        isCorrectProduct: isCorrectProduct !== undefined ? isCorrectProduct : true,
-        isCorrectImage: isCorrectImage !== undefined ? isCorrectImage : true,
-        isCorrectModel: isCorrectModel !== undefined ? isCorrectModel : true,
-        isCorrectCondition: isCorrectCondition !== undefined ? isCorrectCondition : true,
-        isAccessoriesEnough: isAccessoriesEnough !== undefined ? isAccessoriesEnough : true,
-        isMatchDescription: isMatchDescription !== undefined ? isMatchDescription : true,
-        conditionNote: conditionNote || "",
-        result: result || "passed",
-        isDamagedByShipper: isDamagedByShipper !== undefined ? isDamagedByShipper : false,
-      });
-
-      return res.status(201).json({ success: true, data: inspection });
-    } else {
-      return res.status(400).json({ success: false, message: "Cần deliveryId hoặc rentalContractId" });
     }
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
+    const outcomeError = validateInspectionOutcome({
+      ...outcome,
+      checks: [isCorrectProduct, isCorrectImage, isCorrectModel, isCorrectCondition, isAccessoriesEnough],
+    });
+    if (outcomeError) return res.status(400).json({ success: false, message: outcomeError });
 
-const getInspection = async (req, res) => {
-  try {
-    let inspection = await RentalInspection.findById(req.params.id)
-      .populate("inspectorId", "fullName phone")
-      .populate("contractId");
-
-    if (!inspection) {
-      inspection = await DeliveryInspection.findById(req.params.id)
-        .populate("shipperId", "fullName phone")
-        .populate("deliveryId");
+    const normalizedImages = Array.isArray(inspectionImages) ? inspectionImages : [];
+    const providedTypes = new Set(normalizedImages.map((image) => image.imageType));
+    if (normalizedImages.length !== REQUIRED_IMAGE_TYPES.length || REQUIRED_IMAGE_TYPES.some((type) => !providedTypes.has(type))) {
+      return res.status(400).json({
+        success: false,
+        message: "Bat buoc co du anh mat truoc, mat sau va phu kien",
+      });
     }
 
-    if (!inspection) return res.status(404).json({ success: false, message: "Không tìm thấy biên bản" });
-    res.json({ success: true, data: inspection });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
+    const mediaIds = normalizedImages.map((image) => image.mediaId);
+    if (new Set(mediaIds.map(String)).size !== REQUIRED_IMAGE_TYPES.length) {
+      return res.status(400).json({ success: false, message: "Anh kiem dinh khong duoc trung lap" });
+    }
+    const ownedMediaCount = await MediaFile.countDocuments({
+      _id: { $in: mediaIds },
+      uploadedBy: req.user._id,
+      fileType: "inspection",
+    });
+    if (ownedMediaCount !== REQUIRED_IMAGE_TYPES.length) {
+      return res.status(400).json({ success: false, message: "Anh kiem dinh khong hop le" });
+    }
 
-const getInspectionsByOrder = async (req, res) => {
-  try {
-    // Tìm delivery theo orderId
-    const delivery = await Delivery.findOne({ orderId: req.params.orderId });
+    const delivery = await Delivery.findById(deliveryId);
     if (!delivery) {
-      return res.json({ success: true, data: [] });
+      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
     }
 
-    const inspections = await DeliveryInspection.find({ deliveryId: delivery._id })
+    if (String(delivery.shipperId) !== String(req.user._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Ban khong co quyen tao bien ban cho don nay",
+      });
+    }
+
+    if (!["picked_up", "in_transit"].includes(delivery.deliveryStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Chi co the lap bien ban sau khi da lay hang",
+      });
+    }
+
+    const existingInspection = await DeliveryInspection.findOne({
+      deliveryId,
+      inspectionType,
+    }).lean();
+    if (existingInspection) {
+      return res.status(400).json({
+        success: false,
+        message: "Bien ban kiem tra cho buoc nay da ton tai",
+      });
+    }
+
+    const inspection = await DeliveryInspection.create({
+      deliveryId,
+      shipperId: req.user._id,
+      inspectionType,
+      conditionNote: conditionNote || "",
+      isMatchDescription: isMatchDescription !== false,
+      isDamagedByShipper: !!isDamagedByShipper,
+      isCorrectProduct: isCorrectProduct !== false,
+      isCorrectImage: isCorrectImage !== false,
+      isCorrectModel: isCorrectModel !== false,
+      isCorrectCondition: isCorrectCondition !== false,
+      isAccessoriesEnough: isAccessoriesEnough !== false,
+      result: outcome.result,
+      faultType: outcome.faultType,
+    });
+
+    await InspectionImage.insertMany(normalizedImages.map((image) => ({
+      inspectionId: inspection._id,
+      mediaId: image.mediaId,
+      imageType: image.imageType,
+    })));
+
+    if (outcome.result === "failed") {
+      delivery.deliveryStatus = "failed";
+      delivery.failureReason =
+        outcome.faultType === "seller"
+          ? "San pham khong dung mo ta cua seller."
+          : "San pham bi hu hong trong qua trinh xu ly cua shipper.";
+      delivery.history.push({
+        status: "failed",
+        note: delivery.failureReason,
+        timestamp: new Date(),
+      });
+      await delivery.save();
+
+      const order = await Order.findByIdAndUpdate(delivery.orderId, {
+        orderStatus: "cancelled",
+        cancelReason: delivery.failureReason,
+      }, { new: true }).lean();
+
+      await restoreOrderInventory(order);
+    }
+
+    const populatedInspection = await DeliveryInspection.findById(inspection._id)
       .populate("shipperId", "fullName phone")
-      .sort({ createdAt: -1 });
-    res.json({ success: true, data: inspections });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+      .populate({
+        path: "deliveryId",
+        populate: {
+          path: "orderId",
+          populate: { path: "postId", select: "title" },
+        },
+      })
+      .lean();
+    await attachInspectionImages(populatedInspection);
+
+    res.status(201).json({
+      success: true,
+      message: "Tao bien ban kiem tra thanh cong",
+      data: populatedInspection,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const getInspectionsByRental = async (req, res) => {
+const getInspectionsByDelivery = async (req, res) => {
   try {
-    const inspections = await RentalInspection.find({ contractId: req.params.rentalId })
-      .populate("inspectorId", "fullName phone")
-      .sort({ createdAt: -1 });
+    if (!(await canAccessDelivery(req.params.deliveryId, req.user))) {
+      return res.status(403).json({ success: false, message: "Ban khong co quyen xem bien ban nay" });
+    }
+    const inspections = await DeliveryInspection.find({
+      deliveryId: req.params.deliveryId,
+    })
+      .populate("shipperId", "fullName phone")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    for (const inspection of inspections) {
+      await attachInspectionImages(inspection);
+    }
+
     res.json({ success: true, data: inspections });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const updateInspection = async (req, res) => {
+const getInspectionById = async (req, res) => {
   try {
-    const {
-      conditionNote,
-      isCorrectProduct,
-      isCorrectImage,
-      isCorrectModel,
-      isCorrectCondition,
-      isAccessoriesEnough,
-      isMatchDescription,
-      result,
-      isDamagedByShipper,
-    } = req.body;
-
-    let isRental = true;
-    let inspection = await RentalInspection.findById(req.params.id);
+    const inspection = await DeliveryInspection.findById(req.params.id)
+      .populate("shipperId", "fullName phone email")
+      .populate({
+        path: "deliveryId",
+        populate: [
+          {
+            path: "orderId",
+            populate: [
+              { path: "buyerId", select: "fullName phone" },
+              { path: "sellerId", select: "fullName phone" },
+              { path: "postId", select: "title salePrice" },
+            ],
+          },
+        ],
+      })
+      .lean();
 
     if (!inspection) {
-      isRental = false;
-      inspection = await DeliveryInspection.findById(req.params.id);
+      return res.status(404).json({ success: false, message: "Khong tim thay bien ban kiem tra" });
     }
 
-    if (!inspection) return res.status(404).json({ success: false, message: "Không tìm thấy" });
 
-    const ownerField = isRental ? inspection.inspectorId : inspection.shipperId;
-    if (ownerField.toString() !== req.user._id.toString())
-      return res.status(403).json({ success: false, message: "Không có quyền" });
-
-    if (isRental) {
-      if (conditionNote) inspection.conditionNote = conditionNote;
-      if (conditionNote) inspection.damageNote = conditionNote;
-    } else {
-      if (conditionNote !== undefined) inspection.conditionNote = conditionNote;
-      if (isCorrectProduct !== undefined) inspection.isCorrectProduct = isCorrectProduct;
-      if (isCorrectImage !== undefined) inspection.isCorrectImage = isCorrectImage;
-      if (isCorrectModel !== undefined) inspection.isCorrectModel = isCorrectModel;
-      if (isCorrectCondition !== undefined) inspection.isCorrectCondition = isCorrectCondition;
-      if (isAccessoriesEnough !== undefined) inspection.isAccessoriesEnough = isAccessoriesEnough;
-      if (isMatchDescription !== undefined) inspection.isMatchDescription = isMatchDescription;
-      if (result !== undefined) inspection.result = result;
-      if (isDamagedByShipper !== undefined) inspection.isDamagedByShipper = isDamagedByShipper;
+    const deliveryId = inspection.deliveryId?._id || inspection.deliveryId;
+    if (!(await canAccessDelivery(deliveryId, req.user))) {
+      return res.status(403).json({ success: false, message: "Ban khong co quyen xem bien ban nay" });
     }
 
-    await inspection.save();
+    await attachInspectionImages(inspection);
+
     res.json({ success: true, data: inspection });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const adminGetAllInspections = async (req, res) => {
+const getMyInspections = async (req, res) => {
   try {
-    const rentalInspections = await RentalInspection.find()
-      .populate("inspectorId", "fullName")
-      .sort({ createdAt: -1 }).lean();
+    const inspections = await DeliveryInspection.find({ shipperId: req.user._id })
+      .populate({
+        path: "deliveryId",
+        populate: {
+          path: "orderId",
+          populate: { path: "postId", select: "title" },
+        },
+      })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    const deliveryInspections = await DeliveryInspection.find()
-      .populate("shipperId", "fullName")
-      .sort({ createdAt: -1 }).lean();
+    for (const inspection of inspections) {
+      await attachInspectionImages(inspection);
+    }
 
-    const combined = [...rentalInspections, ...deliveryInspections].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    res.json({ success: true, data: combined });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, data: inspections });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 module.exports = {
   createInspection,
-  getInspection,
-  getInspectionsByOrder,
-  getInspectionsByRental,
-  updateInspection,
-  adminGetAllInspections,
+  getInspectionsByDelivery,
+  getInspectionById,
+  getMyInspections,
 };

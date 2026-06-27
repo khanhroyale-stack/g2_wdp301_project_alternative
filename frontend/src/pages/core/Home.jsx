@@ -28,7 +28,7 @@ const Home = () => {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const res = await productService.getProducts({ limit: 4, sort: "createdAt" });
+        const res = await productService.getProducts({ limit: 4, sort: "newest" });
         if (res.success) {
           setFeaturedProducts(res.data);
         }
@@ -43,7 +43,7 @@ const Home = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    navigate(`/marketplace${search.trim() ? `?q=${encodeURIComponent(search)}` : ""}`);
+    navigate(`/marketplaces${search.trim() ? `?q=${encodeURIComponent(search)}` : ""}`);
   };
 
   return (
@@ -89,7 +89,7 @@ const Home = () => {
           <div className="flex flex-wrap gap-3 justify-center mt-8">
             <span className="text-sm font-medium text-on-surface-variant py-1.5 mr-2">Gợi ý:</span>
             {["Laptop cũ", "Sách giáo trình", "Xe đạp", "Quạt sinh viên", "Máy ảnh"].map((tag) => (
-              <button key={tag} onClick={() => navigate(`/marketplace?q=${tag}`)}
+              <button key={tag} onClick={() => navigate(`/marketplaces?q=${tag}`)}
                 className="px-4 py-1.5 bg-white/50 backdrop-blur-sm border border-surface-variant/50 rounded-full text-sm font-medium text-on-surface-variant hover:bg-primary hover:text-on-primary hover:border-primary transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
                 {tag}
               </button>
@@ -128,7 +128,7 @@ const Home = () => {
               <h2 className="text-3xl font-bold text-on-surface mb-2">Đăng bán mới nhất</h2>
               <p className="text-on-surface-variant text-lg">Những món đồ vừa được lên kệ.</p>
             </div>
-            <Link to="/marketplace" className="text-primary font-semibold hover:text-primary-fixed transition-colors flex items-center gap-1 group">
+            <Link to="/marketplaces" className="text-primary font-semibold hover:text-primary-fixed transition-colors flex items-center gap-1 group">
               Xem tất cả <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
             </Link>
           </div>
@@ -193,7 +193,7 @@ const Home = () => {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {CATEGORIES.map((cat) => (
-              <Link key={cat.label} to={`/marketplace?category=${cat.q}`}
+              <Link key={cat.label} to={`/marketplaces?category=${cat.q}`}
                 className="group relative rounded-3xl overflow-hidden aspect-square shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block">
                 <img src={cat.img} alt={cat.label} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />

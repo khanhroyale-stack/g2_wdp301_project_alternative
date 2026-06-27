@@ -76,8 +76,7 @@ const PostApprovals = () => {
 
   const getImageUrl = (img) => {
     if (!img) return null;
-    if (img.startsWith("http")) return img;
-    return `http://localhost:5000${img}`;
+    return img;
   };
 
   const formatPrice = (num) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(num || 0);
@@ -85,7 +84,7 @@ const PostApprovals = () => {
   return (
     <div className="flex min-h-screen bg-[#F5F5F7]">
       <Sidebar variant="admin" />
-      <main className="flex-1 md:ml-64 px-4 md:px-10 py-10">
+      <main className="flex-1 md:ml-72 px-4 md:px-10 py-10">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl font-bold text-on-surface mb-8">Duyệt bài đăng</h1>
           <div className="flex gap-1 bg-surface-container rounded-xl p-1 w-fit mb-8">

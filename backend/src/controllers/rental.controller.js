@@ -51,8 +51,8 @@ const createRentalRequest = async (req, res) => {
     const product = await ProductPost.findById(req.body.productId).populate("ownerId", "fullName");
     if (!product)
       return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
-    if (product.postStatus !== "approved")
-      return res.status(400).json({ success: false, message: "Sản phẩm chưa được duyệt" });
+    if (!["approved", "available"].includes(product.postStatus))
+      return res.status(400).json({ success: false, message: "Sản phẩm chưa được duyệt hoặc không khả dụng" });
     if (product.productType === "sale")
       return res.status(400).json({ success: false, message: "Sản phẩm này không cho thuê" });
     if (!product.ownerId)
@@ -81,11 +81,7 @@ const createRentalRequest = async (req, res) => {
     const rentalFee = calcRentalFee(product, totalDays);
     const depositAmount = product.depositAmount || 0;
 
-    // Tắt validator Atlas trước khi insert (tránh lỗi "Document failed validation")
-    try {
-      const db = require("mongoose").connection.db;
-      await db.command({ collMod: "rental_requests", validator: {}, validationLevel: "off" });
-    } catch (_) {}
+    // Bỏ tắt validator Atlas runtime theo kế hoạch fix #14
 
     const request = await RentalRequest.create({
       renterId: req.user._id,
@@ -202,11 +198,7 @@ const updateRentalStatus = async (req, res) => {
         request.requestStatus = "approved";
         await request.save();
 
-        // Tắt validator trước khi tạo contract
-        try {
-          const db = require("mongoose").connection.db;
-          await db.command({ collMod: "rental_contracts", validator: {}, validationLevel: "off" });
-        } catch (_) {}
+        // Bỏ tắt validator Atlas runtime theo kế hoạch fix #14
 
         const contract = await RentalContract.create({
           requestId: request._id,
@@ -440,7 +432,7 @@ const extendRental = async (req, res) => {
       return res.status(400).json({ success: false, message: "Số ngày gia hạn không hợp lệ" });
 
     const contract = await RentalContract.findById(req.params.id).populate("postId");
-    if (!contract || contract.contractStatus !== "active")
+    if (!contract || !["active", "renting"].includes(contract.contractStatus))
       return res.status(400).json({ success: false, message: "Hợp đồng không khả dụng để gia hạn" });
 
     if (contract.renterId.toString() !== req.user._id.toString())

@@ -4,15 +4,11 @@ import adminService from "../../services/admin.service";
 import userService from "../../services/user.service";
 import toast from "react-hot-toast";
 
-// accountStatus trong model: "active" | "banned"
-// verificationStatus (xác minh email OTP, KHÔNG KYC): "unverified" | "verified"
+// accountStatus trong model: "active" | "inactive" | "banned"
 const ACC_BADGE = {
-  active: { label: "Hoạt động", color: "bg-secondary-container text-on-secondary-container" },
-  banned: { label: "Bị khóa", color: "bg-error text-on-error" },
-};
-const VER_BADGE = {
-  unverified: { label: "Chưa XM", color: "bg-surface-container text-on-surface-variant" },
-  verified: { label: "Đã XM", color: "bg-secondary-container text-on-secondary-container" },
+  active: { label: "Hoat dong", color: "bg-secondary-container text-on-secondary-container" },
+  inactive: { label: "Chua kich hoat", color: "bg-surface-container text-on-surface-variant" },
+  banned: { label: "Bi khoa", color: "bg-error text-on-error" },
 };
 const ROLE_MAP = { user: "Người dùng", admin: "Quản trị", shipper: "Shipper" };
 
@@ -59,11 +55,13 @@ const UserManagement = () => {
     try {
       const res = await adminService.deductReputation(showDeduct._id, { violationLevel, reason });
       if (res.success) {
-        toast.success(`Đã trừ điểm uy tín`);
+        toast.success(res.message || `Đã trừ điểm uy tín`);
         setShowDeduct(null);
         setReason("");
         setViolationLevel("warning");
         fetchUsers();
+      } else {
+        toast.error(res.message || "Lỗi trừ điểm");
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Lỗi trừ điểm");
@@ -131,7 +129,7 @@ const UserManagement = () => {
   return (
     <div className="flex min-h-screen bg-[#F5F5F7]">
       <Sidebar variant="admin" />
-      <main className="flex-1 md:ml-64 px-4 md:px-10 py-10">
+      <main className="flex-1 md:ml-72 px-4 md:px-10 py-10">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
             <h1 className="text-2xl font-bold text-on-surface">Quản lý người dùng</h1>
@@ -155,7 +153,7 @@ const UserManagement = () => {
                 <table className="w-full text-left">
                   <thead className="bg-surface-bright/70 border-b border-surface-variant/50">
                     <tr>
-                      {["Người dùng", "Vai trò", "Xác minh", "Uy tín", "Tài khoản", "Tham gia", ""].map((h) => (
+                      {["Nguoi dung", "Vai tro", "Uy tin", "Tai khoan", "Tham gia", ""].map((h) => (
                         <th key={h} className="px-4 py-3.5 text-xs font-bold text-on-surface-variant uppercase tracking-wider">{h}</th>
                       ))}
                     </tr>
@@ -163,7 +161,6 @@ const UserManagement = () => {
                   <tbody className="divide-y divide-surface-variant/30">
                     {filtered.map((u) => {
                       const accBadge = ACC_BADGE[u.accountStatus] || ACC_BADGE.active;
-                      const verBadge = VER_BADGE[u.verificationStatus] || VER_BADGE.unverified;
                       const displayName = u.fullName || u.name || "";
                       return (
                         <tr key={u._id} className="hover:bg-surface-bright/40 transition-colors">
@@ -184,11 +181,6 @@ const UserManagement = () => {
                           <td className="px-4 py-4">
                             <span className="text-xs px-2.5 py-1 bg-surface-container text-on-surface-variant rounded-full">
                               {ROLE_MAP[u.role] || u.role}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${verBadge.color}`}>
-                              {verBadge.label}
                             </span>
                           </td>
                           <td className="px-4 py-4">
@@ -321,14 +313,13 @@ const UserManagement = () => {
                         <div className="flex flex-wrap gap-3 text-xs text-on-surface-variant mt-1">
                           <span>{new Date(log.createdAt).toLocaleDateString("vi-VN")}</span>
                           <span>Bởi: {log.changedBy?.fullName || "Admin"}</span>
-                          <span className={`font-semibold ${
-                            log.violationLevel === "major" ? "text-error"
-                            : log.violationLevel === "minor" ? "text-amber-600"
-                            : "text-on-surface-variant"
-                          }`}>
+                          <span className={`font-semibold ${log.violationLevel === "major" ? "text-error"
+                              : log.violationLevel === "minor" ? "text-amber-600"
+                                : "text-on-surface-variant"
+                            }`}>
                             {log.violationLevel === "major" ? "Vi phạm nặng"
                               : log.violationLevel === "minor" ? "Vi phạm vừa"
-                              : "Cảnh báo"}
+                                : "Cảnh báo"}
                           </span>
                         </div>
                       </div>

@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { io } from "socket.io-client";
-import { useAuth } from "./AuthContext"; // Giả sử AuthContext expose useAuth
+import { createContext, useContext, useEffect, useState } from "react";
+import { getSocket } from "../services/socket";
+import { useAuth } from "./AuthContext";
 
-const ChatContext = createContext();
+const ChatContext = createContext(null);
 
 export const ChatProvider = ({ children }) => {
   const { user } = useAuth();
@@ -10,13 +10,11 @@ export const ChatProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const newSocket = io(import.meta.env.VITE_API_URL || "http://localhost:5000", {
-        withCredentials: true,
-      });
-
-      setSocket(newSocket);
-
-      return () => newSocket.close();
+      // Lấy socket đã được khởi tạo bởi AuthContext
+      const s = getSocket();
+      setSocket(s);
+    } else {
+      setSocket(null);
     }
   }, [user]);
 
@@ -27,4 +25,8 @@ export const ChatProvider = ({ children }) => {
   );
 };
 
-export const useChat = () => useContext(ChatContext);
+export const useChat = () => {
+  const ctx = useContext(ChatContext);
+  if (!ctx) throw new Error("useChat phải được dùng trong ChatProvider");
+  return ctx;
+};
