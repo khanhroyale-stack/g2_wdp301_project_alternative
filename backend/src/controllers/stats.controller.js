@@ -51,6 +51,34 @@ const getStats = async (req, res) => {
       Review.countDocuments({}),
     ]);
 
+    // Chuỗi 7 ngày gần nhất cho biểu đồ dashboard
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+    const dayBucket = (dateField) => [
+      { $match: { [dateField]: { $gte: sevenDaysAgo } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: `$${dateField}` } }, count: { $sum: 1 } } },
+    ];
+
+    const [ordersByDay, usersByDay] = await Promise.all([
+      Order.aggregate(dayBucket("createdAt")),
+      User.aggregate(dayBucket("createdAt")),
+    ]);
+
+    const buildSeries = (rows) => {
+      const map = new Map(rows.map((r) => [r._id, r.count]));
+      const series = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        series.push({ date: key, label: `${d.getDate()}/${d.getMonth() + 1}`, count: map.get(key) || 0 });
+      }
+      return series;
+    };
+
     res.json({
       success: true,
       data: {
@@ -61,6 +89,7 @@ const getStats = async (req, res) => {
         reports: { total: totalReports, pending: pendingReports, resolved: resolvedReports },
         shippers: { total: totalShippers },
         reviews: { total: totalReviews },
+        timeseries: { orders: buildSeries(ordersByDay), users: buildSeries(usersByDay) },
       },
     });
   } catch (err) {

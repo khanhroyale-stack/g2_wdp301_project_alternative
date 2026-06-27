@@ -10,6 +10,9 @@ const userService = {
 
   updateMyProfile: (data) => api.put("/users/me", data).then((r) => r.data),
 
+  // Hồ sơ công khai của 1 user
+  getPublicProfile: (id) => api.get(`/users/${id}`).then((r) => r.data),
+
   getReputationHistory: (userId) =>
     api.get(`/reputation/${userId}`).then((r) => r.data),
 

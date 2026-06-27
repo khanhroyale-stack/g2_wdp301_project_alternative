@@ -42,8 +42,13 @@ const buildMarketplaceFilter = (query) => {
     sort
   } = query;
   const type = normalizeProductType(query.type || query.listingType || query.productType);
+  const owner = query.owner || query.ownerId;
 
   const filter = { postStatus: { $in: MARKETPLACE_STATUSES } };
+
+  if (owner) {
+    filter.ownerId = owner;
+  }
 
   if (category) {
     filter.categoryId = category;

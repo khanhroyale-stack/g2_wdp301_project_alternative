@@ -19,6 +19,12 @@ const FEATURES = [
   { icon: "local_shipping", title: "Shipper kiểm tra hàng", desc: "Đảm bảo chất lượng trước khi thanh toán." },
 ];
 
+const HOW_STEPS = [
+  { icon: "edit_note", title: "Đăng tin", desc: "Đăng món đồ bạn muốn bán hoặc cho thuê chỉ trong vài phút — hoàn toàn miễn phí." },
+  { icon: "forum", title: "Kết nối & Trao đổi", desc: "Nhắn tin trực tiếp với người mua/thuê để thống nhất giá cả và thời gian." },
+  { icon: "verified", title: "Giao dịch an toàn", desc: "Shipper kiểm tra hàng, thanh toán đảm bảo và đánh giá uy tín sau giao dịch." },
+];
+
 const Home = () => {
   const [search, setSearch] = useState("");
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -120,8 +126,35 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Sản phẩm nổi bật */}
+      {/* Cách hoạt động */}
       <section className="py-20 px-4 md:px-10 bg-surface-container-lowest">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-xs font-bold text-primary uppercase tracking-widest mb-3">Đơn giản - Nhanh chóng</p>
+            <h2 className="text-3xl font-bold text-on-surface mb-4">Cách hoạt động</h2>
+            <p className="text-on-surface-variant max-w-2xl mx-auto text-lg">Chỉ với 3 bước để bắt đầu mua, bán hoặc cho thuê trên EcoTrade.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            {HOW_STEPS.map((step, i) => (
+              <div key={step.title} className="relative flex flex-col items-center text-center">
+                <div className="relative mb-6">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-tertiary flex items-center justify-center shadow-lg shadow-primary/20">
+                    <span className="material-symbols-outlined text-3xl text-white">{step.icon}</span>
+                  </div>
+                  <span className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white border-2 border-primary text-primary font-black text-sm flex items-center justify-center shadow-sm">
+                    {i + 1}
+                  </span>
+                </div>
+                <h3 className="font-bold text-on-surface text-xl mb-3">{step.title}</h3>
+                <p className="text-on-surface-variant text-base leading-relaxed max-w-xs">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Sản phẩm nổi bật */}
+      <section className="py-20 px-4 md:px-10 bg-surface">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-end justify-between mb-10">
             <div>

@@ -1,6 +1,6 @@
 const User = require("../models/user.model");
 
-const publicFields = "fullName email avatarUrl reputationScore accountStatus role";
+const publicFields = "fullName email avatarUrl reputationScore accountStatus role verificationStatus createdAt";
 
 const normalizeAddresses = (addresses, fallback = {}) => {
   if (!Array.isArray(addresses)) return [];

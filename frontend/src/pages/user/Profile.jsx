@@ -3,6 +3,8 @@ import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
 import userService from "../../services/user.service";
 import { authService } from "../../services/auth.service";
+import productService from "../../services/product.service";
+import reviewService from "../../services/review.service";
 import toast from "react-hot-toast";
 
 const VER_BADGE = {
@@ -27,6 +29,9 @@ const Profile = () => {
   const [history, setHistory] = useState([]);
   const [histLoading, setHistLoading] = useState(false);
 
+  // Thống kê cá nhân
+  const [stats, setStats] = useState({ posts: 0, reviewCount: 0, avgRating: 0 });
+
   const displayName = user?.fullName || user?.name || "";
   const verBadge = VER_BADGE[user?.verificationStatus] || VER_BADGE.unverified;
 
@@ -44,6 +49,19 @@ const Profile = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // Lấy thống kê cá nhân (số bài đăng, đánh giá nhận được)
+  useEffect(() => {
+    const uid = user?._id || user?.id;
+    if (!uid) return;
+    productService.getMyProducts()
+      .then((res) => { if (res.success) setStats((s) => ({ ...s, posts: (res.data || []).length })); })
+      .catch(() => {});
+    reviewService.getUserReviews(uid)
+      .then((res) => { if (res.success) setStats((s) => ({ ...s, reviewCount: res.count || 0, avgRating: res.averageRating || 0 })); })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?._id]);
 
   const fetchHistory = async () => {
     setHistLoading(true);
@@ -151,6 +169,21 @@ const Profile = () => {
             {/* Overview */}
             {activeTab === "overview" && (
               <div>
+                {/* Dải thống kê cá nhân */}
+                <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 border-b border-surface-variant/30">
+                  {[
+                    { label: "Điểm uy tín", value: user?.reputationScore ?? 100, icon: "verified_user", color: "text-primary" },
+                    { label: "Bài đăng", value: stats.posts, icon: "inventory_2", color: "text-secondary" },
+                    { label: "Đánh giá nhận", value: stats.reviewCount, icon: "reviews", color: "text-tertiary" },
+                    { label: "Điểm đánh giá TB", value: stats.reviewCount ? `${stats.avgRating.toFixed(1)} ★` : "Chưa có", icon: "star", color: "text-amber-500" },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-surface-container-low rounded-xl p-4 text-center border border-surface-variant/30">
+                      <span className={`material-symbols-outlined text-2xl mb-1.5 ${s.color}`}>{s.icon}</span>
+                      <p className="font-bold text-on-surface">{s.value}</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
                 <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
                   <h2 className="font-bold text-on-surface flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary text-[20px]">person</span>

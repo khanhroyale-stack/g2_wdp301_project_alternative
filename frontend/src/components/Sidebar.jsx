@@ -27,7 +27,6 @@ const ADMIN_NAV = [
   { label: "Lịch sử giao hàng", icon: "route", to: "/admin/giao-hang" },
   { label: "Biên bản kiểm định", icon: "fact_check", to: "/admin/kiem-dinh" },
   { label: "Báo cáo giao hàng", icon: "warning", to: "/admin/bao-cao-giao-hang" },
-  { label: "Hỗ trợ trực tuyến", icon: "support_agent", to: "/admin/hotro" },
 ];
 
 const SHIPPER_NAV = [

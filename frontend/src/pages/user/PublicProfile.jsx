@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import userService from "../../services/user.service";
+import productService from "../../services/product.service";
+import reviewService from "../../services/review.service";
 
 const VER_BADGE = {
   unverified: { label: "Chưa xác minh", cls: "bg-surface-container text-on-surface-variant" },
@@ -13,14 +15,23 @@ const ACC_BADGE = {
   banned: { label: "Tài khoản bị khóa", cls: "text-error" },
 };
 
+const formatPrice = (num) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(num || 0);
+
 const PublicProfile = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  const [products, setProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [reviewMeta, setReviewMeta] = useState({ averageRating: 0, count: 0 });
+
   useEffect(() => {
     setLoading(true);
+    setNotFound(false);
     userService.getPublicProfile(id)
       .then((res) => {
         if (res.success) setProfile(res.user);
@@ -28,6 +39,20 @@ const PublicProfile = () => {
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
+
+    // Lấy sản phẩm đang bán + đánh giá nhận được (song song, không chặn render hồ sơ)
+    productService.getUserProducts(id, { limit: 8 })
+      .then((res) => { if (res.success) setProducts(res.data || []); })
+      .catch(() => setProducts([]));
+
+    reviewService.getUserReviews(id)
+      .then((res) => {
+        if (res.success) {
+          setReviews(res.data || []);
+          setReviewMeta({ averageRating: res.averageRating || 0, count: res.count || 0 });
+        }
+      })
+      .catch(() => { setReviews([]); setReviewMeta({ averageRating: 0, count: 0 }); });
   }, [id]);
 
   if (loading) {
@@ -55,16 +80,24 @@ const PublicProfile = () => {
   const accBadge = ACC_BADGE[profile.accountStatus] || ACC_BADGE.active;
   const reputation = profile.reputationScore ?? 100;
   const roleLabel = { admin: "Quản trị viên", shipper: "Shipper", user: "Người dùng" }[profile.role] || "Người dùng";
+  const joinedAt = profile.createdAt ? new Date(profile.createdAt).toLocaleDateString("vi-VN", { month: "long", year: "numeric" }) : null;
+
+  const statCards = [
+    { label: "Điểm uy tín", value: reputation, icon: "verified_user", color: reputation < 50 ? "text-error" : "text-primary" },
+    { label: "Đánh giá TB", value: reviewMeta.count ? `${reviewMeta.averageRating.toFixed(1)} ★` : "Chưa có", icon: "star", color: "text-amber-500" },
+    { label: "Lượt đánh giá", value: reviewMeta.count, icon: "reviews", color: "text-primary" },
+    { label: "Đang bán", value: products.length, icon: "sell", color: "text-secondary" },
+  ];
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] py-10 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
 
         {/* Back */}
-        <Link to={-1} className="inline-flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface mb-6 transition-colors">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface mb-6 transition-colors">
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Quay lại
-        </Link>
+        </button>
 
         {/* Hero card */}
         <div className="relative bg-gradient-to-r from-primary to-primary-fixed rounded-2xl p-8 mb-6 overflow-hidden shadow-lg">
@@ -89,6 +122,12 @@ const PublicProfile = () => {
                 <span className={`text-xs font-medium ${accBadge.cls}`}>
                   {accBadge.label}
                 </span>
+                {joinedAt && (
+                  <span className="text-xs text-white/70 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                    Tham gia {joinedAt}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -109,11 +148,8 @@ const PublicProfile = () => {
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          {[
-            { label: "Điểm uy tín", value: reputation, icon: "verified_user", color: reputation < 50 ? "text-error" : "text-primary" },
-            { label: "Đánh giá TB", value: profile.averageRating ? `${profile.averageRating.toFixed(1)} ★` : "Chưa có", icon: "star", color: "text-amber-500" },
-          ].map((s) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {statCards.map((s) => (
             <div key={s.label} className="bg-surface-container-lowest rounded-2xl p-4 text-center shadow-apple border border-surface-variant/30">
               <span className={`material-symbols-outlined text-2xl mb-2 ${s.color}`}>{s.icon}</span>
               <p className="font-bold text-on-surface text-sm">{s.value}</p>
@@ -124,7 +160,7 @@ const PublicProfile = () => {
 
         {/* Banned warning */}
         {profile.accountStatus === "banned" && (
-          <div className="bg-error-container/40 border border-error/30 rounded-xl p-4 flex items-start gap-3">
+          <div className="bg-error-container/40 border border-error/30 rounded-xl p-4 flex items-start gap-3 mb-6">
             <span className="material-symbols-outlined text-error flex-shrink-0">block</span>
             <div>
               <p className="font-semibold text-error">Tài khoản bị khóa</p>
@@ -134,6 +170,93 @@ const PublicProfile = () => {
             </div>
           </div>
         )}
+
+        {/* Sản phẩm đang bán */}
+        <section className="bg-surface-container-lowest rounded-2xl shadow-apple border border-surface-variant/30 overflow-hidden mb-6">
+          <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40 flex items-center justify-between">
+            <h2 className="font-bold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[20px]">storefront</span>
+              Sản phẩm đang bán
+            </h2>
+            <span className="text-xs text-on-surface-variant">{products.length} sản phẩm</span>
+          </div>
+          {products.length === 0 ? (
+            <div className="p-10 text-center text-on-surface-variant text-sm">
+              <span className="material-symbols-outlined text-4xl opacity-30 block mb-2">inventory_2</span>
+              Người dùng này chưa có sản phẩm nào đang bán.
+            </div>
+          ) : (
+            <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {products.map((p) => {
+                const price = p.productType === "rent" ? `${formatPrice(p.rentPricePerDay)}/ngày` : formatPrice(p.salePrice);
+                return (
+                  <Link key={p._id} to={`/san-pham/${p._id}`}
+                    className="group bg-surface-container-low rounded-xl overflow-hidden border border-surface-variant/30 hover:shadow-md hover:-translate-y-0.5 transition-all">
+                    <div className="aspect-square bg-surface-container overflow-hidden">
+                      {p.thumbnailUrl ? (
+                        <img src={p.thumbnailUrl} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="material-symbols-outlined text-3xl text-on-surface-variant/30">image</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h3 className="text-sm font-medium text-on-surface line-clamp-2 leading-tight mb-1 group-hover:text-primary transition-colors">{p.title}</h3>
+                      <p className="text-primary font-bold text-sm">{price}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Đánh giá nhận được */}
+        <section className="bg-surface-container-lowest rounded-2xl shadow-apple border border-surface-variant/30 overflow-hidden">
+          <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40 flex items-center justify-between">
+            <h2 className="font-bold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-500 text-[20px]">star</span>
+              Đánh giá nhận được
+            </h2>
+            {reviewMeta.count > 0 && (
+              <span className="text-xs text-on-surface-variant">
+                {reviewMeta.averageRating.toFixed(1)} ★ · {reviewMeta.count} đánh giá
+              </span>
+            )}
+          </div>
+          {reviews.length === 0 ? (
+            <div className="p-10 text-center text-on-surface-variant text-sm">
+              <span className="material-symbols-outlined text-4xl opacity-30 block mb-2">reviews</span>
+              Chưa có đánh giá nào.
+            </div>
+          ) : (
+            <div className="divide-y divide-surface-variant/30">
+              {reviews.map((r) => (
+                <div key={r._id} className="px-6 py-4 flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {r.reviewerId?.avatarUrl
+                      ? <img src={r.reviewerId.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      : <span className="material-symbols-outlined text-[18px] text-primary">person</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-on-surface text-sm">{r.reviewerId?.fullName || "Người dùng"}</span>
+                      <span className="flex items-center text-amber-500 text-xs">
+                        {"★".repeat(r.rating)}<span className="text-surface-variant">{"★".repeat(Math.max(0, 5 - r.rating))}</span>
+                      </span>
+                      <span className="text-xs text-on-surface-variant">{new Date(r.createdAt).toLocaleDateString("vi-VN")}</span>
+                    </div>
+                    {r.postId?.title && (
+                      <p className="text-xs text-on-surface-variant mt-0.5">Về: {r.postId.title}</p>
+                    )}
+                    {r.comment && <p className="text-sm text-on-surface mt-1 leading-relaxed">{r.comment}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

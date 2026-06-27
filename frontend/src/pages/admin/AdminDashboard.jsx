@@ -40,12 +40,12 @@ const AdminDashboard = () => {
       bg: "bg-secondary-container text-on-secondary-container",
     },
     {
-      icon: "pending_actions",
-      label: "Chờ xác minh KYC",
-      value: stats?.users?.pendingVerify ?? 0,
-      badge: "Cần duyệt",
-      badgeColor: "text-error bg-error/10",
-      bg: "bg-error-container text-on-error-container",
+      icon: "receipt_long",
+      label: "Tổng đơn hàng",
+      value: stats?.orders?.total ?? 0,
+      badge: "Mua bán",
+      badgeColor: "text-primary bg-primary-fixed-dim/20",
+      bg: "bg-secondary-container text-on-secondary-container",
     },
     {
       icon: "inventory_2",
@@ -120,6 +120,41 @@ const AdminDashboard = () => {
             </div>
           ))}
         </section>
+
+        {/* Biểu đồ hoạt động 7 ngày */}
+        {stats?.timeseries && (() => {
+          const orders = stats.timeseries.orders || [];
+          const usersSeries = stats.timeseries.users || [];
+          const maxVal = Math.max(1, ...orders.map((d) => d.count), ...usersSeries.map((d) => d.count));
+          return (
+            <section className="panel-surface mb-8 p-6">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="flex items-center gap-2 text-base font-bold text-on-surface">
+                  <span className="material-symbols-outlined text-primary">bar_chart</span>
+                  Hoạt động 7 ngày gần nhất
+                </h3>
+                <div className="flex items-center gap-4 text-xs">
+                  <span className="flex items-center gap-1.5 text-on-surface-variant"><span className="h-3 w-3 rounded-sm bg-primary" />Đơn hàng</span>
+                  <span className="flex items-center gap-1.5 text-on-surface-variant"><span className="h-3 w-3 rounded-sm bg-secondary" />Người dùng mới</span>
+                </div>
+              </div>
+              <div className="flex h-48 items-end justify-between gap-2 sm:gap-4">
+                {orders.map((d, i) => {
+                  const u = usersSeries[i]?.count || 0;
+                  return (
+                    <div key={d.date} className="flex flex-1 flex-col items-center gap-2">
+                      <div className="flex h-full w-full items-end justify-center gap-1">
+                        <div className="w-1/2 max-w-[22px] rounded-t bg-primary transition-all hover:opacity-80" style={{ height: `${(d.count / maxVal) * 100}%` }} title={`${d.count} đơn hàng`} />
+                        <div className="w-1/2 max-w-[22px] rounded-t bg-secondary transition-all hover:opacity-80" style={{ height: `${(u / maxVal) * 100}%` }} title={`${u} người dùng mới`} />
+                      </div>
+                      <span className="text-[10px] font-medium text-on-surface-variant">{d.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <section className="panel-surface xl:col-span-2 p-6">

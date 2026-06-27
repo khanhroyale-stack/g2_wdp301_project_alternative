@@ -33,6 +33,10 @@ const productService = {
     const response = await api.get("/products/my");
     return response.data;
   },
+  getUserProducts: async (userId, params = {}) => {
+    const response = await api.get("/products", { params: { owner: userId, limit: 8, ...params } });
+    return response.data;
+  },
   adminGetProducts: async (status) => {
     const response = await api.get("/products/admin/all", { params: { status } });
     return response.data;

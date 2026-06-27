@@ -42,8 +42,16 @@ const Marketplace = () => {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
   const keyword = searchParams.get("q") || "";
+  const PAGE_SIZE = 12;
+
+  // Đổi bộ lọc/tìm kiếm → quay về trang 1
+  useEffect(() => {
+    setPage(1);
+  }, [isRentPage, keyword, selectedCat, selectedCond, sortBy, minPrice, maxPrice]);
 
   useEffect(() => {
     categoryService.getCategories().then(res => {
@@ -57,7 +65,9 @@ const Marketplace = () => {
       try {
         const params = {
           productType: isRentPage ? "rent" : "sale",
-          sort: sortBy
+          sort: sortBy,
+          page,
+          limit: PAGE_SIZE,
         };
         if (keyword) params.keyword = keyword;
         if (selectedCat !== "Tất cả") params.category = selectedCat;
@@ -66,7 +76,10 @@ const Marketplace = () => {
         if (maxPrice) params.maxPrice = maxPrice;
 
         const res = await productService.getProducts(params);
-        if (res.success) setProducts(res.data);
+        if (res.success) {
+          setProducts(res.data);
+          if (res.pagination) setPagination(res.pagination);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -74,7 +87,7 @@ const Marketplace = () => {
       }
     };
     fetchProducts();
-  }, [isRentPage, keyword, selectedCat, selectedCond, sortBy, minPrice, maxPrice]);
+  }, [isRentPage, keyword, selectedCat, selectedCond, sortBy, minPrice, maxPrice, page]);
 
   const inputCls = "w-full bg-surface-bright border border-surface-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:border-primary outline-none transition-all";
 
@@ -157,7 +170,7 @@ const Marketplace = () => {
               <h1 className="text-2xl font-bold text-on-surface">
                 {keyword ? `Kết quả tìm kiếm: "${keyword}"` : (isRentPage ? "Thuê đồ" : "Mua sắm")}
               </h1>
-              <p className="text-sm text-on-surface-variant mt-0.5">Tìm thấy {products.length} sản phẩm</p>
+              <p className="text-sm text-on-surface-variant mt-0.5">Tìm thấy {pagination.total} sản phẩm</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-on-surface-variant">Sắp xếp:</span>
@@ -261,6 +274,48 @@ const Marketplace = () => {
                   </article>
                 );
               })}
+            </div>
+          )}
+
+          {/* Phân trang */}
+          {!loading && pagination.pages > 1 && (
+            <div className="flex items-center justify-center gap-1.5 mt-10">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="w-10 h-10 flex items-center justify-center rounded-lg border border-surface-variant text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+              </button>
+              {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === pagination.pages || Math.abs(p - page) <= 1)
+                .reduce((acc, p, idx, arr) => {
+                  if (idx > 0 && p - arr[idx - 1] > 1) acc.push("…");
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === "…" ? (
+                    <span key={`gap-${i}`} className="w-10 h-10 flex items-center justify-center text-on-surface-variant">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-semibold transition-all ${p === page
+                        ? "bg-primary text-on-primary shadow-sm"
+                        : "border border-surface-variant text-on-surface hover:bg-surface-container-low"}`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+              <button
+                onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                disabled={page >= pagination.pages}
+                className="w-10 h-10 flex items-center justify-center rounded-lg border border-surface-variant text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+              </button>
             </div>
           )}
         </section>

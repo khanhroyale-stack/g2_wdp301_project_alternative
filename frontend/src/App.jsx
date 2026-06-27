@@ -1,7 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { ChatProvider } from "./context/ChatContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import PrivateRoute from "./components/PrivateRoute";
 import { Toaster } from "react-hot-toast";
+import UserChatWidget from "./components/chat/UserChatWidget";
+import LiveChatWidget from "./components/support/LiveChatWidget";
 // Public pages
 import Home from "./pages/core/Home";
 import LoginPage from "./pages/auth/LoginPage";
@@ -36,6 +40,7 @@ import CategoryManagement from './pages/admin/CategoryManagement';
 import ViolationReports from './pages/admin/ViolationReports';
 import OrderManagement from './pages/admin/OrderManagement';
 import ContractManagement from './pages/admin/ContractManagement';
+import SupportManagement from './pages/admin/SupportManagement';
 
 // Shipper pages
 import ShipperDashboard from "./pages/shipper/ShipperDashboard";
@@ -55,6 +60,8 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ChatProvider>
+          <NotificationProvider>
         <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
         <Routes>
           {/* ── Công khai ──────────────────────────── */}
@@ -106,6 +113,7 @@ function App() {
           <Route path="/admin/bao-cao" element={<PrivateRoute adminOnly><ViolationReports /></PrivateRoute>} />
           <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><OrderManagement /></PrivateRoute>} />
           <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><ContractManagement /></PrivateRoute>} />
+          <Route path="/admin/support" element={<PrivateRoute adminOnly><SupportManagement /></PrivateRoute>} />
 
           {/* ── Shipper ─────────────────────────────── */}
           <Route path="/shipper" element={<PrivateRoute shipperOnly><ShipperDashboard /></PrivateRoute>} />
@@ -115,6 +123,11 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        {/* Bong bóng chat nổi — tự ẩn với admin và khi chưa đăng nhập */}
+        <UserChatWidget />
+        <LiveChatWidget />
+          </NotificationProvider>
+        </ChatProvider>
       </AuthProvider>
     </BrowserRouter>
   );
