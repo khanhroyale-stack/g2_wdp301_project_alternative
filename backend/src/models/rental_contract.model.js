@@ -64,6 +64,20 @@ const rentalContractSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    // Gia hạn — lưu yêu cầu đang chờ owner duyệt
+    pendingExtendDays: {
+      type: Number,
+      default: 0,
+    },
+    pendingExtendFee: {
+      type: Number,
+      default: 0,
+    },
+    extendStatus: {
+      type: String,
+      enum: ["none", "pending", "approved", "rejected"],
+      default: "none",
+    },
     contractStatus: {
       type: String,
       enum: ["active", "renting", "return_requested", "completed", "cancelled", "disputed"],

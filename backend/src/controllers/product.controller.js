@@ -131,8 +131,23 @@ const updateProduct = async (req, res) => {
     if (product.ownerId.toString() !== req.user._id.toString())
       return res.status(403).json({ success: false, message: "Không có quyền" });
 
-    Object.assign(product, req.body);
-    product.postStatus = "pending"; // cần duyệt lại sau khi sửa
+    // Các field nhạy cảm cần duyệt lại
+    const sensitiveFields = ["title", "description", "salePrice", "rentPricePerDay",
+                             "rentPricePerWeek", "rentPricePerMonth", "conditionStatus"];
+    const hasSensitiveChange = sensitiveFields.some(f => req.body[f] !== undefined);
+
+    const { quantity, depositAmount, location, accessoriesNote } = req.body;
+
+    // Chỉ update quantity/depositAmount/location không cần duyệt lại
+    if (!hasSensitiveChange) {
+      if (quantity !== undefined) product.quantity = Math.max(1, Number(quantity));
+      if (depositAmount !== undefined) product.depositAmount = depositAmount;
+      if (location !== undefined) product.location = location;
+    } else {
+      Object.assign(product, req.body);
+      product.postStatus = "pending"; // cần duyệt lại
+    }
+
     await product.save();
     res.json({ success: true, data: product });
   } catch (err) {

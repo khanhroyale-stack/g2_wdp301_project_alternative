@@ -1,6 +1,12 @@
 import api from "./api";
 
 const rentalService = {
+  // Kiểm tra lịch trống của sản phẩm
+  getAvailability: async (productId) => {
+    const response = await api.get(`/rentals/availability/${productId}`);
+    return response.data;
+  },
+
   // Tạo yêu cầu thuê
   createRentalRequest: async (data) => {
     const response = await api.post("/rentals", data);
@@ -39,9 +45,16 @@ const rentalService = {
     return response.data;
   },
 
-  // Gia hạn thuê
+  // Gia hạn thuê — renter gửi yêu cầu, chờ owner duyệt
   extendRental: async (id, extraDays) => {
     const response = await api.post(`/rentals/${id}/extend`, { extraDays });
+    return response.data;
+  },
+
+  // Owner xác nhận hoặc từ chối gia hạn
+  confirmExtend: async (id, action) => {
+    // action: "approve" | "reject"
+    const response = await api.post(`/rentals/${id}/extend/confirm`, { action });
     return response.data;
   },
 
