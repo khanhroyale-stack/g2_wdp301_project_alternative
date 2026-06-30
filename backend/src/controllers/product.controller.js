@@ -289,11 +289,19 @@ const updateProduct = async (req, res) => {
       return res.status(400).json({ success: false, message: "San pham phai co it nhat 1 hinh anh" });
     }
 
+    const sensitiveFields = ["title", "description", "salePrice", "rentPricePerDay",
+                             "rentPricePerWeek", "rentPricePerMonth", "conditionStatus", "productType", "categoryId"];
+    const hasSensitiveChange = sensitiveFields.some(f => incomingPayload[f] !== undefined);
+    const hasImageChange = Array.isArray(replacementImageIds);
+
     Object.assign(product, incomingPayload);
-    product.postStatus = "pending";
-    product.approvedBy = null;
-    product.approvedAt = null;
-    product.rejectReason = null;
+
+    if (hasSensitiveChange || hasImageChange) {
+      product.postStatus = "pending";
+      product.approvedBy = null;
+      product.approvedAt = null;
+      product.rejectReason = null;
+    }
     await product.save();
 
     if (Array.isArray(req.body.imageIds) || Array.isArray(req.body.mediaIds)) {

@@ -6,59 +6,83 @@ const { createNotification } = require("./notification.controller");
 
 // ─── Helper: tính tiền thuê theo kỳ hạn ──────────────────────────────────────
 const calcRentalFee = (product, totalDays) => {
-  // Ưu tiên giá tháng → tuần → ngày
   if (product.rentPricePerMonth > 0 && totalDays >= 30) {
     const months = Math.floor(totalDays / 30);
-    const remainDays = totalDays % 30;
-    return months * product.rentPricePerMonth + remainDays * product.rentPricePerDay;
+    return months * product.rentPricePerMonth + (totalDays % 30) * product.rentPricePerDay;
   }
   if (product.rentPricePerWeek > 0 && totalDays >= 7) {
     const weeks = Math.floor(totalDays / 7);
-    const remainDays = totalDays % 7;
-    return weeks * product.rentPricePerWeek + remainDays * product.rentPricePerDay;
+    return weeks * product.rentPricePerWeek + (totalDays % 7) * product.rentPricePerDay;
   }
-  return totalDays * product.rentPricePerDay;
+  return totalDays * (product.rentPricePerDay || 0);
 };
 
-// ─── Helper: kiểm tra trùng lịch thuê ────────────────────────────────────────
-const checkRentalConflict = async (postId, startDate, endDate, excludeRequestId = null) => {
-  // Kiểm tra request đang pending/approved
-  const requestQuery = {
+// ─── Helper: kiểm tra trùng lịch (hỗ trợ quantity) ───────────────────────────
+const checkRentalConflict = async (postId, startDate, endDate, excludeContractId = null, quantity = 1) => {
+  // Đếm số request đang pending/approved trùng lịch
+  const reqCount = await RentalRequest.countDocuments({
     postId,
     requestStatus: { $in: ["pending", "approved"] },
-    $or: [
-      { startDate: { $lt: endDate }, endDate: { $gt: startDate } },
-    ],
-  };
-  if (excludeRequestId) requestQuery._id = { $ne: excludeRequestId };
-  const conflictRequest = await RentalRequest.findOne(requestQuery);
-  if (conflictRequest) return true;
+    startDate: { $lt: endDate },
+    endDate:   { $gt: startDate },
+  });
 
-  // Kiểm tra hợp đồng đang active
+  // Đếm số contract đang active/renting/return_requested trùng lịch
   const contractQuery = {
     postId,
-    contractStatus: "active",
-    $or: [
-      { startDate: { $lt: endDate }, endDate: { $gt: startDate } },
-    ],
+    contractStatus: { $in: ["active", "renting", "return_requested"] },
+    startDate: { $lt: endDate },
+    endDate:   { $gt: startDate },
   };
-  const conflictContract = await RentalContract.findOne(contractQuery);
-  return !!conflictContract;
+  if (excludeContractId) contractQuery._id = { $ne: excludeContractId };
+  const contractCount = await RentalContract.countDocuments(contractQuery);
+
+  // Nếu tổng số đang thuê >= số lượng → conflict
+  return (reqCount + contractCount) >= quantity;
+};
+
+// ─── GET lịch đã đặt (public) ────────────────────────────────────────────────
+const getRentalAvailability = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const product = await ProductPost.findById(productId).select("quantity");
+    const qty = product?.quantity || 1;
+
+    const [requests, contracts] = await Promise.all([
+      RentalRequest.find({ postId: productId, requestStatus: { $in: ["pending","approved"] } })
+        .select("startDate endDate requestStatus"),
+      RentalContract.find({ postId: productId, contractStatus: { $in: ["active","renting","return_requested"] } })
+        .select("startDate endDate contractStatus"),
+    ]);
+
+    // Tính ngày nào đã đầy số lượng
+    const bookedRanges = [
+      ...requests.map(r => ({ start: r.startDate, end: r.endDate, type: "pending" })),
+      ...contracts.map(c => ({ start: c.startDate, end: c.endDate, type: "booked" })),
+    ];
+
+    res.json({ success: true, data: bookedRanges, quantity: qty });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 const createRentalRequest = async (req, res) => {
   try {
-    const product = await ProductPost.findById(req.body.productId).populate("ownerId", "fullName");
+    const product = await ProductPost.findById(req.body.productId).populate("ownerId", "fullName phone");
     if (!product)
       return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
     if (!["approved", "available"].includes(product.postStatus))
       return res.status(400).json({ success: false, message: "Sản phẩm chưa được duyệt hoặc không khả dụng" });
     if (product.productType === "sale")
       return res.status(400).json({ success: false, message: "Sản phẩm này không cho thuê" });
-    if (!product.ownerId)
+
+    // ownerId có thể là object (populated) hoặc raw ObjectId (khi populate thất bại)
+    const ownerIdRaw = product.ownerId?._id || product.ownerId;
+    if (!ownerIdRaw)
       return res.status(400).json({ success: false, message: "Không tìm thấy chủ sản phẩm" });
 
-    if (product.ownerId._id.toString() === req.user._id.toString())
+    if (ownerIdRaw.toString() === req.user._id.toString())
       return res.status(400).json({ success: false, message: "Không thể thuê sản phẩm của chính mình" });
 
     const start = new Date(req.body.startDate);
@@ -73,9 +97,9 @@ const createRentalRequest = async (req, res) => {
     if (start < today)
       return res.status(400).json({ success: false, message: "Ngày bắt đầu không được trong quá khứ" });
 
-    const hasConflict = await checkRentalConflict(product._id, start, end);
+    const hasConflict = await checkRentalConflict(product._id, start, end, null, product.quantity || 1);
     if (hasConflict)
-      return res.status(400).json({ success: false, message: "Sản phẩm đã được đặt thuê trong khoảng thời gian này" });
+      return res.status(400).json({ success: false, message: "Sản phẩm đã hết lịch thuê trong khoảng thời gian này" });
 
     const totalDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
     const rentalFee = calcRentalFee(product, totalDays);
@@ -85,7 +109,7 @@ const createRentalRequest = async (req, res) => {
 
     const request = await RentalRequest.create({
       renterId: req.user._id,
-      ownerId: product.ownerId._id,
+      ownerId: ownerIdRaw,
       postId: product._id,
       startDate: start,
       endDate: end,
@@ -99,7 +123,7 @@ const createRentalRequest = async (req, res) => {
 
     try {
       await createNotification({
-        recipientId: product.ownerId._id,
+        recipientId: ownerIdRaw,
         title: "Yêu cầu thuê mới 📅",
         content: `Bạn nhận được yêu cầu thuê sản phẩm "${product.title}" trong ${totalDays} ngày.`,
         type: "NEW_RENTAL_REQUEST",
@@ -121,18 +145,26 @@ const createRentalRequest = async (req, res) => {
 const getRental = async (req, res) => {
   try {
     let rental = await RentalContract.findById(req.params.id)
-      .populate("postId")
-      .populate("renterId", "name avatar phone")
-      .populate("ownerId", "name avatar phone");
-      
+      .populate("postId", "title thumbnailUrl imageUrls rentPricePerDay depositAmount location categoryId")
+      .populate("renterId", "fullName avatarUrl phone")
+      .populate("ownerId",  "fullName avatarUrl phone");
+
     if (!rental) {
       rental = await RentalRequest.findById(req.params.id)
-        .populate("postId")
-        .populate("renterId", "name avatar phone")
-        .populate("ownerId", "name avatar phone");
+        .populate("postId", "title thumbnailUrl imageUrls rentPricePerDay depositAmount location categoryId")
+        .populate("renterId", "fullName avatarUrl phone")
+        .populate("ownerId",  "fullName avatarUrl phone");
     }
 
     if (!rental) return res.status(404).json({ success: false, message: "Không tìm thấy" });
+
+    // Kiểm tra quyền: chỉ người liên quan hoặc admin mới xem được
+    const uid = req.user._id.toString();
+    const renterId = rental.renterId?._id?.toString() || rental.renterId?.toString();
+    const ownerId  = rental.ownerId?._id?.toString()  || rental.ownerId?.toString();
+    if (uid !== renterId && uid !== ownerId && req.user.role !== "admin")
+      return res.status(403).json({ success: false, message: "Không có quyền xem" });
+
     res.json({ success: true, data: rental });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -190,7 +222,8 @@ const updateRentalStatus = async (req, res) => {
 
       // Owner chấp nhận → tạo contract (active = chờ renter nhận đồ)
       if (s === "accepted" || s === "approved") {
-        if (request.ownerId._id.toString() !== req.user._id.toString())
+        const ownerIdStr = (request.ownerId?._id || request.ownerId).toString();
+        if (ownerIdStr !== req.user._id.toString())
           return res.status(403).json({ success: false, message: "Không có quyền" });
         if (request.requestStatus !== "pending")
           return res.status(400).json({ success: false, message: "Yêu cầu không còn ở trạng thái chờ" });
@@ -200,26 +233,41 @@ const updateRentalStatus = async (req, res) => {
 
         // Bỏ tắt validator Atlas runtime theo kế hoạch fix #14
 
+        const ownerIdVal  = request.ownerId?._id  || request.ownerId;
+        const renterIdVal = request.renterId?._id || request.renterId;
+        const postIdVal   = request.postId?._id   || request.postId;
+
         const contract = await RentalContract.create({
           requestId: request._id,
-          postId:    request.postId._id,
-          ownerId:   request.ownerId._id,
-          renterId:  request.renterId._id,
+          postId:    postIdVal,
+          ownerId:   ownerIdVal,
+          renterId:  renterIdVal,
           startDate: request.startDate,
           endDate:   request.endDate,
           rentalFee: request.rentalFee,
           depositAmount: request.depositAmount,
           handoverMethod: "meet_directly",
-          contractStatus: "active", // chờ renter xác nhận đã nhận đồ
+          contractStatus: "active",
         });
 
-        await ProductPost.findByIdAndUpdate(request.postId._id, { postStatus: "closed" });
+        await ProductPost.findByIdAndUpdate(postIdVal, { postStatus: "closed" });
+
+        // Nếu quantity > 1, kiểm tra còn slot không — nếu còn thì giữ approved
+        const postForQty = await ProductPost.findById(postIdVal).select("quantity");
+        const qty = postForQty?.quantity || 1;
+        const activeCount = await RentalContract.countDocuments({
+          postId: postIdVal,
+          contractStatus: { $in: ["active", "renting", "return_requested"] },
+        });
+        if (activeCount < qty) {
+          await ProductPost.findByIdAndUpdate(postIdVal, { postStatus: "approved" });
+        }
 
         try {
           await createNotification({
-            recipientId: request.renterId._id,
+            recipientId: renterIdVal,
             title: "Yêu cầu thuê được chấp nhận ✅",
-            content: `Chủ đồ đã chấp nhận yêu cầu thuê "${request.postId.title}". Vui lòng liên hệ chủ đồ để nhận hàng và xác nhận đã nhận đồ.`,
+            content: `Chủ đồ đã chấp nhận yêu cầu thuê "${request.postId?.title || "sản phẩm"}". Vui lòng liên hệ chủ đồ để nhận hàng và xác nhận đã nhận đồ.`,
             type: "RENTAL_ACCEPTED",
             relatedType: "rental",
             relatedId: contract._id,
@@ -232,7 +280,8 @@ const updateRentalStatus = async (req, res) => {
 
       // Owner từ chối
       if (s === "rejected") {
-        if (request.ownerId._id.toString() !== req.user._id.toString())
+        const ownerIdStr = (request.ownerId?._id || request.ownerId).toString();
+        if (ownerIdStr !== req.user._id.toString())
           return res.status(403).json({ success: false, message: "Không có quyền" });
         if (request.requestStatus !== "pending")
           return res.status(400).json({ success: false, message: "Yêu cầu không còn ở trạng thái chờ" });
@@ -242,10 +291,11 @@ const updateRentalStatus = async (req, res) => {
         await request.save();
 
         try {
+          const renterIdVal = request.renterId?._id || request.renterId;
           await createNotification({
-            recipientId: request.renterId._id,
+            recipientId: renterIdVal,
             title: "Yêu cầu thuê bị từ chối ❌",
-            content: `Yêu cầu thuê "${request.postId.title}" đã bị từ chối.${reason ? ` Lý do: ${reason}` : ""}`,
+            content: `Yêu cầu thuê "${request.postId?.title || "sản phẩm"}" đã bị từ chối.${reason ? ` Lý do: ${reason}` : ""}`,
             type: "RENTAL_REJECTED",
             relatedType: "rental",
             relatedId: request._id,
@@ -258,7 +308,8 @@ const updateRentalStatus = async (req, res) => {
 
       // Renter hủy yêu cầu (chỉ khi còn pending)
       if (s === "cancelled") {
-        if (request.renterId._id.toString() !== req.user._id.toString())
+        const renterIdStr = (request.renterId?._id || request.renterId).toString();
+        if (renterIdStr !== req.user._id.toString())
           return res.status(403).json({ success: false, message: "Không có quyền" });
         if (request.requestStatus !== "pending")
           return res.status(400).json({ success: false, message: "Chỉ hủy được yêu cầu đang chờ xác nhận" });
@@ -283,7 +334,8 @@ const updateRentalStatus = async (req, res) => {
 
     // Renter xác nhận đã nhận được đồ → bắt đầu thực sự thuê
     if (s === "renting") {
-      if (contract.renterId._id.toString() !== req.user._id.toString())
+      const renterIdStr = (contract.renterId?._id || contract.renterId).toString();
+      if (renterIdStr !== req.user._id.toString())
         return res.status(403).json({ success: false, message: "Không có quyền" });
       if (contract.contractStatus !== "active")
         return res.status(400).json({ success: false, message: "Hợp đồng không ở trạng thái chờ nhận đồ" });
@@ -292,10 +344,11 @@ const updateRentalStatus = async (req, res) => {
       await contract.save();
 
       try {
+        const ownerIdVal = contract.ownerId?._id || contract.ownerId;
         await createNotification({
-          recipientId: contract.ownerId._id,
+          recipientId: ownerIdVal,
           title: "Người thuê đã nhận đồ 📦",
-          content: `Người thuê đã xác nhận nhận được "${contract.postId.title}". Hợp đồng đang có hiệu lực.`,
+          content: `Người thuê đã xác nhận nhận được "${contract.postId?.title || "sản phẩm"}". Hợp đồng đang có hiệu lực.`,
           type: "RENTAL_STARTED",
           relatedType: "rental",
           relatedId: contract._id,
@@ -425,46 +478,153 @@ const resolveDeposit = async (req, res) => {
   }
 };
 
+// POST /api/rentals/:id/extend — Renter gửi yêu cầu gia hạn (chờ owner duyệt)
 const extendRental = async (req, res) => {
   try {
     const { extraDays } = req.body;
     if (!extraDays || extraDays <= 0)
-      return res.status(400).json({ success: false, message: "Số ngày gia hạn không hợp lệ" });
+      return res.status(400).json({ success: false, message: "Số ngày gia hạn không hợp lệ (phải >= 1)" });
 
-    const contract = await RentalContract.findById(req.params.id).populate("postId");
+    const contract = await RentalContract.findById(req.params.id).populate("postId").populate("ownerId", "_id fullName");
     if (!contract || !["active", "renting"].includes(contract.contractStatus))
       return res.status(400).json({ success: false, message: "Hợp đồng không khả dụng để gia hạn" });
 
-    if (contract.renterId.toString() !== req.user._id.toString())
-      return res.status(403).json({ success: false, message: "Chỉ người thuê mới có thể gia hạn" });
+    if (!["renting", "active"].includes(contract.contractStatus))
+      return res.status(400).json({ success: false, message: "Chỉ gia hạn được khi hợp đồng đang active hoặc đang thuê" });
 
-    // Kiểm tra không trùng lịch mới sau khi gia hạn
+    const renterIdStr = (contract.renterId?.toString());
+    if (renterIdStr !== req.user._id.toString())
+      return res.status(403).json({ success: false, message: "Chỉ người thuê mới có thể yêu cầu gia hạn" });
+
+    if (contract.extendStatus === "pending")
+      return res.status(400).json({ success: false, message: "Đã có yêu cầu gia hạn đang chờ chủ đồ xác nhận" });
+
+    // Kiểm tra trùng lịch khoảng gia hạn
     const currentEnd = new Date(contract.endDate);
     const newEnd = new Date(currentEnd.getTime() + extraDays * 24 * 60 * 60 * 1000);
-
-    const hasConflict = await checkRentalConflict(contract.postId._id, currentEnd, newEnd, null);
+    const hasConflict = await checkRentalConflict(contract.postId._id, currentEnd, newEnd, contract._id, contract.postId.quantity || 1);
     if (hasConflict)
-      return res.status(400).json({ success: false, message: "Không thể gia hạn vì đã có lịch thuê khác" });
+      return res.status(400).json({ success: false, message: "Không thể gia hạn vì đã có lịch thuê khác trong khoảng này" });
 
     const extraFee = calcRentalFee(contract.postId, extraDays);
-    contract.endDate = newEnd;
-    contract.rentalFee += extraFee;
+    contract.pendingExtendDays = extraDays;
+    contract.pendingExtendFee = extraFee;
+    contract.extendStatus = "pending";
     await contract.save();
 
-    await createNotification({
-      recipientId: contract.ownerId,
-      title: "Khách hàng gia hạn thuê 📅",
-      content: `Khách hàng vừa gia hạn thuê "${contract.postId.title}" thêm ${extraDays} ngày (đến ${newEnd.toLocaleDateString("vi-VN")}).`,
-      type: "GENERAL",
-      relatedType: "rental",
-      relatedId: contract._id,
-      link: "/thue-muon",
-    });
+    try {
+      const ownerIdVal = contract.ownerId?._id || contract.ownerId;
+      await createNotification({
+        recipientId: ownerIdVal,
+        title: "Yêu cầu gia hạn thuê 📅",
+        content: `Người thuê muốn gia hạn thêm ${extraDays} ngày cho "${contract.postId.title}". Vui lòng xác nhận.`,
+        type: "EXTEND_REQUESTED",
+        relatedType: "rental",
+        relatedId: contract._id,
+        link: "/thue-muon",
+      });
+    } catch (_) {}
 
-    res.json({ success: true, data: contract, message: "Gia hạn thành công" });
+    res.json({ success: true, data: contract, message: `Đã gửi yêu cầu gia hạn ${extraDays} ngày, đang chờ chủ đồ xác nhận` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-module.exports = { createRentalRequest, getRental, getMyRentals, getMyLendings, updateRentalStatus, extendRental, requestReturn, resolveDeposit };
+// POST /api/rentals/:id/extend/confirm — Owner xác nhận hoặc từ chối gia hạn
+const confirmExtend = async (req, res) => {
+  try {
+    const { action } = req.body; // "approve" | "reject"
+
+    const contract = await RentalContract.findById(req.params.id).populate("postId").populate("renterId", "_id fullName");
+    if (!contract)
+      return res.status(404).json({ success: false, message: "Không tìm thấy hợp đồng" });
+
+    const ownerIdStr = (contract.ownerId?._id || contract.ownerId).toString();
+    if (ownerIdStr !== req.user._id.toString())
+      return res.status(403).json({ success: false, message: "Chỉ chủ đồ mới có thể xác nhận gia hạn" });
+
+    if (contract.extendStatus !== "pending")
+      return res.status(400).json({ success: false, message: "Không có yêu cầu gia hạn đang chờ" });
+
+    const renterIdVal = contract.renterId?._id || contract.renterId;
+
+    if (action === "approve") {
+      const newEnd = new Date(contract.endDate.getTime() + contract.pendingExtendDays * 24 * 60 * 60 * 1000);
+      contract.endDate = newEnd;
+      contract.rentalFee += contract.pendingExtendFee;
+      contract.extendStatus = "approved";
+      contract.pendingExtendDays = 0;
+      contract.pendingExtendFee = 0;
+      await contract.save();
+
+      try {
+        await createNotification({
+          recipientId: renterIdVal,
+          title: "Gia hạn được chấp nhận ✅",
+          content: `Chủ đồ đã chấp nhận gia hạn "${contract.postId.title}" đến ${newEnd.toLocaleDateString("vi-VN")}.`,
+          type: "EXTEND_APPROVED",
+          relatedType: "rental",
+          relatedId: contract._id,
+          link: "/thue-muon",
+        });
+      } catch (_) {}
+
+      return res.json({ success: true, data: contract, message: "Đã chấp nhận gia hạn" });
+    }
+
+    // Reject
+    contract.extendStatus = "rejected";
+    contract.pendingExtendDays = 0;
+    contract.pendingExtendFee = 0;
+    await contract.save();
+
+    try {
+      await createNotification({
+        recipientId: renterIdVal,
+        title: "Gia hạn bị từ chối ❌",
+        content: `Chủ đồ không chấp nhận yêu cầu gia hạn "${contract.postId.title}".`,
+        type: "EXTEND_REJECTED",
+        relatedType: "rental",
+        relatedId: contract._id,
+        link: "/thue-muon",
+      });
+    } catch (_) {}
+
+    res.json({ success: true, data: contract, message: "Đã từ chối yêu cầu gia hạn" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── Cron job: nhắc sắp hết hạn thuê (gọi mỗi ngày) ─────────────────────────
+const sendExpiryReminders = async () => {
+  try {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(23, 59, 59, 999);
+    const now = new Date();
+
+    const soonExpiring = await RentalContract.find({
+      contractStatus: "renting",
+      endDate: { $gte: now, $lte: tomorrow },
+    }).populate("postId", "title").populate("renterId", "_id fullName");
+
+    for (const contract of soonExpiring) {
+      const renterIdVal = contract.renterId?._id || contract.renterId;
+      const ownerIdVal  = contract.ownerId?._id  || contract.ownerId;
+      const hoursLeft = Math.ceil((contract.endDate - now) / 3600000);
+      const msg = `Hợp đồng thuê "${contract.postId?.title}" sẽ hết hạn trong ${hoursLeft} giờ. Vui lòng chuẩn bị trả đồ hoặc gửi yêu cầu gia hạn.`;
+
+      await Promise.allSettled([
+        createNotification({ recipientId: renterIdVal, title: "⏰ Sắp hết hạn thuê", content: msg, type: "RENTAL_EXPIRY", relatedType: "rental", relatedId: contract._id, link: "/thue-muon" }),
+        createNotification({ recipientId: ownerIdVal, title: "⏰ Hợp đồng sắp hết hạn", content: `Hợp đồng thuê "${contract.postId?.title}" sắp hết hạn trong ${hoursLeft} giờ.`, type: "RENTAL_EXPIRY", relatedType: "rental", relatedId: contract._id, link: "/thue-muon" }),
+      ]);
+    }
+    console.log(`[ExpiryReminder] Đã gửi nhắc cho ${soonExpiring.length} hợp đồng sắp hết hạn`);
+  } catch (err) {
+    console.error("[ExpiryReminder] Error:", err.message);
+  }
+};
+
+module.exports = { getRentalAvailability, createRentalRequest, getRental, getMyRentals, getMyLendings, updateRentalStatus, extendRental, confirmExtend, requestReturn, resolveDeposit, sendExpiryReminders };

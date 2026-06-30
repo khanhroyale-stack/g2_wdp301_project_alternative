@@ -105,13 +105,18 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-
 async function startServer() {
   await connectDB();
 
   httpServer.listen(PORT, () => {
-    console.log(`EcoTrade API: http://localhost:${PORT} [${process.env.NODE_ENV}]`);
-    console.log("Socket.IO ready");
+    console.log(`🚀 EcoTrade API: http://localhost:${PORT} [${process.env.NODE_ENV}]`);
+    console.log(`🔌 Socket.IO ready`);
+
+    // Cron: nhắc hợp đồng thuê sắp hết hạn — chạy mỗi giờ
+    const { sendExpiryReminders } = require("./controllers/rental.controller");
+    setInterval(sendExpiryReminders, 60 * 60 * 1000);
+    // Chạy ngay sau 5s để tránh block startup
+    setTimeout(sendExpiryReminders, 5000);
   });
 }
 

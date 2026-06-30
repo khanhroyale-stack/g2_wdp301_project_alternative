@@ -19,13 +19,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeImg, setActiveImg] = useState(0);
-  const [showRentalModal, setShowRentalModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [startTime, setStartTime] = useState("08:00");
-  const [endDate, setEndDate] = useState("");
-  const [endTime, setEndTime] = useState("08:00");
-  const [rentalNote, setRentalNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
 
@@ -50,25 +44,7 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
-  const totalDays = startDate && endDate
-      ? Math.max(1, Math.ceil((new Date(`${endDate}T${endTime}`) - new Date(`${startDate}T${startTime}`)) / 86400000))
-      : 0;
 
-  const calcFee = (days, p) => {
-      if (!p) return 0;
-      if (p.rentPricePerMonth > 0 && days >= 30) {
-          const months = Math.floor(days / 30);
-          const rem = days % 30;
-          return months * p.rentPricePerMonth + rem * p.rentPricePerDay;
-      }
-      if (p.rentPricePerWeek > 0 && days >= 7) {
-          const weeks = Math.floor(days / 7);
-          const rem = days % 7;
-          return weeks * p.rentPricePerWeek + rem * p.rentPricePerDay;
-      }
-      return days * (p.rentPricePerDay || 0);
-  };
-  const totalFee = calcFee(totalDays, product);
 
   const getImageUrl = (img) => {
     if (!img) return "https://placehold.co/800x600?text=No+Image";
@@ -95,28 +71,7 @@ const ProductDetail = () => {
     }
   };
 
-  const handleRentSubmit = async () => {
-    if (!startDate || !endDate) return toast.error("Vui lòng chọn ngày thuê");
-    if (totalDays <= 0) return toast.error("Ngày kết thúc phải sau ngày bắt đầu");
-    setIsSubmitting(true);
-    try {
-      const res = await rentalService.createRentalRequest({
-        productId: product._id,
-        startDate: `${startDate}T${startTime}:00`,
-        endDate:   `${endDate}T${endTime}:00`,
-        note: rentalNote,
-      });
-      if (res.success) {
-        toast.success("Da gui yeu cau thue thanh cong");
-        setShowRentalModal(false);
-        navigate("/thue-muon");
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Loi khi gui yeu cau thue");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
 
   const handleChat = async () => {
     if (!user) return navigate("/dang-nhap");
@@ -160,8 +115,6 @@ const ProductDetail = () => {
   const availableQuantity = Math.max(Number(product.quantity) || 0, 0);
   const sellerName = product.ownerId?.fullName || product.ownerId?.name || "Nguoi dung an";
   const sellerInitial = sellerName.charAt(0).toUpperCase();
-
-  const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split("T")[0];
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] flex flex-col font-sans">
@@ -287,8 +240,8 @@ const ProductDetail = () => {
                   </button>
                 </>
               ) : (
-                <button onClick={() => (user ? setShowRentalModal(true) : navigate("/dang-nhap"))} className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-primary-fixed text-white font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98]">
-                  Gui yeu cau thue
+                <button onClick={() => (user ? navigate(`/thue/${product._id}`) : navigate("/dang-nhap"))} className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-primary-fixed text-white font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98]">
+                  Thuê ngay
                 </button>
               )}
 
@@ -391,82 +344,7 @@ const ProductDetail = () => {
         />
       ) : null}
 
-      {showRentalModal ? (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md animate-scale-up">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-extrabold text-on-surface text-2xl">Yêu cầu thuê</h3>
-              <button onClick={() => setShowRentalModal(false)} className="p-2 hover:bg-surface-container rounded-xl transition-all">
-                <span className="material-symbols-outlined text-xl text-on-surface-variant">close</span>
-              </button>
-            </div>
-            <p className="text-sm text-on-surface-variant mb-5 pb-4 border-b border-surface-variant/30 line-clamp-1">{product.title}</p>
 
-            <div className="flex flex-wrap gap-2 mb-5">
-              {product.rentPricePerDay > 0 && (
-                <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-semibold">
-                  {new Intl.NumberFormat("vi-VN").format(product.rentPricePerDay)}đ/ngày
-                </span>
-              )}
-              {product.rentPricePerWeek > 0 && (
-                <span className="text-xs bg-secondary/10 text-secondary px-3 py-1.5 rounded-full font-semibold">
-                  {new Intl.NumberFormat("vi-VN").format(product.rentPricePerWeek)}đ/tuần
-                </span>
-              )}
-              {product.rentPricePerMonth > 0 && (
-                <span className="text-xs bg-tertiary/10 text-tertiary px-3 py-1.5 rounded-full font-semibold">
-                  {new Intl.NumberFormat("vi-VN").format(product.rentPricePerMonth)}đ/tháng
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-4 mb-5">
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Từ ngày</label>
-                <div className="flex gap-2">
-                  <input type="date" value={startDate} min={todayStr} onChange={(e) => setStartDate(e.target.value)} className="flex-1 px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-                  <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-28 px-3 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Đến ngày</label>
-                <div className="flex gap-2">
-                  <input type="date" value={endDate} min={startDate || todayStr} onChange={(e) => setEndDate(e.target.value)} className="flex-1 px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-28 px-3 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-5">
-              <label className="block text-sm font-bold text-on-surface mb-2">Ghi chú cho chủ đồ <span className="font-normal text-on-surface-variant">(tuỳ chọn)</span></label>
-              <textarea value={rentalNote} onChange={(e) => setRentalNote(e.target.value)} placeholder="Ví dụ: Tôi cần thuê để dùng cuối tuần..." rows={2} className="w-full px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" />
-            </div>
-
-            {totalDays > 0 ? (
-              <div className="bg-surface-container-low rounded-2xl p-4 mb-5 space-y-2">
-                <div className="flex justify-between text-sm text-on-surface-variant"><span>Số ngày thuê</span><span className="font-bold text-on-surface">{totalDays} ngày</span></div>
-                <div className="flex justify-between text-sm text-on-surface-variant"><span>Tiền thuê</span><span className="font-bold text-on-surface">{formatPrice(totalFee)}</span></div>
-                {product.depositAmount > 0 && (
-                  <div className="flex justify-between text-sm text-on-surface-variant"><span>Tiền cọc</span><span className="font-bold text-on-surface">{formatPrice(product.depositAmount)}</span></div>
-                )}
-                <div className="flex justify-between font-black text-on-surface pt-2 border-t border-surface-variant/30 text-base">
-                  <span>Tổng thanh toán</span>
-                  <span className="text-primary">{formatPrice(totalFee + (product.depositAmount || 0))}</span>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="flex gap-3">
-              <button onClick={() => setShowRentalModal(false)} disabled={isSubmitting} className="flex-1 py-3.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all">
-                Hủy
-              </button>
-              <button onClick={handleRentSubmit} disabled={isSubmitting || totalDays <= 0} className="flex-1 py-3.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-full text-base font-bold hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50">
-                {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 };

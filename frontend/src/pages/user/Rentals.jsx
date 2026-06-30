@@ -62,7 +62,11 @@ const ExtendModal = ({ contract, onClose, onSuccess }) => {
     setLoading(true);
     try {
       const res = await rentalService.extendRental(contract._id, days);
-      if (res.success) { toast.success("Gia hạn thành công!"); onSuccess(); onClose(); }
+      if (res.success) {
+        toast.success("Đã gửi yêu cầu gia hạn! Chờ chủ đồ xác nhận.");
+        onSuccess();
+        onClose();
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || "Lỗi gia hạn");
     } finally { setLoading(false); }
@@ -221,6 +225,32 @@ const RentalCard = ({ rental, isOwnerView, onAction, onExtend, onDeposit, onView
         </div>
       </div>
 
+      {/* Banner yêu cầu gia hạn đang chờ duyệt */}
+      {isContract && rental.extendStatus === "pending" && (
+        <div className={`mx-5 mb-3 rounded-xl p-3 text-xs border flex items-center justify-between gap-3 ${
+          isOwnerView ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-sky-50 border-sky-200 text-sky-700"
+        }`}>
+          <span>
+            {isOwnerView
+              ? `Người thuê muốn gia hạn thêm ${rental.pendingExtendDays} ngày (+${fmt(rental.pendingExtendFee)}). Bạn có đồng ý?`
+              : `Yêu cầu gia hạn ${rental.pendingExtendDays} ngày đang chờ chủ đồ xác nhận...`
+            }
+          </span>
+          {isOwnerView && (
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={() => onAction(rental._id, "extend_reject")} disabled={processing}
+                className="px-2.5 py-1 text-xs font-bold text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50">
+                Từ chối
+              </button>
+              <button onClick={() => onAction(rental._id, "extend_approve")} disabled={processing}
+                className="px-2.5 py-1 text-xs font-bold text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:opacity-50">
+                Chấp nhận
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Kết quả cọc nếu đã xử lý */}
       {isContract && (rental.compensationAmount > 0 || rental.depositRefundAmount > 0) && (
         <div className="mx-5 mb-4 bg-blue-50 rounded-xl p-3 text-xs flex gap-4">
@@ -255,6 +285,14 @@ const RentalCard = ({ rental, isOwnerView, onAction, onExtend, onDeposit, onView
               Hủy yêu cầu
             </button>
           )}
+          {/* active = chờ nhận đồ → renter xác nhận đã nhận */}
+          {!isOwnerView && status === "active" && (
+            <button onClick={() => onAction(rental._id, "renting")} disabled={processing}
+              className="px-3 py-1.5 text-xs font-bold text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50">
+              Xác nhận đã nhận đồ
+            </button>
+          )}
+          {/* renting = đang thuê → gia hạn hoặc trả đồ */}
           {!isOwnerView && status === "renting" && (
             <>
               <button onClick={() => onExtend(rental)} disabled={processing}
@@ -374,6 +412,21 @@ const Rentals = () => {
       try {
         const res = await rentalService.requestReturn(id);
         if (res.success) { toast.success("Đã gửi yêu cầu trả đồ!"); fetchAll(); }
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Lỗi");
+      } finally { setProcessing(false); }
+      return;
+    }
+    // Special case: xác nhận/từ chối gia hạn
+    if (statusOrPayload === "extend_approve" || statusOrPayload === "extend_reject") {
+      setProcessing(true);
+      try {
+        const action = statusOrPayload === "extend_approve" ? "approve" : "reject";
+        const res = await rentalService.confirmExtend(id, action);
+        if (res.success) {
+          toast.success(action === "approve" ? "Đã chấp nhận gia hạn!" : "Đã từ chối gia hạn");
+          fetchAll();
+        }
       } catch (err) {
         toast.error(err.response?.data?.message || "Lỗi");
       } finally { setProcessing(false); }

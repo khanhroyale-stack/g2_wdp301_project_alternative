@@ -23,7 +23,12 @@ const CreatePost = () => {
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
 
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState({
+    title: "", categoryId: "", conditionStatus: "", productType: "sale",
+    salePrice: "", rentPricePerDay: "", rentPricePerWeek: "", rentPricePerMonth: "",
+    depositAmount: "", quantity: "1", location: "Khu vực Hòa Lạc",
+    description: "",
+  });
   const [imagePreviews, setImagePreviews] = useState([]);
   const [imageFiles, setImageFiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -195,24 +200,20 @@ const CreatePost = () => {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-apple border border-surface-variant/30">
-            <h3 className="font-semibold text-on-surface mb-4">Loai bai dang</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <h3 className="font-semibold text-on-surface mb-4">Loại bài đăng</h3>
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { value: "sale", label: "Ban", icon: "sell" },
-                { value: "rent", label: "Cho thue", icon: "handshake" },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setField("productType", option.value)}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${
-                    form.productType === option.value
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-surface-variant text-on-surface-variant hover:border-primary/40"
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[20px]">{option.icon}</span>
-                  {option.label}
+                { v: "sale",  label: "Bán",        icon: "sell" },
+                { v: "rent",  label: "Cho thuê",   icon: "handshake" },
+                { v: "both",  label: "Bán & Thuê", icon: "swap_horiz" },
+              ].map((opt) => (
+                <button key={opt.v} type="button" onClick={() => setField("productType", opt.v)}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${form.productType === opt.v
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-surface-variant text-on-surface-variant hover:border-primary/40"
+                    }`}>
+                  <span className="material-symbols-outlined text-[20px]">{opt.icon}</span>
+                  {opt.label}
                 </button>
               ))}
             </div>
@@ -292,64 +293,53 @@ const CreatePost = () => {
           </div>
 
           <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-apple border border-surface-variant/30 flex flex-col gap-4">
-            <h3 className="font-semibold text-on-surface">Thong tin gia</h3>
-            {form.productType === "sale" ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>
-                    Gia ban (VND) <span className="text-error">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    className={inputCls}
-                    placeholder="VD: 15000000"
-                    value={form.salePrice}
-                    onChange={(event) => setField("salePrice", event.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    So luong ton kho <span className="text-error">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    className={inputCls}
-                    placeholder="VD: 5"
-                    value={form.quantity}
-                    onChange={(event) => setField("quantity", event.target.value)}
-                    required
-                  />
-                </div>
+            <h3 className="font-semibold text-on-surface">Thông tin giá</h3>
+
+            {/* Giá bán — hiện khi sale hoặc both */}
+            {(form.productType === "sale" || form.productType === "both") && (
+              <div>
+                <label className={labelCls}>Giá bán (VNĐ) {form.productType === "sale" && <span className="text-error">*</span>}</label>
+                <input type="number" className={inputCls} placeholder="VD: 15000000" value={form.salePrice}
+                  onChange={(e) => setField("salePrice", e.target.value)}
+                  required={form.productType === "sale"} />
               </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>
-                    Gia thue/ngay (VND) <span className="text-error">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    className={inputCls}
-                    placeholder="VD: 200000"
-                    value={form.rentPricePerDay}
-                    onChange={(event) => setField("rentPricePerDay", event.target.value)}
-                    required
-                  />
+            )}
+
+            {/* Giá thuê — hiện khi rent hoặc both */}
+            {(form.productType === "rent" || form.productType === "both") && (
+              <>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className={labelCls}>Giá thuê/ngày (VNĐ) <span className="text-error">*</span></label>
+                    <input type="number" className={inputCls} placeholder="VD: 50000" value={form.rentPricePerDay}
+                      onChange={(e) => setField("rentPricePerDay", e.target.value)}
+                      required={form.productType !== "sale"} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Giá thuê/tuần (VNĐ)</label>
+                    <input type="number" className={inputCls} placeholder="VD: 280000" value={form.rentPricePerWeek}
+                      onChange={(e) => setField("rentPricePerWeek", e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Giá thuê/tháng (VNĐ)</label>
+                    <input type="number" className={inputCls} placeholder="VD: 900000" value={form.rentPricePerMonth}
+                      onChange={(e) => setField("rentPricePerMonth", e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Tiền đặt cọc (VNĐ)</label>
+                    <input type="number" className={inputCls} placeholder="VD: 2000000" value={form.depositAmount}
+                      onChange={(e) => setField("depositAmount", e.target.value)} />
+                  </div>
                 </div>
                 <div>
-                  <label className={labelCls}>Tien dat coc (VND)</label>
-                  <input
-                    type="number"
-                    className={inputCls}
-                    placeholder="VD: 2000000"
-                    value={form.depositAmount}
-                    onChange={(event) => setField("depositAmount", event.target.value)}
-                  />
+                  <label className={labelCls}>Số lượng có thể cho thuê cùng lúc <span className="text-error">*</span></label>
+                  <input type="number" min="1" max="100" className={inputCls} placeholder="VD: 1" value={form.quantity}
+                    onChange={(e) => setField("quantity", e.target.value)} required />
+                  <p className="text-xs text-on-surface-variant mt-1">Ví dụ: nếu bạn có 3 chiếc xe đạp cùng loại, nhập 3 để cho phép 3 người thuê cùng lúc</p>
                 </div>
-              </div>
+              </>
             )}
           </div>
 
