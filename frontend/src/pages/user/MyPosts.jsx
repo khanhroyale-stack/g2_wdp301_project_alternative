@@ -33,6 +33,15 @@ const STATUS = {
 };
 
 const SELLING_STATUSES = ["approved", "available"];
+const SOLD_STATUSES = ["sold"];
+const LOCKED_STATUSES = ["closed", "sold", "rented"];
+
+const EMPTY_MESSAGE = {
+  all: "Không tìm thấy bài đăng phù hợp",
+  selling: "Không có sản phẩm nào đang bán",
+  sold: "Chưa có sản phẩm nào đã bán",
+  rejected: "Không có bài đăng bị từ chối",
+};
 
 function SellerSidebar() {
   const { user, logout } = useAuth();
@@ -145,12 +154,14 @@ const MyPosts = () => {
   const categories = useMemo(() => [...new Set(posts.map((post) => post.categoryId?.name).filter(Boolean))], [posts]);
   const rejectedCount = posts.filter((post) => post.postStatus === "rejected").length;
   const sellingCount = posts.filter((post) => SELLING_STATUSES.includes(post.postStatus)).length;
+  const soldCount = posts.filter((post) => SOLD_STATUSES.includes(post.postStatus)).length;
 
   const filteredPosts = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("vi");
     return posts.filter((post) => {
       const matchesTab = tab === "all"
         || (tab === "selling" && SELLING_STATUSES.includes(post.postStatus))
+        || (tab === "sold" && SOLD_STATUSES.includes(post.postStatus))
         || (tab === "rejected" && post.postStatus === "rejected");
       const matchesCategory = category === "all" || post.categoryId?.name === category;
       const matchesQuery = !normalized
@@ -214,6 +225,7 @@ const MyPosts = () => {
                 {[
                   ["all", `Tất cả (${posts.length})`],
                   ["selling", `Đang bán (${sellingCount})`],
+                  ["sold", `Đã bán (${soldCount})`],
                   ["rejected", `Bị từ chối (${rejectedCount})`],
                 ].map(([value, label]) => (
                   <button key={value} type="button" onClick={() => setTab(value)} className={`border-r border-[#d8dde5] px-4 last:border-0 ${tab === value ? "font-semibold text-[#18bd62]" : "text-[#303640] hover:bg-[#f7f8f9]"}`}>
@@ -234,11 +246,12 @@ const MyPosts = () => {
                 <div className="flex h-64 items-center justify-center border-b border-[#e2e6eb] text-sm text-[#778295]">Đang tải bài đăng...</div>
               ) : visiblePosts.length === 0 ? (
                 <div className="flex h-64 flex-col items-center justify-center border-b border-[#e2e6eb] text-[#778295]">
-                  <PackageSearch size={34} className="mb-3" /><p className="text-sm">Không tìm thấy bài đăng phù hợp</p>
+                  <PackageSearch size={34} className="mb-3" /><p className="text-sm">{EMPTY_MESSAGE[tab] || EMPTY_MESSAGE.all}</p>
                 </div>
               ) : visiblePosts.map((post) => {
                 const status = STATUS[post.postStatus] || STATUS.inactive;
                 const canHide = SELLING_STATUSES.includes(post.postStatus);
+                const canEdit = !LOCKED_STATUSES.includes(post.postStatus);
                 return (
                   <div key={post._id}>
                     <div className="grid min-h-[96px] grid-cols-[2.6fr_1.25fr_1fr_1.35fr_110px] items-center border-b border-[#dfe3e8] px-4 py-3">
@@ -256,7 +269,7 @@ const MyPosts = () => {
                         {post.postStatus === "rejected" && <p className="mt-2 flex items-center gap-1 text-xs text-[#ef5350]"><CircleHelp size={12} /> Xem lý do</p>}
                       </div>
                       <div className="flex items-center justify-end gap-3 text-[#536176]">
-                        {post.postStatus !== "closed" && <Link to={`/dang-tin/${post._id}`} title="Chỉnh sửa" className="rounded p-1 hover:bg-[#f0f2f4]"><Pencil size={17} /></Link>}
+                        {canEdit ? <Link to={`/dang-tin/${post._id}`} title="Chỉnh sửa" className="rounded p-1 hover:bg-[#f0f2f4]"><Pencil size={17} /></Link> : <span className="rounded p-1 opacity-40"><Pencil size={17} /></span>}
                         <button type="button" title={canHide ? "Ẩn bài đăng" : "Bài đăng không thể ẩn"} disabled={!canHide || processingId === post._id} onClick={() => handleHidePost(post._id)} className="rounded p-1 hover:bg-[#f0f2f4] disabled:opacity-50"><EyeOff size={18} /></button>
                         <button type="button" title="Thêm" className="rounded p-1 hover:bg-[#f0f2f4]"><MoreVertical size={18} /></button>
                       </div>
