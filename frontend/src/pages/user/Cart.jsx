@@ -69,7 +69,7 @@ export default function Cart() {
     try {
       const res = await cartService.checkoutCart(form);
       if (res.success) {
-        navigate("/don-hang");
+        navigate("/orders/my-orders");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Khong the checkout gio hang");

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock3, PackageCheck, RotateCcw, ShieldCheck, SlidersHorizontal, Truck } from "lucide-react";
 import toast from "react-hot-toast";
-import OrderWorkspace from "../../components/orders/OrderWorkspace";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import orderService from "../../services/order.service";
 
 const FILTERS = [
@@ -59,7 +59,7 @@ export default function OrderList() {
   };
 
   return (
-    <OrderWorkspace>
+    <EcoTradeLayout>
       <section>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-[32px] font-extrabold tracking-[-.04em]">Đơn hàng của tôi</h1>
@@ -104,6 +104,6 @@ export default function OrderList() {
           {[[RotateCcw,"Chính sách hoàn trả","Các đơn hàng có thể được hoàn trả trong vòng 7 ngày kể từ khi nhận hàng nếu có lỗi.","#effaff","#28b7ef"],[Truck,"Giao hàng nhanh","EcoTrade đảm bảo lấy hàng trong vòng 24h kể từ khi người bán chấp nhận đơn.","#effdf5","#18c76b"],[ShieldCheck,"Giao dịch an toàn","Tiền của bạn được giữ an toàn cho đến khi bạn xác nhận đã nhận hàng.","#fffaf1","#f5a623"]].map(([Icon,title,text,bg,color]) => <div key={title} className="flex gap-4 rounded-xl border border-[#edf0f2] p-5" style={{background:bg}}><Icon className="mt-1 h-5 w-5 shrink-0" style={{color}}/><div><h3 className="text-sm font-bold">{title}</h3><p className="mt-2 text-xs leading-5 text-[#667085]">{text}</p></div></div>)}
         </div>
       </section>
-    </OrderWorkspace>
+    </EcoTradeLayout>
   );
 }

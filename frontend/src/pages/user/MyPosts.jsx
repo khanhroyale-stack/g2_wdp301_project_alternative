@@ -16,6 +16,7 @@ import {
   Settings,
   ShoppingCart,
 } from "lucide-react";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import { useAuth } from "../../context/AuthContext";
 import productService from "../../services/product.service";
 
@@ -34,68 +35,6 @@ const STATUS = {
 
 const SELLING_STATUSES = ["approved", "available"];
 
-function SellerSidebar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const displayName = user?.fullName || user?.name || "Người bán";
-  const navItems = [
-    { label: "Tổng quan", icon: LayoutGrid, to: "/ho-so" },
-    { label: "Sản phẩm của tôi", icon: ShoppingCart, to: "/quan-ly/bai-dang" },
-    { label: "Đơn hàng", icon: Box, to: "/don-ban" },
-    { label: "Cài đặt cửa hàng", icon: Settings, to: "/ho-so" },
-  ];
-
-  return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[256px] flex-col border-r border-[#dfe3e8] bg-[#fbfbfc] lg:flex">
-      <Link to="/marketplaces" className="flex h-[88px] items-center gap-2 border-b border-[#e4e7eb] px-11 text-[20px] font-bold text-[#16c768]">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#16c768] text-white">
-          <PackageSearch size={21} strokeWidth={2.2} />
-        </span>
-        SellerCenter
-      </Link>
-
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map(({ label, icon: Icon, to }, index) => (
-          <NavLink
-            key={`${label}-${index}`}
-            to={to}
-            end={label !== "Sản phẩm của tôi"}
-            className={({ isActive }) => {
-              const active = label === "Sản phẩm của tôi" || isActive;
-              return `flex h-11 items-center gap-3 rounded-lg px-4 text-sm transition-colors ${active && label === "Sản phẩm của tôi"
-                  ? "bg-[#1ac96b] font-medium text-[#092f1d]"
-                  : "text-[#596579] hover:bg-[#f0f2f4]"
-                }`;
-            }}
-          >
-            <Icon size={20} strokeWidth={1.8} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="border-t border-[#dfe3e8] p-4">
-        <div className="flex items-center gap-3 rounded-xl border border-[#dfe3e8] bg-white p-2">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e7ecf0] text-sm font-bold text-[#425064]">
-            {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" /> : displayName.charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-[#20242b]">{displayName}</p>
-            <p className="text-[11px] text-[#707b8d]">Cấp độ: {user?.reputationScore >= 90 ? "Diamond" : "Seller"}</p>
-          </div>
-          <button
-            type="button"
-            title="Đăng xuất"
-            onClick={() => { logout(); navigate("/marketplaces"); }}
-            className="rounded-md p-1.5 text-[#647184] hover:bg-[#f2f4f6]"
-          >
-            <LogOut size={17} />
-          </button>
-        </div>
-      </div>
-    </aside>
-  );
-}
 
 const MyPosts = () => {
   const [posts, setPosts] = useState([]);
@@ -168,10 +107,8 @@ const MyPosts = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-[#20242b]">
-      <SellerSidebar />
-      <div className="lg:ml-[256px]">
-        <header className="flex h-[72px] items-center justify-between border-b border-[#e3e6ea] px-5 md:px-8">
+    <EcoTradeLayout>
+        <header className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-[#5f6b7e]">
             <span>Sellers</span><ChevronRight size={15} /><span className="font-medium text-[#20242b]">Sản phẩm của tôi</span>
           </div>
@@ -183,7 +120,7 @@ const MyPosts = () => {
           </div>
         </header>
 
-        <main className="px-5 pb-8 pt-7 md:px-8">
+        <section className="rounded-2xl border border-surface-variant/40 bg-white p-6 shadow-sm">
           <h1 className="mb-5 text-[24px] font-bold tracking-[-0.03em]">Quản lý bài đăng</h1>
           <div className="mb-5 flex flex-col justify-between gap-3 xl:flex-row xl:items-center">
             <label className="flex h-10 w-full max-w-[448px] items-center gap-2 rounded-md border border-[#d8dde5] px-3 text-[#667386] focus-within:border-[#18c768]">
@@ -280,9 +217,8 @@ const MyPosts = () => {
               <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)} className="ml-1 rounded-md border border-[#dfe3e8] px-3 py-2 text-[#687386] disabled:opacity-40">Sau</button>
             </div>
           </footer>
-        </main>
-      </div>
-    </div>
+        </section>
+    </EcoTradeLayout>
   );
 };
 

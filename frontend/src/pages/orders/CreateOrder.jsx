@@ -220,7 +220,7 @@ export default function CreateOrder() {
         }
       } catch (error) {
         toast.error(error.response?.data?.message || "Không thể tải thông tin sản phẩm");
-        navigate(-1);
+        navigate(`/marketplaces/${productId}`);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -297,7 +297,7 @@ export default function CreateOrder() {
     try {
       const res = await orderService.createOrder({ productId, quantity: requestedQuantity, ...form });
       if (res.success) {
-        navigate(`/don-hang/${res.data._id}`);
+        navigate(`/orders/${res.data._id}`);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Không thể tạo đơn hàng");
@@ -336,7 +336,7 @@ export default function CreateOrder() {
           </div>
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(`/marketplaces/${productId}`)}
             className="inline-flex items-center gap-2 text-sm font-medium text-[#596576] hover:text-[#202124]"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -512,7 +512,7 @@ export default function CreateOrder() {
                   {submitting ? "Đang xử lý..." : "Đặt hàng ngay"}
                 </Button>
 
-                <Button type="button" variant="outline" size="lg" className="w-full text-[1rem]" onClick={() => navigate(-1)}>
+                <Button type="button" variant="outline" size="lg" className="w-full text-[1rem]" onClick={() => navigate(`/marketplaces/${productId}`)}>
                   Hủy tạo đơn
                 </Button>
               </CardContent>

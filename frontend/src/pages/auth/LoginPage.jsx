@@ -17,14 +17,12 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const data = await login(form);
-      // Check if we have a saved location to return to
-      const from = location.state?.from?.pathname;
-      if (from) {
-        navigate(from, { replace: true });
+      if (data.user.role === "shipper") {
+        navigate("/shipper", { replace: true });
       } else {
-        // If no saved location, redirect based on role
-        if (data.user.role === "shipper") {
-          navigate("/shipper", { replace: true });
+        const from = location.state?.from?.pathname;
+        if (from) {
+          navigate(from, { replace: true });
         } else {
           navigate("/", { replace: true });
         }

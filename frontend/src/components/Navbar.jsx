@@ -112,7 +112,7 @@ const Navbar = () => {
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">inventory_2</span>
                         Bài đăng của tôi
                       </Link>
-                      <Link to="/don-hang" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
+                      <Link to="/orders/my-orders" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">shopping_bag</span>
                         Đơn mua
                       </Link>
@@ -120,7 +120,7 @@ const Navbar = () => {
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">shopping_cart</span>
                         Giỏ hàng
                       </Link>
-                      <Link to="/don-ban" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
+                      <Link to="/orders/my-sales" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">storefront</span>
                         Đơn bán
                         {pendingSalesCount > 0 ? (
@@ -190,9 +190,9 @@ const Navbar = () => {
                 <>
                   <NavLink to="/ho-so" className={linkClass} onClick={() => setMenuOpen(false)}>Hồ sơ cá nhân</NavLink>
                   <NavLink to="/dang-tin" className={linkClass} onClick={() => setMenuOpen(false)}>Đăng tin</NavLink>
-                  <NavLink to="/don-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn mua</NavLink>
+                  <NavLink to="/orders/my-orders" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn mua</NavLink>
                   <NavLink to="/gio-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Giỏ hàng</NavLink>
-                  <NavLink to="/don-ban" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn bán</NavLink>
+                  <NavLink to="/orders/my-sales" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn bán</NavLink>
                 </>
               ) : (
                 <NavLink to="/admin" className={linkClass} onClick={() => setMenuOpen(false)}>Trang quản trị</NavLink>

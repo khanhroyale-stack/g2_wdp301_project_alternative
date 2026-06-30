@@ -52,6 +52,11 @@ function LegacyProductRedirect() {
   return <Navigate to={`/marketplaces/${id}`} replace />;
 }
 
+function LegacyOrderRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/orders/${id}`} replace />;
+}
+
 const ChatRoomRedirect = () => {
   const { roomId } = useParams();
   return <Navigate to={`/tin-nhan/${roomId}`} replace />;
@@ -127,9 +132,9 @@ function App() {
             <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />
             <Route path="/gio-hang" element={<PrivateRoute><Cart /></PrivateRoute>} />
 
-            <Route path="/don-hang" element={<PrivateRoute><OrderList /></PrivateRoute>} />
-            <Route path="/don-hang/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
-            <Route path="/don-ban" element={<PrivateRoute><MySales /></PrivateRoute>} />
+            <Route path="/don-hang" element={<Navigate to="/orders/my-orders" replace />} />
+            <Route path="/don-hang/:id" element={<LegacyOrderRedirect />} />
+            <Route path="/don-ban" element={<Navigate to="/orders/my-sales" replace />} />
             <Route path="/dat-hang/:productId" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
             <Route path="/orders/my-orders" element={<PrivateRoute><OrderList /></PrivateRoute>} />
             <Route path="/orders/history" element={<PrivateRoute><OrderHistory /></PrivateRoute>} />
