@@ -100,10 +100,10 @@ const Calendar = ({ bookedRanges, startDate, endDate, onChange }) => {
     <div className="bg-white rounded-2xl border border-gray-100 p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <button onClick={() => setVm(v => { const d = new Date(v.y, v.m-1); return {y:d.getFullYear(),m:d.getMonth()}; })}
+        <button type="button" onClick={() => setVm(v => { const d = new Date(v.y, v.m-1); return {y:d.getFullYear(),m:d.getMonth()}; })}
           className="p-1.5 hover:bg-gray-100 rounded-lg transition-all text-gray-600">‹</button>
         <span className="font-bold text-gray-800 text-sm">{MONTHS[m]} {y}</span>
-        <button onClick={() => setVm(v => { const d = new Date(v.y, v.m+1); return {y:d.getFullYear(),m:d.getMonth()}; })}
+        <button type="button" onClick={() => setVm(v => { const d = new Date(v.y, v.m+1); return {y:d.getFullYear(),m:d.getMonth()}; })}
           className="p-1.5 hover:bg-gray-100 rounded-lg transition-all text-gray-600">›</button>
       </div>
       {/* Day headers */}
@@ -113,7 +113,7 @@ const Calendar = ({ bookedRanges, startDate, endDate, onChange }) => {
       {/* Cells */}
       <div className="grid grid-cols-7 gap-0.5">
         {cells.map((ds, i) => (
-          <button key={i} onClick={() => ds && handleClick(ds)}
+          <button key={i} type="button" onClick={() => ds && handleClick(ds)}
             className={`text-center py-1.5 transition-all ${getStyle(ds)}`}>
             {ds ? parseInt(ds.split("-")[2]) : ""}
           </button>
