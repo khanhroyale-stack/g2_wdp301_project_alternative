@@ -14,7 +14,7 @@ const FILTERS = [
 
 const ORDER_STATUS = {
   pending: ["Chờ xác nhận", "amber"], confirmed: ["Đã chấp nhận", "green"],
-  shipping: ["Đã chấp nhận", "green"], delivered: ["Đã chấp nhận", "green"],
+  shipping: ["Đang vận chuyển", "blue"], delivered: ["Chờ xác nhận nhận hàng", "amber"],
   completed: ["Hoàn tất", "green"], cancelled: ["Đã hủy", "red"],
 };
 
@@ -52,10 +52,23 @@ export default function OrderList() {
 
   const cancelOrder = async (order) => {
     if (!window.confirm("Bạn chắc chắn muốn hủy đơn hàng này? Số lượng sản phẩm sẽ được hoàn lại.")) return;
-    setProcessing(order._id);
+    setProcessing(`${order._id}:cancel`);
     try { await orderService.updateOrderStatus(order._id, "cancelled", { cancelReason: "Người mua hủy đơn" }); toast.success("Đã hủy đơn hàng"); await loadOrders(); }
     catch (error) { toast.error(error.response?.data?.message || "Không thể hủy đơn hàng"); }
     finally { setProcessing(null); }
+  };
+
+  const completeOrder = async (order) => {
+    setProcessing(`${order._id}:complete`);
+    try {
+      await orderService.updateOrderStatus(order._id, "completed");
+      toast.success("Đã xác nhận nhận hàng");
+      await loadOrders();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể xác nhận nhận hàng");
+    } finally {
+      setProcessing(null);
+    }
   };
 
   return (
@@ -94,7 +107,12 @@ export default function OrderList() {
               </div>
               <div className="space-y-2">
                 <Link to={`/orders/${order._id}`} className="flex h-10 items-center justify-between rounded-md bg-[#18c76b] px-4 text-sm font-medium text-[#062d18]">Xem chi tiết <ArrowRight className="h-4 w-4" /></Link>
-                <button onClick={() => cancelOrder(order)} disabled={!order.actions?.canBuyerCancel || processing === order._id} className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[#ffcaca] text-sm text-[#ff5555] disabled:cursor-not-allowed disabled:opacity-45"><span className="text-lg">⊗</span>{processing === order._id ? "Đang hủy..." : "Hủy đơn"}</button>
+                {order.actions?.canBuyerComplete ? (
+                  <button onClick={() => completeOrder(order)} disabled={processing === `${order._id}:complete`} className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[#bdeed2] bg-[#ecfff4] text-sm font-semibold text-[#12b85d] disabled:cursor-not-allowed disabled:opacity-45">
+                    {processing === `${order._id}:complete` ? "Đang xác nhận..." : "Xác nhận nhận hàng"}
+                  </button>
+                ) : null}
+                <button onClick={() => cancelOrder(order)} disabled={!order.actions?.canBuyerCancel || processing === `${order._id}:cancel`} className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[#ffcaca] text-sm text-[#ff5555] disabled:cursor-not-allowed disabled:opacity-45"><span className="text-lg">⊗</span>{processing === `${order._id}:cancel` ? "Đang hủy..." : "Hủy đơn"}</button>
               </div>
             </article>;
           })}

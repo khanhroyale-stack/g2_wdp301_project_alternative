@@ -1,6 +1,7 @@
 const Delivery = require("../models/delivery.model");
 const Order = require("../models/order.model");
 const DeliveryInspection = require("../models/delivery_inspection.model");
+const { createNotification } = require("./notification.controller");
 const {
   getProductImageUrls,
   getProductThumbnailUrl,
@@ -173,6 +174,7 @@ const getDeliveryById = async (req, res) => {
 const updateDeliveryStatus = async (req, res) => {
   try {
     const { status, note, failureReason } = req.body;
+    const io = req.app.get("io");
     const delivery = await Delivery.findById(req.params.id);
 
     if (!delivery) {
@@ -228,9 +230,37 @@ const updateDeliveryStatus = async (req, res) => {
         orderStatus: "shipping",
       });
     } else if (status === "delivered") {
-      await Order.findByIdAndUpdate(delivery.orderId, {
+      const order = await Order.findByIdAndUpdate(delivery.orderId, {
         orderStatus: "delivered",
-      });
+      }, { new: true })
+        .populate("buyerId", "fullName")
+        .populate("sellerId", "fullName")
+        .populate("postId", "title")
+        .lean();
+
+      if (order) {
+        const productTitle = order.postId?.title || "sản phẩm";
+        await Promise.all([
+          createNotification({
+            recipientId: order.buyerId?._id || order.buyerId,
+            type: "order_update",
+            title: "Đơn hàng đã được giao",
+            content: `Shipper đã xác nhận giao thành công "${productTitle}". Vui lòng kiểm tra hàng và xác nhận hoàn tất đơn.`,
+            relatedType: "order",
+            relatedId: order._id,
+            link: `/orders/${order._id}`,
+          }, io),
+          createNotification({
+            recipientId: order.sellerId?._id || order.sellerId,
+            type: "order_update",
+            title: "Đơn bán đã giao thành công",
+            content: `Shipper đã xác nhận giao thành công "${productTitle}". Hệ thống đang chờ người mua xác nhận hoàn tất.`,
+            relatedType: "order",
+            relatedId: order._id,
+            link: `/orders/${order._id}`,
+          }, io),
+        ]);
+      }
     } else if (status === "failed") {
       const order = await Order.findByIdAndUpdate(delivery.orderId, {
         orderStatus: "cancelled",

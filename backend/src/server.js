@@ -7,6 +7,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
+const { autoCompleteExpiredDeliveredOrders } = require("./services/order-auto-complete.service");
 
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 dotenv.config();
@@ -94,9 +95,18 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+const AUTO_COMPLETE_INTERVAL_MS = 60 * 60 * 1000;
 
 async function startServer() {
   await connectDB();
+
+  const runAutoComplete = () => {
+    autoCompleteExpiredDeliveredOrders(io).catch((error) => {
+      console.error(`Auto complete delivered orders failed: ${error.message}`);
+    });
+  };
+  runAutoComplete();
+  setInterval(runAutoComplete, AUTO_COMPLETE_INTERVAL_MS);
 
   httpServer.listen(PORT, () => {
     console.log(`EcoTrade API: http://localhost:${PORT} [${process.env.NODE_ENV}]`);

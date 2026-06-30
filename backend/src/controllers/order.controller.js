@@ -11,6 +11,7 @@ const {
   reserveProductQuantity,
   syncProductAvailability,
 } = require("../services/order-inventory.service");
+const { autoCompleteExpiredDeliveredOrders } = require("../services/order-auto-complete.service");
 const {
   getProductImageUrls,
   getProductThumbnailUrl,
@@ -201,6 +202,8 @@ const createOrder = async (req, res) => {
 
 const getMyOrders = async (req, res) => {
   try {
+    await autoCompleteExpiredDeliveredOrders(req.app.get("io"));
+
     const orders = await Order.find({ buyerId: req.user._id })
       .populate("sellerId", "fullName email phone")
       .populate("postId", "title salePrice")
@@ -219,6 +222,8 @@ const getMyOrders = async (req, res) => {
 
 const getMySales = async (req, res) => {
   try {
+    await autoCompleteExpiredDeliveredOrders(req.app.get("io"));
+
     const orders = await Order.find({ sellerId: req.user._id })
       .populate("buyerId", "fullName email phone")
       .populate("postId", "title salePrice")
@@ -237,6 +242,8 @@ const getMySales = async (req, res) => {
 
 const getOrderById = async (req, res) => {
   try {
+    await autoCompleteExpiredDeliveredOrders(req.app.get("io"));
+
     const order = await Order.findById(req.params.id)
       .populate("buyerId", "fullName email phone address")
       .populate("sellerId", "fullName email phone address")

@@ -33,12 +33,26 @@ function getSellerActionHint(order) {
   }
 
   if (order.orderStatus === "delivered" || order.orderStatus === "completed") {
-    return "Đơn đã giao xong. Hệ thống đang chờ người mua xác nhận hoặc đã hoàn tất giao dịch.";
+    return order.orderStatus === "delivered"
+      ? "Shipper đã xác nhận giao thành công. Hệ thống đang chờ buyer xác nhận nhận hàng; nếu buyer không xác nhận, đơn sẽ tự hoàn tất sau 3 ngày."
+      : "Buyer đã xác nhận nhận hàng hoặc hệ thống đã tự hoàn tất sau thời gian chờ.";
   }
 
   return order.cancelReason
     ? `Đơn đã bị hủy. Lý do: ${order.cancelReason}`
     : "Đơn đã bị hủy và không thể xử lý tiếp.";
+}
+
+function getSellerConfirmStage(order) {
+  if (order.orderStatus === "delivered") {
+    return { label: "Shipper confirm", variant: "warning" };
+  }
+
+  if (order.orderStatus === "completed") {
+    return { label: "Buyer confirm", variant: "success" };
+  }
+
+  return null;
 }
 
 export default function MySales() {
@@ -114,7 +128,8 @@ export default function MySales() {
 
   const pendingCount = orders.filter((order) => order.orderStatus === "pending").length;
   const confirmedCount = orders.filter((order) => order.orderStatus === "confirmed").length;
-  const completedCount = orders.filter((order) => ["delivered", "completed"].includes(order.orderStatus)).length;
+  const shipperConfirmedCount = orders.filter((order) => order.orderStatus === "delivered").length;
+  const buyerConfirmedCount = orders.filter((order) => order.orderStatus === "completed").length;
 
   return (
     <EcoTradeLayout>
@@ -143,9 +158,16 @@ export default function MySales() {
             </Card>
             <Card className="min-w-[210px] border-success/20 bg-[#f5fdf8]">
               <CardContent className="pt-6">
-                <div className="text-sm font-bold uppercase tracking-[0.12em] text-success">Đã giao</div>
-                <div className="mt-2 text-[2rem] font-extrabold">{completedCount}</div>
-                <div className="text-sm text-muted-foreground">Đơn đã giao hoặc hoàn tất</div>
+                <div className="text-sm font-bold uppercase tracking-[0.12em] text-success">Shipper confirm</div>
+                <div className="mt-2 text-[2rem] font-extrabold">{shipperConfirmedCount}</div>
+                <div className="text-sm text-muted-foreground">Đã giao, chờ buyer xác nhận</div>
+              </CardContent>
+            </Card>
+            <Card className="min-w-[210px] border-success/20 bg-[#f5fdf8]">
+              <CardContent className="pt-6">
+                <div className="text-sm font-bold uppercase tracking-[0.12em] text-success">Buyer confirm</div>
+                <div className="mt-2 text-[2rem] font-extrabold">{buyerConfirmedCount}</div>
+                <div className="text-sm text-muted-foreground">Buyer xác nhận hoặc tự hoàn tất</div>
               </CardContent>
             </Card>
           </div>
@@ -205,6 +227,7 @@ export default function MySales() {
               const deliveryInfo = getDeliveryStatusInfo(order.delivery?.deliveryStatus);
               const isPendingAction = order.actions?.canSellerConfirm || order.actions?.canSellerReject;
               const isProcessing = processingId === order._id;
+              const confirmStage = getSellerConfirmStage(order);
 
               return (
                 <Card key={order._id}>
@@ -215,6 +238,7 @@ export default function MySales() {
                           <span className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Mã đơn</span>
                           <span className="text-xl font-extrabold">{String(order._id).slice(-8).toUpperCase()}</span>
                           <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                          {confirmStage ? <Badge variant={confirmStage.variant}>{confirmStage.label}</Badge> : null}
                         </div>
                         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-2">
