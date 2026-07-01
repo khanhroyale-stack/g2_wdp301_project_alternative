@@ -81,6 +81,7 @@ app.use("/api/reports", require("./routes/report.routes"));
 app.use("/api/reviews", require("./routes/review.routes"));
 app.use("/api/admin", require("./routes/stats.routes"));
 app.use("/api/upload", require("./routes/upload.routes"));
+app.use("/api/subscriptions", require("./routes/subscription.routes"));
 
 app.get("/api/health", (req, res) => {
   res.json({
