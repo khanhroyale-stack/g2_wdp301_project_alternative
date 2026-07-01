@@ -52,6 +52,8 @@ const formatUser = (user) => ({
   verificationStatus: user.verificationStatus,
   reputationScore: user.reputationScore,
   accountStatus: user.accountStatus,
+  proExpiresAt: user.proExpiresAt,
+  isPro: !!(user.proExpiresAt && new Date(user.proExpiresAt).getTime() > Date.now()),
 });
 
 const register = async (req, res) => {
