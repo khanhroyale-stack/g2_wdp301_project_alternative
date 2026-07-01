@@ -44,3 +44,39 @@ test("computeProExpiry ignores expired Pro and counts from now", () => {
   const result = computeProExpiry(current, 90, now);
   assert.equal(result.getTime(), now.getTime() + 90 * DAY);
 });
+
+const querystring = require("node:querystring");
+
+test("buildPaymentUrl then verifyReturn round-trips with a valid signature", () => {
+  process.env.VNP_TMNCODE = "TESTCODE";
+  process.env.VNP_HASHSECRET = "TESTSECRET";
+  process.env.VNP_URL = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+  process.env.VNP_RETURNURL = "http://localhost:5000/api/subscriptions/vnpay-return";
+  const { buildPaymentUrl, verifyReturn } = require("../src/utils/vnpay.util");
+
+  const url = buildPaymentUrl({
+    amount: 50000,
+    txnRef: "PRO-123",
+    orderInfo: "Nang cap Pro 1m",
+    ipAddr: "127.0.0.1",
+  });
+  const queryStr = url.split("?")[1];
+  const parsed = querystring.parse(queryStr); // simulates Express decoding req.query
+
+  assert.equal(parsed.vnp_Amount, "5000000"); // 50000 * 100
+  const { isValid } = verifyReturn(parsed);
+  assert.equal(isValid, true);
+});
+
+test("verifyReturn rejects a tampered amount", () => {
+  process.env.VNP_TMNCODE = "TESTCODE";
+  process.env.VNP_HASHSECRET = "TESTSECRET";
+  process.env.VNP_URL = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+  process.env.VNP_RETURNURL = "http://localhost:5000/api/subscriptions/vnpay-return";
+  const { buildPaymentUrl, verifyReturn } = require("../src/utils/vnpay.util");
+
+  const url = buildPaymentUrl({ amount: 50000, txnRef: "PRO-9", orderInfo: "x", ipAddr: "1.1.1.1" });
+  const parsed = querystring.parse(url.split("?")[1]);
+  parsed.vnp_Amount = "100"; // tamper
+  assert.equal(verifyReturn(parsed).isValid, false);
+});
