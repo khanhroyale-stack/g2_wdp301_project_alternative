@@ -24,6 +24,8 @@ import Messages from "./pages/user/Messages";
 import Notifications from "./pages/user/Notifications";
 import Cart from "./pages/user/Cart";
 import MyOrders from "./pages/user/MyOrders";
+import ProPlans from "./pages/user/ProPlans";
+import ProResult from "./pages/user/ProResult";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import PostApprovals from "./pages/admin/PostApprovals";
@@ -126,6 +128,8 @@ function App() {
             <Route path="/tin-nhan/:roomId" element={<PrivateRoute><Messages /></PrivateRoute>} />
             <Route path="/thong-bao" element={<PrivateRoute><Notifications /></PrivateRoute>} />
             <Route path="/gio-hang" element={<PrivateRoute><Cart /></PrivateRoute>} />
+            <Route path="/goi-pro" element={<PrivateRoute><ProPlans /></PrivateRoute>} />
+            <Route path="/goi-pro/ket-qua" element={<ProResult />} />
 
             <Route path="/don-hang" element={<PrivateRoute><OrderList /></PrivateRoute>} />
             <Route path="/don-hang/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
