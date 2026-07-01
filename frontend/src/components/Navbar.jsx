@@ -2,6 +2,7 @@ import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import usePendingSalesCount from "../hooks/usePendingSalesCount";
+import ProBadge from "./ui/ProBadge";
 
 const roleLabel = {
   admin: "Quản trị viên",
@@ -92,6 +93,7 @@ const Navbar = () => {
                 <span className="hidden max-w-[90px] truncate text-sm font-medium text-on-surface md:block">
                   {displayName}
                 </span>
+                {user?.isPro && <ProBadge className="hidden md:inline-flex" />}
                 <span className="material-symbols-outlined text-[15px] text-on-surface-variant">expand_more</span>
               </button>
 
@@ -111,6 +113,11 @@ const Navbar = () => {
                       <Link to="/quan-ly/bai-dang" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">inventory_2</span>
                         Bài đăng của tôi
+                      </Link>
+                      <Link to="/goi-pro" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
+                        <span className="material-symbols-outlined text-[18px] text-amber-500">workspace_premium</span>
+                        Nâng cấp Pro
+                        {user?.isPro && <ProBadge className="ml-auto" />}
                       </Link>
                       <Link to="/don-hang" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">shopping_bag</span>
@@ -189,6 +196,7 @@ const Navbar = () => {
               {user.role !== "admin" ? (
                 <>
                   <NavLink to="/ho-so" className={linkClass} onClick={() => setMenuOpen(false)}>Hồ sơ cá nhân</NavLink>
+                  <NavLink to="/goi-pro" className={linkClass} onClick={() => setMenuOpen(false)}>Nâng cấp Pro</NavLink>
                   <NavLink to="/dang-tin" className={linkClass} onClick={() => setMenuOpen(false)}>Đăng tin</NavLink>
                   <NavLink to="/don-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn mua</NavLink>
                   <NavLink to="/gio-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Giỏ hàng</NavLink>

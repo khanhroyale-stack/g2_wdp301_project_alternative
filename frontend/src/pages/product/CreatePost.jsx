@@ -120,6 +120,11 @@ const CreatePost = () => {
 
       setSuccess(true);
     } catch (err) {
+      if (err.response?.status === 403) {
+        alert(err.response.data.message);
+        navigate("/goi-pro");
+        return;
+      }
       alert(err.response?.data?.message || err.message || "Co loi xay ra khi dang tin.");
     } finally {
       setLoading(false);
