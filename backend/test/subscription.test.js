@@ -80,3 +80,14 @@ test("verifyReturn rejects a tampered amount", () => {
   parsed.vnp_Amount = "100"; // tamper
   assert.equal(verifyReturn(parsed).isValid, false);
 });
+
+const { isUserPro: isPro2, FREE_POST_LIMIT: LIMIT } = require("../src/utils/business-rules");
+
+test("free post limit constant is 5 and gates non-Pro users", () => {
+  assert.equal(LIMIT, 5);
+  // simulate the controller's guard expression
+  const blocked = (user, activeCount) => !isPro2(user) && activeCount >= LIMIT;
+  assert.equal(blocked({ proExpiresAt: null }, 5), true);
+  assert.equal(blocked({ proExpiresAt: null }, 4), false);
+  assert.equal(blocked({ proExpiresAt: new Date(Date.now() + 86400000) }, 99), false);
+});
