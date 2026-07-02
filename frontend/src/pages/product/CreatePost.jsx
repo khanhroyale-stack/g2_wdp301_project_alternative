@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar";
 import productService from "../../services/product.service";
 import uploadService from "../../services/upload.service";
 import categoryService from "../../services/category.service";
+import AccountStatusCard from "../../components/ui/AccountStatusCard";
 
 const defaultForm = {
   title: "",
@@ -197,6 +198,8 @@ const CreatePost = () => {
               : "Dien day du thong tin de tang kha nang ban hang"}
           </p>
         </div>
+
+        {!isEditMode && <AccountStatusCard className="mb-6" />}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-apple border border-surface-variant/30">

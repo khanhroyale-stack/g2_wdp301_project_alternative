@@ -1,6 +1,7 @@
 const ProSubscription = require("../models/pro_subscription.model");
+const ProductPost = require("../models/product_post.model");
 const User = require("../models/user.model");
-const { PRO_PLANS, computeProExpiry } = require("../utils/business-rules");
+const { PRO_PLANS, computeProExpiry, isUserPro, FREE_POST_LIMIT } = require("../utils/business-rules");
 const { buildPaymentUrl, verifyReturn } = require("../utils/vnpay.util");
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
@@ -36,8 +37,10 @@ const createPayment = async (req, res) => {
       status: "pending",
     });
 
-    const ipAddr =
-      req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "127.0.0.1";
+    let ipAddr = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "127.0.0.1";
+    if (ipAddr === "::1" || ipAddr.includes("::ffff:")) {
+      ipAddr = "127.0.0.1";
+    }
     const paymentUrl = buildPaymentUrl({
       amount: planInfo.amount,
       txnRef,
@@ -116,4 +119,28 @@ const getMySubscriptions = async (req, res) => {
   }
 };
 
-module.exports = { getPlans, createPayment, vnpayReturn, getMySubscriptions };
+const getStatus = async (req, res) => {
+  try {
+    const isPro = isUserPro(req.user);
+    const activePosts = await ProductPost.countDocuments({
+      ownerId: req.user._id,
+      postStatus: { $in: ["pending", "approved", "available"] },
+    });
+    const remainingPosts = isPro ? null : Math.max(0, FREE_POST_LIMIT - activePosts);
+
+    res.json({
+      success: true,
+      data: {
+        isPro,
+        proExpiresAt: req.user.proExpiresAt || null,
+        freePostLimit: FREE_POST_LIMIT,
+        activePosts,
+        remainingPosts,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { getPlans, createPayment, vnpayReturn, getMySubscriptions, getStatus };

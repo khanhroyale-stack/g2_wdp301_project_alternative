@@ -13,6 +13,10 @@ const subscriptionService = {
     const response = await api.get("/subscriptions/me");
     return response.data;
   },
+  getStatus: async () => {
+    const response = await api.get("/subscriptions/status");
+    return response.data;
+  },
 };
 
 export default subscriptionService;
