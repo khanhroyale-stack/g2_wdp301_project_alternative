@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { MessageSquare, X, Send, ChevronLeft, Search, User } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import chatService from "../../services/chat.service";
@@ -60,7 +60,7 @@ const UserChatWidget = () => {
   }, [messages, activeRoom]);
 
   // Lấy danh sách phòng chat từ API
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     if (!user) return;
     setLoadingRooms(true);
     try {
@@ -73,7 +73,7 @@ const UserChatWidget = () => {
     } finally {
       setLoadingRooms(false);
     }
-  };
+  }, [user]);
 
   // Gọi API lấy tin nhắn khi bấm chọn phòng
   const handleSelectRoom = async (room) => {
@@ -119,7 +119,7 @@ const UserChatWidget = () => {
     if (isOpen && user) {
       fetchRooms();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, fetchRooms]);
 
   // Thiết lập lắng nghe tin nhắn realtime qua Socket.IO
   useEffect(() => {
@@ -177,7 +177,7 @@ const UserChatWidget = () => {
     return () => {
       socket.off("new_message", handleNewMessage);
     };
-  }, [user, activeRoom]);
+  }, [user, activeRoom, fetchRooms]);
 
   // Gửi tin nhắn
   const handleSend = async (e) => {

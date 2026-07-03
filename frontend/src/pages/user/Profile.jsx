@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
@@ -47,9 +47,9 @@ const Profile = () => {
 
   useEffect(() => {
     if (activeTab === "reputation" && user) fetchHistory();
-  }, [activeTab, user]);
+  }, [activeTab, user, fetchHistory]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setHistLoading(true);
     try {
       const res = await userService.getReputationHistory(user._id || user.id);
@@ -59,7 +59,7 @@ const Profile = () => {
     } finally {
       setHistLoading(false);
     }
-  };
+  }, [user]);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
