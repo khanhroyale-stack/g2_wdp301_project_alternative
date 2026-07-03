@@ -45,10 +45,6 @@ const Profile = () => {
   const displayName = user?.fullName || user?.name || "";
   const verBadge = VER_BADGE[user?.verificationStatus] || VER_BADGE.unverified;
 
-  useEffect(() => {
-    if (activeTab === "reputation" && user) fetchHistory();
-  }, [activeTab, user, fetchHistory]);
-
   const fetchHistory = useCallback(async () => {
     setHistLoading(true);
     try {
@@ -60,6 +56,10 @@ const Profile = () => {
       setHistLoading(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === "reputation" && user) fetchHistory();
+  }, [activeTab, user, fetchHistory]);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
