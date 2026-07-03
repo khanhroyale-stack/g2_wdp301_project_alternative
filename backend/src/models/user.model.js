@@ -104,6 +104,10 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "inactive", "banned"],
       default: "active",
     },
+    proExpiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

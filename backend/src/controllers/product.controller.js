@@ -3,7 +3,7 @@ const ProductImage = require("../models/product_image.model");
 const Category = require("../models/category.model");
 const MediaFile = require("../models/media_file.model");
 const { createNotification } = require("./notification.controller");
-const { validateProductBusinessRules } = require("../utils/business-rules");
+const { validateProductBusinessRules, isUserPro, FREE_POST_LIMIT } = require("../utils/business-rules");
 const {
   attachImagesToProducts,
   getProductImageUrls,
@@ -174,7 +174,7 @@ const getProducts = async (req, res) => {
     if (req.query.sort === "price_desc") sortQuery = { salePrice: -1, rentPricePerDay: -1 };
 
     const products = await ProductPost.find(filter)
-      .populate("ownerId", "fullName email avatarUrl phone reputationScore")
+      .populate("ownerId", "fullName email avatarUrl phone reputationScore proExpiresAt")
       .populate("categoryId", "name icon")
       .sort(sortQuery)
       .skip((page - 1) * limit)
@@ -182,6 +182,13 @@ const getProducts = async (req, res) => {
       .lean();
 
     await attachImagesToProducts(products);
+
+    const nowMs = Date.now();
+    for (const p of products) {
+      p.ownerIsPro = !!(p.ownerId?.proExpiresAt && new Date(p.ownerId.proExpiresAt).getTime() > nowMs);
+    }
+    // Stable sort: Pro owners' posts first, keep existing order otherwise (within page)
+    products.sort((a, b) => Number(b.ownerIsPro) - Number(a.ownerIsPro));
 
     const total = await ProductPost.countDocuments(filter);
 
@@ -233,6 +240,20 @@ const createProduct = async (req, res) => {
   try {
     const payload = mapProductPayload(req.body);
     const imageIds = req.body.imageIds || req.body.mediaIds || [];
+
+    if (!isUserPro(req.user)) {
+      const activePosts = await ProductPost.countDocuments({
+        ownerId: req.user._id,
+        postStatus: { $in: ["pending", "approved", "available"] },
+      });
+      if (activePosts >= FREE_POST_LIMIT) {
+        return res.status(403).json({
+          success: false,
+          message: `Ban da dat gioi han ${FREE_POST_LIMIT} bai dang. Nang cap Pro de dang khong gioi han.`,
+        });
+      }
+    }
+
     const validationError = validateProductBusinessRules(payload) || await validateProductImages(imageIds, req.user._id);
     if (validationError) {
       return res.status(400).json({ success: false, message: validationError });

@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import productService from "../../services/product.service";
 import categoryService from "../../services/category.service";
+import ProBadge from "../../components/ui/ProBadge";
 
 const CONDITIONS = ["Tất cả", "Mới", "Như mới", "Đã dùng - Còn tốt", "Đã dùng - Có lỗi nhỏ"];
 
@@ -238,6 +239,7 @@ const Marketplace = () => {
                           <span className="text-xs text-on-surface-variant truncate">
                             {product.ownerId.fullName || product.ownerId.name || "Ẩn danh"}
                           </span>
+                          {product.ownerIsPro && <ProBadge />}
                           {product.ownerId.reputationScore != null && (
                             <span className="ml-auto flex items-center gap-0.5 text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                               <span className="material-symbols-outlined text-[11px]">verified_user</span>

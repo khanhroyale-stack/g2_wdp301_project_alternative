@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
+import AccountStatusCard from "../../components/ui/AccountStatusCard";
 import userService from "../../services/user.service";
 import { authService } from "../../services/auth.service";
 
@@ -130,7 +131,7 @@ const Profile = () => {
             </div>
           </div>
 
-
+          <AccountStatusCard className="mb-8" />
 
           <div className="mb-6 flex w-fit gap-0.5 rounded-2xl border border-surface-variant/30 bg-surface-container-lowest p-1 shadow-sm">
             {tabs.map((tab) => (
