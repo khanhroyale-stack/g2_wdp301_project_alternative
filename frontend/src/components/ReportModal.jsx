@@ -50,6 +50,7 @@ const ReportModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!reportedUserId) return toast.error("Không tìm thấy thông tin người bị báo cáo.");
     if (!reportType) return toast.error("Vui lòng chọn loại vi phạm");
     if (!description.trim()) return toast.error("Vui lòng nhập mô tả");
 

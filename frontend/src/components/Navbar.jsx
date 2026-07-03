@@ -1,7 +1,8 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import usePendingSalesCount from "../hooks/usePendingSalesCount";
+import ProBadge from "./ui/ProBadge";
 
 const roleLabel = {
   admin: "Quản trị viên",
@@ -13,6 +14,7 @@ const Navbar = () => {
   const { user, logout, unreadCount } = useAuth();
   const pendingSalesCount = usePendingSalesCount();
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -34,7 +36,7 @@ const Navbar = () => {
     <nav className="fixed left-0 top-0 z-50 h-16 w-full border-b border-surface-variant/50 bg-surface/90 shadow-[0px_8px_30px_rgba(17,38,28,0.05)] backdrop-blur-xl">
       <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between gap-4 px-4 md:px-10">
         <div className="flex items-center gap-8">
-          <Link to="/marketplaces" className="select-none text-[1.35rem] font-extrabold tracking-tight text-primary">
+          <Link to="/" className="select-none text-[1.35rem] font-extrabold tracking-tight text-primary">
             EcoTrade
           </Link>
           <div className="hidden gap-5 md:flex">
@@ -81,12 +83,17 @@ const Navbar = () => {
                 onClick={() => setUserMenuOpen((value) => !value)}
                 className="flex items-center gap-2 rounded-full border border-surface-variant/60 px-2.5 py-1.5 transition-colors hover:bg-surface-container-low"
               >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
-                  {displayName.charAt(0).toUpperCase() || "U"}
-                </div>
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
+                    {displayName.charAt(0).toUpperCase() || "U"}
+                  </div>
+                )}
                 <span className="hidden max-w-[90px] truncate text-sm font-medium text-on-surface md:block">
                   {displayName}
                 </span>
+                {user?.isPro && <ProBadge className="hidden md:inline-flex" />}
                 <span className="material-symbols-outlined text-[15px] text-on-surface-variant">expand_more</span>
               </button>
 
@@ -107,6 +114,11 @@ const Navbar = () => {
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">inventory_2</span>
                         Bài đăng của tôi
                       </Link>
+                      <Link to="/goi-pro" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
+                        <span className="material-symbols-outlined text-[18px] text-amber-500">workspace_premium</span>
+                        Nâng cấp Pro
+                        {user?.isPro && <ProBadge className="ml-auto" />}
+                      </Link>
                       <Link to="/don-hang" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">shopping_bag</span>
                         Đơn mua
@@ -115,7 +127,7 @@ const Navbar = () => {
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">shopping_cart</span>
                         Giỏ hàng
                       </Link>
-                      <Link to="/don-ban" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
+                      <Link to="/orders/my-sales" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">storefront</span>
                         Đơn bán
                         {pendingSalesCount > 0 ? (
@@ -160,7 +172,7 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link to="/dang-nhap" className="rounded-full border border-primary/30 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-surface-container-low">
+              <Link to="/dang-nhap" state={{ from: location }} className="rounded-full border border-primary/30 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-surface-container-low">
                 Đăng nhập
               </Link>
               <Link to="/dang-ky" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:opacity-90">
@@ -184,18 +196,22 @@ const Navbar = () => {
               {user.role !== "admin" ? (
                 <>
                   <NavLink to="/ho-so" className={linkClass} onClick={() => setMenuOpen(false)}>Hồ sơ cá nhân</NavLink>
+                  <NavLink to="/goi-pro" className={linkClass} onClick={() => setMenuOpen(false)}>Nâng cấp Pro</NavLink>
                   <NavLink to="/dang-tin" className={linkClass} onClick={() => setMenuOpen(false)}>Đăng tin</NavLink>
-                  <NavLink to="/don-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn mua</NavLink>
+                  <NavLink to="/orders/my-orders" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn mua</NavLink>
                   <NavLink to="/gio-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Giỏ hàng</NavLink>
-                  <NavLink to="/don-ban" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn bán</NavLink>
+                  <NavLink to="/orders/my-sales" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn bán</NavLink>
                 </>
               ) : (
                 <NavLink to="/admin" className={linkClass} onClick={() => setMenuOpen(false)}>Trang quản trị</NavLink>
               )}
+              {user.role === "shipper" && (
+                <NavLink to="/shipper" className={linkClass} onClick={() => setMenuOpen(false)}>Trang shipper</NavLink>
+              )}
             </>
           ) : (
             <>
-              <Link to="/dang-nhap" className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Đăng nhập</Link>
+              <Link to="/dang-nhap" state={{ from: location }} className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Đăng nhập</Link>
               <Link to="/dang-ky" className="py-1 text-sm font-medium text-primary" onClick={() => setMenuOpen(false)}>Đăng ký</Link>
             </>
           )}

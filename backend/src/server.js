@@ -37,6 +37,17 @@ io.on("connection", (socket) => {
   socket.on("leave_chat", (roomId) => {
     socket.leave(`chat_${roomId}`);
   });
+
+  // Support chat
+  socket.on("join_support", (customerId) => {
+    socket.join(`support_${customerId}`);
+  });
+
+  socket.on("leave_support", (customerId) => {
+    socket.leave(`support_${customerId}`);
+  });
+
+  socket.on("disconnect", () => { });
 });
 
 module.exports.io = io;
@@ -55,7 +66,6 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/users", require("./routes/user.routes"));
-app.use("/api/verification", require("./routes/verification.routes"));
 app.use("/api/reputation", require("./routes/reputation.routes"));
 app.use("/api/categories", require("./routes/category.routes"));
 app.use("/api/products", require("./routes/product.routes"));
@@ -66,11 +76,13 @@ app.use("/api/inspections", require("./routes/inspection.routes"));
 app.use("/api/shipper-reports", require("./routes/shipper_report.routes"));
 app.use("/api/rentals", require("./routes/rental.routes"));
 app.use("/api/chat", require("./routes/chat.routes"));
+app.use("/api/support-chat", require("./routes/support_chat.routes"));
 app.use("/api/notifications", require("./routes/notification.routes"));
 app.use("/api/reports", require("./routes/report.routes"));
 app.use("/api/reviews", require("./routes/review.routes"));
 app.use("/api/admin", require("./routes/stats.routes"));
 app.use("/api/upload", require("./routes/upload.routes"));
+app.use("/api/subscriptions", require("./routes/subscription.routes"));
 
 app.get("/api/health", (req, res) => {
   res.json({
@@ -109,8 +121,14 @@ async function startServer() {
   setInterval(runAutoComplete, AUTO_COMPLETE_INTERVAL_MS);
 
   httpServer.listen(PORT, () => {
-    console.log(`EcoTrade API: http://localhost:${PORT} [${process.env.NODE_ENV}]`);
-    console.log("Socket.IO ready");
+    console.log(`🚀 EcoTrade API: http://localhost:${PORT} [${process.env.NODE_ENV}]`);
+    console.log(`🔌 Socket.IO ready`);
+
+    // Cron: nhắc hợp đồng thuê sắp hết hạn — chạy mỗi giờ
+    const { sendExpiryReminders } = require("./controllers/rental.controller");
+    setInterval(sendExpiryReminders, 60 * 60 * 1000);
+    // Chạy ngay sau 5s để tránh block startup
+    setTimeout(sendExpiryReminders, 5000);
   });
 }
 

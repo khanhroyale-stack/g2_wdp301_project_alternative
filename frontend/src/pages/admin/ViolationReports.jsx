@@ -162,13 +162,17 @@ const ResolveModal = ({ report, onClose, onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await reportService.resolveReport(report._id, {
+      const res = await reportService.resolveReport(report._id, {
         status,
         adminNote,
         violationLevel: status === "resolved" && violationLevel ? violationLevel : undefined,
       });
-      onSuccess();
-      onClose();
+      if (res.success) {
+        onSuccess();
+        onClose();
+      } else {
+        alert(res.message || "Lỗi xử lý báo cáo");
+      }
     } catch (err) {
       alert(err.response?.data?.message || "Lỗi xử lý báo cáo");
     } finally {

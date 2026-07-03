@@ -12,15 +12,17 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     console.log(`MongoDB Database: ${conn.connection.name}`);
 
-    // Disable old Atlas validator on users to avoid legacy validation failures.
-    try {
-      await conn.connection.db.command({
-        collMod: "users",
-        validator: {},
-        validationLevel: "off",
-      });
-    } catch (_) {
-      // Ignore when the collection does not exist yet.
+    // Disable old Atlas validators to avoid legacy validation failures.
+    const collectionsToRelax = [
+      "users", "rental_requests", "rental_contracts", "rental_inspections",
+      "product_posts", "orders", "deliveries",
+    ];
+    for (const col of collectionsToRelax) {
+      try {
+        await conn.connection.db.command({ collMod: col, validator: {}, validationLevel: "off" });
+      } catch (_) {
+        // Ignore when the collection does not exist yet.
+      }
     }
   } catch (error) {
     console.error(`MongoDB Connection Error: ${error.message}`);

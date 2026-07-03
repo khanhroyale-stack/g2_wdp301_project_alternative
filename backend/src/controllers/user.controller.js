@@ -1,6 +1,6 @@
 const User = require("../models/user.model");
 
-const publicFields = "fullName email avatarUrl reputationScore verificationStatus accountStatus role";
+const publicFields = "fullName email avatarUrl reputationScore accountStatus role";
 
 const normalizeAddresses = (addresses, fallback = {}) => {
   if (!Array.isArray(addresses)) return [];
@@ -51,15 +51,16 @@ const getMyProfile = async (req, res) => {
 // @route PUT /api/users/me
 const updateMyProfile = async (req, res) => {
   try {
-    const { fullName, phone, address, avatarUrl, addresses } = req.body;
+
+    const { fullName, phone, address, avatarUrl, addresses, dateOfBirth, gender } = req.body;
     const currentUser = await User.findById(req.user._id);
 
     const normalizedAddresses = Array.isArray(addresses)
       ? normalizeAddresses(addresses, {
-          fullName: fullName ?? currentUser.fullName,
-          phone: phone ?? currentUser.phone,
-          address: address ?? currentUser.address,
-        })
+        fullName: fullName ?? currentUser.fullName,
+        phone: phone ?? currentUser.phone,
+        address: address ?? currentUser.address,
+      })
       : currentUser.addresses;
 
     const defaultAddress = normalizedAddresses.find((item) => item.isDefault) || normalizedAddresses[0] || null;
@@ -69,6 +70,8 @@ const updateMyProfile = async (req, res) => {
       ...(typeof phone !== "undefined" ? { phone } : {}),
       ...(typeof avatarUrl !== "undefined" ? { avatarUrl } : {}),
       ...(typeof address !== "undefined" ? { address } : {}),
+      ...(typeof dateOfBirth !== "undefined" ? { dateOfBirth } : {}),
+      ...(typeof gender !== "undefined" ? { gender } : {}),
       ...(Array.isArray(addresses) ? { addresses: normalizedAddresses } : {}),
     };
 
@@ -108,11 +111,10 @@ const getPublicProfile = async (req, res) => {
 // @route GET /api/users  (admin)
 const getAllUsers = async (req, res) => {
   try {
-    const { role, status, verificationStatus, page = 1, limit = 20 } = req.query;
+    const { role, status, page = 1, limit = 20 } = req.query;
     const filter = {};
     if (role) filter.role = role;
     if (status) filter.accountStatus = status;
-    if (verificationStatus) filter.verificationStatus = verificationStatus;
 
     const skip = (page - 1) * limit;
     const [users, total] = await Promise.all([

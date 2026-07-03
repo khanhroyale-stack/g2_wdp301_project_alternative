@@ -170,7 +170,7 @@ const sendMessage = async (req, res) => {
           content: messageType === "text" ? content : "Bạn có tin nhắn mới",
           relatedType: "chat",
           relatedId: room._id,
-          link: `/chat/${room._id}`,
+          link: `/tin-nhan/${room._id}`,
         },
         io
       );

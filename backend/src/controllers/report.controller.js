@@ -171,7 +171,7 @@ const resolveReport = async (req, res) => {
             content: `Lý do: ${adminNote || `Vi phạm mức ${violationLevel}`}. Điểm còn lại: ${victim.reputationScore}.${victim.accountStatus === "banned" ? " Tài khoản đã bị khóa." : ""}`,
             relatedType: "report",
             relatedId: report._id,
-            link: `/reputation`,
+            link: `/ho-so`,
           },
           io
         );
@@ -188,7 +188,7 @@ const resolveReport = async (req, res) => {
         content: `Báo cáo của bạn ${statusLabel[status] || status}. ${adminNote ? `Ghi chú: ${adminNote}` : ""}`,
         relatedType: "report",
         relatedId: report._id,
-        link: `/reports/${report._id}`,
+        link: `/thong-bao`,
       },
       io
     );

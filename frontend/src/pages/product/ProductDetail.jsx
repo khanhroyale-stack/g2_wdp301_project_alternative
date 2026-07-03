@@ -19,10 +19,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeImg, setActiveImg] = useState(0);
-  const [showRentalModal, setShowRentalModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
 
@@ -47,16 +44,11 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
-  const totalDays =
-    startDate && endDate
-      ? Math.max(0, Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000))
-      : 0;
-  const totalFee = totalDays * (product?.rentPricePerDay || 0);
+
 
   const getImageUrl = (img) => {
     if (!img) return "https://placehold.co/800x600?text=No+Image";
-    if (img.startsWith("http")) return img;
-    return `http://localhost:5000${img}`;
+    return img;
   };
 
   const formatPrice = (num) =>
@@ -64,7 +56,7 @@ const ProductDetail = () => {
 
   const handleBuy = async () => {
     if (!user) return navigate("/dang-nhap");
-    navigate(`/orders/create/${product._id}?quantity=${purchaseQuantity}`);
+    navigate(`/dat-hang/${product._id}?quantity=${purchaseQuantity}`);
   };
 
   const handleAddToCart = async () => {
@@ -79,34 +71,15 @@ const ProductDetail = () => {
     }
   };
 
-  const handleRentSubmit = async () => {
-    if (!startDate || !endDate) return toast.error("Vui long chon ngay thue");
-    setIsSubmitting(true);
-    try {
-      const res = await rentalService.createRentalRequest({
-        productId: product._id,
-        startDate,
-        endDate,
-      });
-      if (res.success) {
-        toast.success("Da gui yeu cau thue thanh cong");
-        setShowRentalModal(false);
-        navigate("/thue-muon");
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Loi khi gui yeu cau thue");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
 
   const handleChat = async () => {
     if (!user) return navigate("/dang-nhap");
     try {
       const res = await chatService.getOrCreateRoom(product.ownerId._id, product._id);
-      if (res.success) navigate("/tin-nhan");
-    } catch (_) {
-      toast.error("Loi khi mo cuoc tro chuyen");
+      if (res.success) navigate(`/tin-nhan/${res.data.room._id}`);
+    } catch {
+      toast.error("Lỗi khi mở cuộc trò chuyện");
     }
   };
 
@@ -267,8 +240,8 @@ const ProductDetail = () => {
                   </button>
                 </>
               ) : (
-                <button onClick={() => (user ? setShowRentalModal(true) : navigate("/dang-nhap"))} className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-primary-fixed text-white font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98]">
-                  Gui yeu cau thue
+                <button onClick={() => (user ? navigate(`/thue/${product._id}`) : navigate("/dang-nhap"))} className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-primary-fixed text-white font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98]">
+                  Thuê ngay
                 </button>
               )}
 
@@ -371,48 +344,7 @@ const ProductDetail = () => {
         />
       ) : null}
 
-      {showRentalModal ? (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-md animate-scale-up">
-            <h3 className="font-extrabold text-on-surface text-2xl mb-2">Yeu cau thue</h3>
-            <p className="text-sm text-on-surface-variant mb-6 pb-4 border-b border-surface-variant/30">{product.title}</p>
 
-            <div className="grid grid-cols-2 gap-5 mb-6">
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Tu ngay</label>
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-2">Den ngay</label>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-4 py-3 border border-surface-variant/50 rounded-2xl text-sm bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-              </div>
-            </div>
-
-            {totalDays > 0 ? (
-              <div className="bg-surface-container-low rounded-2xl p-5 mb-6 space-y-2.5">
-                <div className="flex justify-between text-on-surface-variant text-sm"><span>So ngay thue</span><span className="font-bold text-on-surface">{totalDays} ngay</span></div>
-                <div className="flex justify-between text-on-surface-variant text-sm"><span>Tien thue</span><span className="font-bold text-on-surface">{formatPrice(totalFee)}</span></div>
-                {product.depositAmount > 0 ? (
-                  <div className="flex justify-between text-on-surface-variant text-sm"><span>Tien coc</span><span className="font-bold text-on-surface">{formatPrice(product.depositAmount)}</span></div>
-                ) : null}
-                <div className="flex justify-between font-black text-on-surface pt-3 mt-1 border-t border-surface-variant/30 text-lg">
-                  <span>Tong thanh toan</span>
-                  <span className="text-primary">{formatPrice(totalFee + (product.depositAmount || 0))}</span>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="flex gap-4">
-              <button onClick={() => setShowRentalModal(false)} disabled={isSubmitting} className="flex-1 py-3.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all">
-                Huy
-              </button>
-              <button className="flex-1 py-3.5 bg-gradient-to-r from-primary to-primary-fixed text-white rounded-full text-base font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50" onClick={handleRentSubmit} disabled={isSubmitting}>
-                {isSubmitting ? "Dang gui..." : "Gui yeu cau"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 };

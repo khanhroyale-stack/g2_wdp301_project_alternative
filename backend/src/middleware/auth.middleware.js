@@ -42,16 +42,6 @@ const activeOnly = (req, res, next) => {
   next();
 };
 
-const verifiedOnly = (req, res, next) => {
-  if (req.user?.verificationStatus !== "verified") {
-    return res.status(403).json({
-      success: false,
-      message: "Tài khoản chưa được xác minh. Vui lòng upload giấy tờ và chờ admin duyệt.",
-    });
-  }
-  next();
-};
-
 // Generic role-based authorization middleware factory
 const authorize = (requiredRole) => (req, res, next) => {
   // Allow the required role or admin to access
@@ -59,4 +49,4 @@ const authorize = (requiredRole) => (req, res, next) => {
   return res.status(403).json({ success: false, message: "Bạn không có quyền truy cập" });
 };
 
-module.exports = { protect, adminOnly, shipperOnly, activeOnly, verifiedOnly, authorize };
+module.exports = { protect, adminOnly, shipperOnly, activeOnly, authorize };

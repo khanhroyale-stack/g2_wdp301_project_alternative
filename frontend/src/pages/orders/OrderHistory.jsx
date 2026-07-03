@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Ban, CalendarDays, CheckCircle2, Download, Package, Search } from "lucide-react";
 import { Link } from "react-router-dom";
-import OrderWorkspace from "../../components/orders/OrderWorkspace";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import orderService from "../../services/order.service";
 
 const money = (value) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value || 0);
@@ -36,7 +36,7 @@ export default function OrderHistory() {
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = "lich-su-giao-dich.csv"; anchor.click(); URL.revokeObjectURL(url);
   };
 
-  return <OrderWorkspace>
+  return <EcoTradeLayout>
     <p className="text-sm text-[#667085]">Quản lý <span className="mx-2">›</span> <span className="text-[#202124]">Lịch sử giao dịch</span></p>
     <h1 className="mt-2 text-[32px] font-extrabold tracking-[-.04em]">Lịch sử Giao dịch</h1>
     <p className="mt-1 text-sm text-[#667085]">Xem lại và quản lý các giao dịch bạn đã thực hiện trên EcoTrade.</p>
@@ -65,5 +65,5 @@ export default function OrderHistory() {
     </div>
 
     <div className="mt-8 grid gap-7 md:grid-cols-2"><div className="rounded-xl bg-[#edfff4] p-6"><h3 className="font-bold">◷ &nbsp; Chính sách lưu trữ</h3><p className="mt-6 text-sm leading-6 text-[#667085]">EcoTrade lưu trữ lịch sử giao dịch của bạn trong vòng 2 năm kể từ ngày hoàn tất. Bạn có thể yêu cầu trích xuất dữ liệu định kỳ thông qua Help Center.</p></div><div className="rounded-xl bg-[#edfaff] p-6"><h3 className="font-bold text-[#202124]">↗ &nbsp; Báo cáo hàng tháng</h3><p className="mt-6 text-sm leading-6 text-[#667085]">Theo dõi toàn bộ giao dịch và số tiền bạn đã tiết kiệm bằng việc mua đồ pre-owned thay vì mua mới.</p></div></div>
-  </OrderWorkspace>;
+  </EcoTradeLayout>;
 }

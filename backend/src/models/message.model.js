@@ -39,4 +39,24 @@ const messageSchema = new mongoose.Schema(
 
 messageSchema.index({ chatRoomId: 1, createdAt: 1 });
 
+messageSchema.post("save", async function (doc, next) {
+  try {
+    const ChatRoom = mongoose.model("ChatRoom");
+    let content = doc.messageContent;
+    if (!content) {
+      if (doc.messageType === "image") content = "[Hình ảnh]";
+      else if (doc.messageType === "file") content = "[Tệp đính kèm]";
+    }
+    
+    await ChatRoom.findByIdAndUpdate(doc.chatRoomId, {
+      lastMessage: content,
+      lastMessageAt: doc.createdAt,
+      lastSenderId: doc.senderId
+    });
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = mongoose.model("Message", messageSchema);

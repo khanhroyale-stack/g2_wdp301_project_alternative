@@ -20,7 +20,6 @@ export const AuthProvider = ({ children }) => {
       setNotifications((prev) => [data, ...prev]);
     });
 
-    socket.on("new_message", () => {});
   }, []);
 
   useEffect(() => {
@@ -46,6 +45,7 @@ export const AuthProvider = ({ children }) => {
       })
       .catch(() => {
         localStorage.removeItem("token");
+        setUser(null);
       })
       .finally(() => {
         setLoading(false);
@@ -56,6 +56,14 @@ export const AuthProvider = ({ children }) => {
     };
   }, [setupSocket]);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+    };
+    window.addEventListener("auth-unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("auth-unauthorized", handleUnauthorized);
+  }, []);
+
   const login = async (credentials) => {
     const data = await authService.login(credentials);
     localStorage.setItem("token", data.token);
@@ -65,11 +73,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (credentials) => {
-    return authService.register(credentials);
+    const data = await authService.register(credentials);
+    // Register doesn't return token yet, user needs to verify OTP first
+    return data;
   };
 
-  const verifyEmail = async ({ email, otp }) => {
-    const data = await authService.verifyEmail({ email, otp });
+  const verifyEmail = async (credentials) => {
+    const data = await authService.verifyEmail(credentials);
     localStorage.setItem("token", data.token);
     setUser(data.user);
     setupSocket(data.user);
@@ -86,6 +96,13 @@ export const AuthProvider = ({ children }) => {
 
   const clearUnread = () => setUnreadCount(0);
 
+  const refreshUser = async () => {
+    try {
+      const data = await authService.getMe();
+      setUser(data.user);
+    } catch { /* token invalid — already handled by interceptor */ }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -95,6 +112,7 @@ export const AuthProvider = ({ children }) => {
         register,
         verifyEmail,
         logout,
+        refreshUser,
         unreadCount,
         clearUnread,
         notifications,

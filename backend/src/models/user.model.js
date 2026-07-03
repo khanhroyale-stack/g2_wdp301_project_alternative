@@ -69,22 +69,23 @@ const userSchema = new mongoose.Schema(
       type: [addressSchema],
       default: [],
     },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other"],
+      default: null,
+    },
     role: {
       type: String,
       enum: ["user", "shipper", "admin"],
       default: "user",
     },
-    studentCardUrl: {
-      type: String,
-      default: null,
-    },
-    citizenIdUrl: {
-      type: String,
-      default: null,
-    },
     verificationStatus: {
       type: String,
-      enum: ["unverified", "pending", "verified", "rejected"],
+      enum: ["unverified", "verified"],
       default: "unverified",
     },
     reputationScore: {
@@ -102,6 +103,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["active", "inactive", "banned"],
       default: "active",
+    },
+    proExpiresAt: {
+      type: Date,
+      default: null,
     },
   },
   {

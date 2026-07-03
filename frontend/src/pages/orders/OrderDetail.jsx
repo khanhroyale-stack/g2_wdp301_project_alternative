@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import OrderWorkspace from "../../components/orders/OrderWorkspace";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import { useAuth } from "../../context/AuthContext";
 import { getDeliveryStatusInfo, getOrderStatusInfo } from "../../lib/orderFlow";
 import orderService from "../../services/order.service";
@@ -169,7 +169,7 @@ export default function OrderDetail() {
         }
       } catch (error) {
         toast.error(error.response?.data?.message || "Không thể tải chi tiết đơn hàng");
-        navigate(-1);
+        navigate("/orders/my-orders");
       } finally {
         if (mounted) {
           setLoading(false);
@@ -357,32 +357,32 @@ export default function OrderDetail() {
 
   if (loading) {
     return (
-      <OrderWorkspace>
+      <EcoTradeLayout>
         <div className="flex min-h-[60vh] items-center justify-center text-sm font-medium text-[#667085]">
           Đang tải chi tiết đơn hàng...
         </div>
-      </OrderWorkspace>
+      </EcoTradeLayout>
     );
   }
 
   if (!order) {
     return (
-      <OrderWorkspace>
+      <EcoTradeLayout>
         <div className="rounded-[18px] border border-[#e6eaee] bg-white px-6 py-10 text-center text-[#667085] shadow-[0_1px_3px_rgba(16,24,40,.04)]">
           Không tìm thấy đơn hàng.
         </div>
-      </OrderWorkspace>
+      </EcoTradeLayout>
     );
   }
 
   return (
-    <OrderWorkspace>
+    <EcoTradeLayout>
       <div className="space-y-7">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-start gap-4">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/orders/my-orders")}
               className="mt-1 flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe3e8] bg-white text-[#596576] transition-colors hover:bg-[#f7f8fa]"
               aria-label="Quay lại"
             >
@@ -627,6 +627,6 @@ export default function OrderDetail() {
           </div>
         </div>
       </div>
-    </OrderWorkspace>
+    </EcoTradeLayout>
   );
 }

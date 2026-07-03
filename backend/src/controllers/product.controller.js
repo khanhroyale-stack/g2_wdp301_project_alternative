@@ -3,7 +3,7 @@ const ProductImage = require("../models/product_image.model");
 const Category = require("../models/category.model");
 const MediaFile = require("../models/media_file.model");
 const { createNotification } = require("./notification.controller");
-const { validateProductBusinessRules } = require("../utils/business-rules");
+const { validateProductBusinessRules, isUserPro, FREE_POST_LIMIT } = require("../utils/business-rules");
 const {
   attachImagesToProducts,
   getProductImageUrls,
@@ -39,6 +39,7 @@ const buildMarketplaceFilter = (query) => {
     keyword,
     minPrice,
     maxPrice,
+    sort
   } = query;
   const type = normalizeProductType(query.type || query.listingType || query.productType);
 
@@ -168,15 +169,26 @@ const getProducts = async (req, res) => {
     const limit = Math.max(Number(req.query.limit) || 20, 1);
     const filter = buildMarketplaceFilter(req.query);
 
+    let sortQuery = { createdAt: -1 };
+    if (req.query.sort === "price_asc") sortQuery = { salePrice: 1, rentPricePerDay: 1 };
+    if (req.query.sort === "price_desc") sortQuery = { salePrice: -1, rentPricePerDay: -1 };
+
     const products = await ProductPost.find(filter)
-      .populate("ownerId", "fullName email avatarUrl phone reputationScore")
-      .populate("categoryId", "name")
-      .sort({ createdAt: -1 })
+      .populate("ownerId", "fullName email avatarUrl phone reputationScore proExpiresAt")
+      .populate("categoryId", "name icon")
+      .sort(sortQuery)
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
 
     await attachImagesToProducts(products);
+
+    const nowMs = Date.now();
+    for (const p of products) {
+      p.ownerIsPro = !!(p.ownerId?.proExpiresAt && new Date(p.ownerId.proExpiresAt).getTime() > nowMs);
+    }
+    // Stable sort: Pro owners' posts first, keep existing order otherwise (within page)
+    products.sort((a, b) => Number(b.ownerIsPro) - Number(a.ownerIsPro));
 
     const total = await ProductPost.countDocuments(filter);
 
@@ -198,8 +210,8 @@ const getProducts = async (req, res) => {
 const getProductById = async (req, res) => {
   try {
     const product = await ProductPost.findById(req.params.id)
-      .populate("ownerId", "fullName email phone avatarUrl address reputationScore")
-      .populate("categoryId", "name")
+      .populate("ownerId", "fullName email phone avatarUrl address reputationScore averageRating")
+      .populate("categoryId", "name icon")
       .lean();
 
     if (!product) {
@@ -228,6 +240,20 @@ const createProduct = async (req, res) => {
   try {
     const payload = mapProductPayload(req.body);
     const imageIds = req.body.imageIds || req.body.mediaIds || [];
+
+    if (!isUserPro(req.user)) {
+      const activePosts = await ProductPost.countDocuments({
+        ownerId: req.user._id,
+        postStatus: { $in: ["pending", "approved", "available"] },
+      });
+      if (activePosts >= FREE_POST_LIMIT) {
+        return res.status(403).json({
+          success: false,
+          message: `Ban da dat gioi han ${FREE_POST_LIMIT} bai dang. Nang cap Pro de dang khong gioi han.`,
+        });
+      }
+    }
+
     const validationError = validateProductBusinessRules(payload) || await validateProductImages(imageIds, req.user._id);
     if (validationError) {
       return res.status(400).json({ success: false, message: validationError });
@@ -284,11 +310,19 @@ const updateProduct = async (req, res) => {
       return res.status(400).json({ success: false, message: "San pham phai co it nhat 1 hinh anh" });
     }
 
+    const sensitiveFields = ["title", "description", "salePrice", "rentPricePerDay",
+                             "rentPricePerWeek", "rentPricePerMonth", "conditionStatus", "productType", "categoryId"];
+    const hasSensitiveChange = sensitiveFields.some(f => incomingPayload[f] !== undefined);
+    const hasImageChange = Array.isArray(replacementImageIds);
+
     Object.assign(product, incomingPayload);
-    product.postStatus = "pending";
-    product.approvedBy = null;
-    product.approvedAt = null;
-    product.rejectReason = null;
+
+    if (hasSensitiveChange || hasImageChange) {
+      product.postStatus = "pending";
+      product.approvedBy = null;
+      product.approvedAt = null;
+      product.rejectReason = null;
+    }
     await product.save();
 
     if (Array.isArray(req.body.imageIds) || Array.isArray(req.body.mediaIds)) {
@@ -336,7 +370,7 @@ const deleteProduct = async (req, res) => {
 const getMyProducts = async (req, res) => {
   try {
     const products = await ProductPost.find({ ownerId: req.user._id })
-      .populate("categoryId", "name")
+      .populate("categoryId", "name icon")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -370,7 +404,6 @@ const adminGetProducts = async (req, res) => {
 const adminChangeStatus = async (req, res) => {
   try {
     const { status, reason } = req.body;
-
     if (!ADMIN_POST_STATUSES.includes(status)) {
       return res.status(400).json({ success: false, message: "Trang thai khong hop le" });
     }

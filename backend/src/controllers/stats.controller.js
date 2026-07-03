@@ -15,8 +15,6 @@ const getStats = async (req, res) => {
   try {
     const [
       totalUsers,
-      pendingVerifyUsers,
-      verifiedUsers,
       bannedUsers,
       totalProducts,
       pendingProducts,
@@ -35,8 +33,6 @@ const getStats = async (req, res) => {
       totalReviews,
     ] = await Promise.all([
       User.countDocuments({}),
-      User.countDocuments({ verificationStatus: "pending" }),
-      User.countDocuments({ verificationStatus: "verified" }),
       User.countDocuments({ accountStatus: "banned" }),
       ProductPost.countDocuments({}),
       ProductPost.countDocuments({ postStatus: "pending" }),
@@ -58,7 +54,7 @@ const getStats = async (req, res) => {
     res.json({
       success: true,
       data: {
-        users: { total: totalUsers, pendingVerify: pendingVerifyUsers, verified: verifiedUsers, banned: bannedUsers },
+        users: { total: totalUsers, banned: bannedUsers },
         products: { total: totalProducts, pending: pendingProducts, active: activeProducts },
         orders: { total: totalOrders, completed: completedOrders, cancelled: cancelledOrders },
         rentals: { total: totalRentals, active: activeRentals, completed: completedRentals, disputed: disputedRentals },

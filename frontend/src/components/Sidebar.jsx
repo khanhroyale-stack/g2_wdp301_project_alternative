@@ -16,17 +16,18 @@ const USER_NAV = [
 const ADMIN_NAV = [
   { label: "Marketplace", icon: "storefront", to: "/marketplaces" },
   { label: "Tổng quan", icon: "dashboard", to: "/admin" },
-  { label: "Duyệt tài khoản", icon: "how_to_reg", to: "/admin/duyet-tai-khoan" },
   { label: "Duyệt bài đăng", icon: "fact_check", to: "/admin/duyet-bai-dang" },
   { label: "Quản lý người dùng", icon: "group", to: "/admin/nguoi-dung" },
   { label: "Quản lý danh mục", icon: "category", to: "/admin/danh-muc" },
   { label: "Báo cáo vi phạm", icon: "report", to: "/admin/bao-cao" },
+  { label: "Hỗ trợ trực tuyến", icon: "support_agent", to: "/admin/support" },
   { label: "Đơn hàng", icon: "receipt_long", to: "/admin/don-hang" },
   { label: "Hợp đồng thuê", icon: "description", to: "/admin/hop-dong" },
   { label: "Quản lý shipper", icon: "local_shipping", to: "/admin/shippers" },
   { label: "Lịch sử giao hàng", icon: "route", to: "/admin/giao-hang" },
   { label: "Biên bản kiểm định", icon: "fact_check", to: "/admin/kiem-dinh" },
   { label: "Báo cáo giao hàng", icon: "warning", to: "/admin/bao-cao-giao-hang" },
+  { label: "Hỗ trợ trực tuyến", icon: "support_agent", to: "/admin/hotro" },
 ];
 
 const SHIPPER_NAV = [
@@ -47,6 +48,7 @@ const Sidebar = ({ variant = "user" }) => {
   const displayName = user?.fullName || user?.name || "";
 
   return (
+
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 shrink-0 flex-col border-r border-surface-variant/60 bg-[linear-gradient(180deg,#fbfdfb_0%,#f0f6f2_100%)] font-sans md:flex">
       <div className="flex items-center gap-3 border-b border-surface-variant/40 px-6 py-6">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-sm font-bold text-on-primary shadow-sm">
@@ -65,10 +67,9 @@ const Sidebar = ({ variant = "user" }) => {
             to={item.to}
             end={item.to.split("/").length <= 2}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all ${
-                isActive
-                  ? "bg-primary font-semibold text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+              `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all ${isActive
+                ? "bg-primary font-semibold text-on-primary shadow-sm"
+                : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
               }`
             }
           >

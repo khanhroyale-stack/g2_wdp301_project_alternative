@@ -8,6 +8,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { formatDateTime, formatPrice } from "../../lib/utils";
 import deliveryService from "../../services/delivery.service";
 import { getDeliveryStatusInfo } from "../../lib/orderFlow";
+import toast from "react-hot-toast";
 
 export default function DeliveryList() {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ export default function DeliveryList() {
         navigate(`/shipper/don/${id}`);
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể nhận đơn giao.");
+      toast.error(error.response?.data?.message || "Không thể nhận đơn giao.");
     } finally {
       setAcceptingId(null);
     }
