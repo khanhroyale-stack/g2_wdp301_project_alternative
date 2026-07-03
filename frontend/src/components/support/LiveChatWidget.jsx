@@ -26,7 +26,7 @@ const LiveChatWidget = () => {
     if (isOpen && user) {
       scrollToBottom();
     }
-  }, [messagesList, isOpen]);
+  }, [messagesList, isOpen, user]);
 
   useEffect(() => {
     if (isOpen && user) {

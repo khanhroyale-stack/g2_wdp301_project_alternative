@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import orderService from "../../services/order.service";
@@ -24,7 +24,7 @@ const MyOrders = () => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res = tab === 0 ? await orderService.getMyOrders() : await orderService.getMySales();
@@ -36,11 +36,11 @@ const MyOrders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tab]);
 
   useEffect(() => {
     fetchOrders();
-  }, [tab]);
+  }, [fetchOrders]);
 
   const updateStatus = async (id, status) => {
     setProcessingId(id);
