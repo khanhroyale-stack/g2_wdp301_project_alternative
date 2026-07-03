@@ -17,6 +17,12 @@ const orderSchema = new mongoose.Schema(
       ref: "ProductPost",
       required: true,
     },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 1,
+    },
     productPrice: {
       type: Number,
       required: true,
@@ -61,6 +67,12 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
+    },
+    inventoryStatus: {
+      type: String,
+      enum: ["reserved", "released", "committed"],
+      default: "reserved",
+      index: true,
     },
     orderStatus: {
       type: String,

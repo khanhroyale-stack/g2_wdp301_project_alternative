@@ -64,7 +64,7 @@ const productPostSchema = new mongoose.Schema(
     quantity: {
       type: Number,
       default: 1,
-      min: 1,
+      min: 0,
     },
     invoiceField: {
       type: mongoose.Schema.Types.ObjectId,
@@ -83,7 +83,7 @@ const productPostSchema = new mongoose.Schema(
     },
     postStatus: {
       type: String,
-      enum: ["pending", "approved", "rejected", "closed"],
+      enum: ["pending", "approved", "available", "rejected", "sold", "rented", "inactive", "closed"],
       default: "pending",
     },
     approvedBy: {

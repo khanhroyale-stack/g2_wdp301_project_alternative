@@ -16,6 +16,7 @@ router.put("/me", protect, updateMyProfile);
 router.get("/admin", protect, adminOnly, getAllUsers);
 router.get("/admin/:id", protect, adminOnly, getUserById);
 router.put("/admin/:id", protect, adminOnly, updateUserByAdmin);
+router.patch("/admin/:id", protect, adminOnly, updateUserByAdmin);
 
 router.get("/:id", getPublicProfile);
 

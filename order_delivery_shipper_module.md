@@ -1,47 +1,104 @@
-# ORDER - DELIVERY - SHIPPER MODULE SPECIFICATION
-
-## 1. Tổng quan
-
-Module này chịu trách nhiệm quản lý toàn bộ quy trình mua bán và giao nhận sản phẩm trong hệ thống.
-
-Bao gồm 4 phần chính:
-
-1. Order Management
-2. Delivery Management
-3. Product Inspection
-4. Shipper Management
+# ORDER - DELIVERY - SHIPPER MODULE SPECIFICATION (UPDATED)
 
 ---
 
-# 2. Order Management
+# 1. OVERVIEW
 
 ## Mục tiêu
 
-Quản lý vòng đời của một đơn hàng từ khi người mua đặt hàng cho đến khi hoàn tất giao dịch.
+Module này quản lý toàn bộ quy trình:
+
+- Đăng sản phẩm bán hoặc cho thuê
+- Kiểm duyệt sản phẩm
+- Mua hàng
+- Tạo đơn hàng
+- Quản lý giao nhận
+- Kiểm tra sản phẩm
+- Quản lý shipper
 
 ---
 
-## 2.1 Luồng nghiệp vụ
+## Vai trò hệ thống
 
-### Bước 1: Người mua tạo đơn hàng
+### User
 
-Điều kiện:
+Một User có thể đồng thời là:
 
-- Sản phẩm tồn tại
-- Product Status = AVAILABLE
+- Buyer
+- Seller
 
-Hệ thống thực hiện:
+Ví dụ:
 
-- Lấy buyer_id
-- Lấy seller_id
-- Lấy product_id
-- Tính tổng tiền
+- User A đăng bán iPhone → đóng vai Seller
+- User A mua Macbook → đóng vai Buyer
+
+Không cần tạo 2 loại tài khoản riêng biệt.
+
+---
+
+### Admin
+
+Quản lý:
+
+- Duyệt sản phẩm
+- Từ chối sản phẩm
+- Quản lý shipper
+- Xử lý tranh chấp
+- Xem báo cáo hệ thống
+
+---
+
+### Shipper
+
+Phụ trách:
+
+- Nhận đơn giao hàng
+- Kiểm tra sản phẩm
+- Giao hàng
+- Cập nhật trạng thái giao hàng
+- Báo cáo sự cố
+
+---
+
+# 2. PRODUCT LISTING MANAGEMENT
+
+## Mục tiêu
+
+Cho phép User đăng sản phẩm lên sàn để:
+
+- Bán
+- Cho thuê
+
+Sản phẩm phải được Admin duyệt trước khi xuất hiện trên Marketplace.
+
+---
+
+# 2.1 Tạo bài đăng
+
+User nhập:
+
+- Tên sản phẩm
+- Mô tả
+- Danh mục
+- Giá
+- Hình ảnh
+- Tình trạng sản phẩm
+
+Loại bài đăng:
 
 ```text
-total_amount = product_price + shipping_fee
+SALE
 ```
 
-Tạo Order:
+hoặc
+
+```text
+RENT
+```
+
+---
+
+Hệ thống tạo Product:
 
 ```text
 status = PENDING
@@ -49,32 +106,312 @@ status = PENDING
 
 ---
 
-### Bước 2: Người bán xử lý đơn
+# 2.2 Admin duyệt sản phẩm
 
-Người bán có thể:
-
-#### Xác nhận đơn
+## Duyệt
 
 ```text
 PENDING
-→ SELLER_CONFIRMED
+→ APPROVED
 ```
 
-#### Từ chối đơn
+Sản phẩm xuất hiện trên Marketplace.
+
+---
+
+## Từ chối
+
+```text
+PENDING
+→ DENIED
+```
+
+Lưu:
+
+```text
+deny_reason
+```
+
+Ví dụ:
+
+```text
+Ảnh sản phẩm không rõ
+```
+
+```text
+Thiếu mô tả
+```
+
+```text
+Thông tin sai lệch
+```
+
+---
+
+# 2.3 Product Status
+
+| Status    | Meaning          |
+| --------- | ---------------- |
+| PENDING   | Chờ Admin duyệt  |
+| APPROVED  | Đã được duyệt    |
+| DENIED    | Bị từ chối       |
+| AVAILABLE | Đang mở bán      |
+| SOLD      | Đã bán           |
+| RENTED    | Đang được thuê   |
+| INACTIVE  | Người bán ẩn bài |
+
+---
+
+# 2.4 My Listings
+
+Seller xem toàn bộ sản phẩm đã đăng.
+
+Hiển thị:
+
+- Tên sản phẩm
+- Hình ảnh
+- Giá
+- Trạng thái
+
+Ví dụ:
+
+```text
+Macbook M3
+
+Status:
+PENDING
+```
+
+---
+
+```text
+Canon R6
+
+Status:
+APPROVED
+```
+
+---
+
+```text
+iPhone 14 Pro
+
+Status:
+DENIED
+
+Reason:
+Thiếu hình ảnh mặt sau
+```
+
+---
+
+# 3. MARKETPLACE
+
+## Mục tiêu
+
+Hiển thị tất cả sản phẩm đã được duyệt.
+
+Điều kiện:
+
+```text
+status = APPROVED
+```
+
+hoặc
+
+```text
+status = AVAILABLE
+```
+
+---
+
+# 3.1 Danh sách sản phẩm
+
+Buyer có thể:
+
+- Xem tất cả sản phẩm
+- Tìm kiếm
+- Lọc theo giá
+- Lọc theo danh mục
+- Lọc theo loại
+
+Ví dụ:
+
+```text
+SALE
+```
+
+```text
+RENT
+```
+
+---
+
+# 3.2 Chi tiết sản phẩm
+
+Hiển thị:
+
+- Hình ảnh
+- Tên sản phẩm
+- Giá
+- Mô tả
+- Seller
+- Loại bài đăng
+
+---
+
+# 3.3 Add To Cart
+
+Buyer thêm sản phẩm vào giỏ hàng.
+
+---
+
+# 3.4 Buy Now
+
+Buyer tạo đơn ngay lập tức.
+
+---
+
+# 4. CART MANAGEMENT
+
+## Cart
+
+Lưu các sản phẩm Buyer muốn mua.
+
+---
+
+## Chức năng
+
+### Thêm vào giỏ
+
+```text
+Add To Cart
+```
+
+---
+
+### Xóa khỏi giỏ
+
+```text
+Remove Item
+```
+
+---
+
+### Checkout
+
+Tạo Order từ Cart.
+
+---
+
+# 5. ORDER MANAGEMENT
+
+## Mục tiêu
+
+Quản lý vòng đời đơn hàng.
+
+---
+
+# 5.1 Tạo đơn hàng
+
+Buyer:
+
+```text
+Buy Now
+```
+
+hoặc
+
+```text
+Checkout Cart
+```
+
+---
+
+Hệ thống tạo:
+
+```text
+Order
+```
+
+---
+
+Trạng thái:
+
+```text
+PENDING
+```
+
+---
+
+Thông tin lưu:
+
+- buyer_id
+- seller_id
+- product_id
+- quantity
+- unit_price
+- shipping_fee
+- total_amount
+
+---
+
+Công thức:
+
+```text
+total_amount = unit_price + shipping_fee
+```
+
+---
+
+# 5.2 My Orders
+
+Buyer xem:
+
+- Danh sách đơn hàng
+- Chi tiết đơn hàng
+- Trạng thái đơn hàng
+- Trạng thái giao hàng
+
+---
+
+# 5.3 Incoming Orders
+
+Seller xem:
+
+- Đơn hàng mới
+- Đơn hàng đã xác nhận
+- Đơn hàng đã giao
+
+---
+
+# 5.4 Seller xử lý đơn
+
+## Chấp thuận
+
+```text
+PENDING
+→ ACCEPTED
+```
+
+---
+
+## Từ chối
 
 ```text
 PENDING
 → CANCELLED
 ```
 
+Lưu:
+
+```text
+cancel_reason
+```
+
 ---
 
-### Bước 3: Hủy đơn hàng
-
-Cho phép:
-
-- Buyer hủy
-- Seller hủy
+# 5.5 Buyer hủy đơn
 
 Điều kiện:
 
@@ -82,72 +419,55 @@ Cho phép:
 Delivery chưa bắt đầu
 ```
 
-Trạng thái:
+---
 
 ```text
+PENDING
 → CANCELLED
 ```
 
 ---
 
-### Bước 4: Hoàn tất đơn hàng
+# 5.6 Order Status
 
-Sau khi giao hàng thành công:
-
-```text
-DELIVERED
-→ COMPLETED
-```
-
----
-
-## 2.2 Order Status
-
-| Status           | Ý nghĩa                |
-| ---------------- | ---------------------- |
-| PENDING          | Chờ người bán xác nhận |
-| SELLER_CONFIRMED | Người bán đã xác nhận  |
-| CANCELLED        | Đã hủy                 |
-| DELIVERING       | Đang giao              |
-| DELIVERED        | Đã giao                |
-| COMPLETED        | Hoàn tất               |
+| Status     | Meaning      |
+| ---------- | ------------ |
+| PENDING    | Chờ xác nhận |
+| ACCEPTED   | Đã xác nhận  |
+| CANCELLED  | Đã hủy       |
+| DELIVERING | Đang giao    |
+| DELIVERED  | Đã giao      |
+| COMPLETED  | Hoàn tất     |
 
 ---
 
-## 2.3 Chức năng Order
-
-### Buyer
-
-- Tạo đơn hàng
-- Hủy đơn hàng
-- Xem danh sách đơn mua
-- Xem chi tiết đơn hàng
-- Xác nhận đã nhận hàng
-
-### Seller
-
-- Xem đơn bán
-- Xác nhận đơn
-- Từ chối đơn
-- Hủy đơn
-
----
-
-# 3. Delivery Management
+# 6. DELIVERY MANAGEMENT
 
 ## Mục tiêu
 
-Quản lý toàn bộ quá trình giao hàng từ khi seller xác nhận đến khi buyer nhận hàng.
+Quản lý toàn bộ quá trình giao nhận.
 
 ---
 
-## 3.1 Luồng giao hàng
+# 6.1 Tạo Delivery
 
-### Bước 1
+Khi:
 
-Seller xác nhận Order
+```text
+Order = ACCEPTED
+```
 
-Hệ thống tạo Delivery:
+---
+
+Hệ thống tạo:
+
+```text
+Delivery
+```
+
+---
+
+Trạng thái:
 
 ```text
 WAITING_SHIPPER
@@ -155,170 +475,118 @@ WAITING_SHIPPER
 
 ---
 
-### Bước 2
-
-Shipper xem danh sách đơn cần giao.
-
----
-
-### Bước 3
-
-Shipper nhận đơn.
+# 6.2 Delivery Flow
 
 ```text
 WAITING_SHIPPER
-→ SHIPPER_ACCEPTED
-```
-
----
-
-### Bước 4
-
-Shipper đến lấy hàng.
-
-```text
+↓
 SHIPPER_ACCEPTED
-→ PICKING_UP
-```
-
----
-
-### Bước 5
-
-Shipper nhận hàng thành công.
-
-```text
+↓
 PICKING_UP
-→ PICKED_UP
-```
-
----
-
-### Bước 6
-
-Shipper bắt đầu giao.
-
-```text
+↓
 PICKED_UP
-→ DELIVERING
-```
-
----
-
-### Bước 7
-
-Buyer xác nhận nhận hàng.
-
-```text
+↓
 DELIVERING
-→ DELIVERED
-```
-
----
-
-### Bước 8
-
-Kết thúc giao hàng.
-
-```text
+↓
 DELIVERED
-→ COMPLETED
+↓
+COMPLETED
 ```
 
 ---
 
-## 3.2 Delivery Status
+# 6.3 Delivery Status
 
-| Status           | Ý nghĩa            |
-| ---------------- | ------------------ |
-| WAITING_SHIPPER  | Chờ shipper nhận   |
-| SHIPPER_ACCEPTED | Đã có shipper nhận |
-| PICKING_UP       | Đang đến lấy hàng  |
-| PICKED_UP        | Đã lấy hàng        |
-| DELIVERING       | Đang giao          |
-| DELIVERED        | Người mua đã nhận  |
-| COMPLETED        | Hoàn tất           |
-| FAILED           | Giao thất bại      |
+| Status           | Meaning       |
+| ---------------- | ------------- |
+| WAITING_SHIPPER  | Chờ shipper   |
+| SHIPPER_ACCEPTED | Đã nhận đơn   |
+| PICKING_UP       | Đang lấy hàng |
+| PICKED_UP        | Đã lấy hàng   |
+| DELIVERING       | Đang giao     |
+| DELIVERED        | Đã giao       |
+| COMPLETED        | Hoàn tất      |
+| FAILED           | Giao thất bại |
 
 ---
 
-## 3.3 Giao hàng thất bại
+# 6.4 Delivery Failure
 
-Các trường hợp:
+Ví dụ:
 
 - Buyer không nhận
 - Sai địa chỉ
-- Không liên lạc được
+- Không liên hệ được
 - Seller không giao hàng
 
-Kết quả:
+---
 
 ```text
 status = FAILED
 ```
 
-Lưu lý do thất bại.
+---
+
+Lưu:
+
+```text
+failure_reason
+```
 
 ---
 
-## 3.4 Delivery History
+# 6.5 Delivery History
 
-Mỗi lần thay đổi trạng thái phải ghi log:
+Mỗi lần cập nhật trạng thái phải tạo log.
 
 Ví dụ:
 
 ```text
 WAITING_SHIPPER
 2026-06-01 09:00
+```
 
+```text
 SHIPPER_ACCEPTED
 2026-06-01 09:15
+```
 
+```text
 PICKED_UP
 2026-06-01 10:00
 ```
 
-Mục đích:
-
-- Tracking
-- Audit
-- Giải quyết tranh chấp
-
 ---
 
-# 4. Product Inspection
+# 7. PRODUCT INSPECTION
 
 ## Mục tiêu
 
-Cho phép shipper kiểm tra sản phẩm trước khi giao.
+Shipper kiểm tra sản phẩm trước khi giao.
 
 ---
 
-## 4.1 Nội dung kiểm tra
-
-### Kiểm tra thông tin
+# 7.1 Kiểm tra
 
 - Đúng sản phẩm
 - Đúng model
-- Đúng hình ảnh
-- Đúng tình trạng
+- Đúng ảnh
 - Đúng phụ kiện
+- Đúng tình trạng
 
 ---
 
-### Kiểm tra hình ảnh
+# 7.2 Chụp ảnh
 
-Shipper phải chụp:
+Bắt buộc:
 
-- Ảnh mặt trước
-- Ảnh mặt sau
-- Ảnh phụ kiện
-
-Lưu vào hệ thống.
+- Mặt trước
+- Mặt sau
+- Phụ kiện
 
 ---
 
-### Ghi chú
+# 7.3 Ghi chú
 
 Ví dụ:
 
@@ -332,11 +600,9 @@ Thiếu hộp gốc
 
 ---
 
-## 4.2 Kết quả Inspection
+# 7.4 Kết quả
 
-### PASS
-
-Sản phẩm đúng mô tả.
+## PASSED
 
 ```text
 inspection_result = PASSED
@@ -344,9 +610,7 @@ inspection_result = PASSED
 
 ---
 
-### FAILED
-
-Sản phẩm sai mô tả.
+## FAILED
 
 ```text
 inspection_result = FAILED
@@ -354,38 +618,37 @@ inspection_result = FAILED
 
 ---
 
-## 4.3 Báo lỗi
+# 7.5 Fault Type
 
-### Seller Fault
+## Seller Fault
+
+```text
+SELLER
+```
 
 Ví dụ:
 
 - Sai model
-- Sai cấu hình
 - Thiếu phụ kiện
-
-```text
-fault_type = SELLER
-```
 
 ---
 
-### Shipper Fault
+## Shipper Fault
+
+```text
+SHIPPER
+```
 
 Ví dụ:
 
 - Làm rơi sản phẩm
-- Làm hỏng phụ kiện
-
-```text
-fault_type = SHIPPER
-```
+- Làm hỏng hàng
 
 ---
 
-## 4.4 Inspection Report
+# 7.6 Inspection Report
 
-Thông tin lưu:
+Lưu:
 
 - inspection_id
 - delivery_id
@@ -398,32 +661,14 @@ Thông tin lưu:
 
 ---
 
-## 4.5 Admin
+# 8. SHIPPER MANAGEMENT
 
-Admin có thể:
-
-- Xem biên bản kiểm tra
-- Tìm kiếm biên bản
-- Giải quyết tranh chấp
-
----
-
-# 5. Shipper Management
-
-## Mục tiêu
-
-Quản lý hoạt động của shipper trong hệ thống.
-
----
-
-## 5.1 Chức năng Shipper
+## Chức năng Shipper
 
 ### Xem đơn chờ nhận
 
-Điều kiện:
-
 ```text
-delivery.status = WAITING_SHIPPER
+WAITING_SHIPPER
 ```
 
 ---
@@ -437,139 +682,205 @@ WAITING_SHIPPER
 
 ---
 
-### Xem đơn đang giao
+### Cập nhật trạng thái
 
-Bao gồm:
+```text
+PICKING_UP
+```
 
-- Đang lấy hàng
-- Đang giao hàng
+↓
 
----
+```text
+PICKED_UP
+```
 
-### Cập nhật tiến trình
+↓
 
-Các trạng thái:
+```text
+DELIVERING
+```
 
-- PICKING_UP
-- PICKED_UP
-- DELIVERING
-- DELIVERED
+↓
 
----
-
-### Báo cáo vấn đề
-
-Ví dụ:
-
-- Seller không giao hàng
-- Buyer không nhận
-- Hàng lỗi
-- Không liên hệ được
+```text
+DELIVERED
+```
 
 ---
 
-## 5.2 Chức năng Admin
+### Báo cáo sự cố
 
-### Quản lý shipper
+Tạo:
+
+```text
+Shipper Report
+```
+
+---
+
+# 9. ADMIN MANAGEMENT
+
+## Quản lý sản phẩm
+
+### Xem sản phẩm chờ duyệt
+
+```text
+PENDING
+```
+
+---
+
+### Duyệt
+
+```text
+APPROVED
+```
+
+---
+
+### Từ chối
+
+```text
+DENIED
+```
+
+---
+
+### Xem lý do từ chối
+
+```text
+deny_reason
+```
+
+---
+
+## Quản lý Shipper
 
 - Xem danh sách shipper
-- Xem số đơn đã giao
 - Xem lịch sử giao hàng
+- Khóa tài khoản
+- Mở khóa tài khoản
 
 ---
 
-### Khóa tài khoản shipper
+# 10. DATABASE COLLECTIONS
 
 ```text
-status = BLOCKED
+users
 ```
 
-Shipper không thể nhận đơn mới.
+Thông tin người dùng
 
 ---
-
-### Mở khóa tài khoản shipper
 
 ```text
-status = ACTIVE
+products
 ```
 
-Có thể tiếp tục nhận đơn.
+Thông tin sản phẩm
 
 ---
 
-# 6. Database Collections Đề Xuất
+```text
+carts
+```
 
-## Orders
+Giỏ hàng
+
+---
+
+```text
+cart_items
+```
+
+Chi tiết giỏ hàng
+
+---
 
 ```text
 orders
 ```
 
-Thông tin đơn hàng.
+Đơn hàng
 
 ---
 
-## Deliveries
+```text
+order_items
+```
+
+Chi tiết đơn hàng
+
+---
 
 ```text
 deliveries
 ```
 
-Thông tin giao hàng.
+Thông tin giao hàng
 
 ---
-
-## DeliveryHistories
 
 ```text
 delivery_histories
 ```
 
-Lưu lịch sử trạng thái giao hàng.
+Lịch sử giao hàng
 
 ---
-
-## Inspections
 
 ```text
 inspections
 ```
 
-Biên bản kiểm tra sản phẩm.
+Biên bản kiểm tra
 
 ---
-
-## Shippers
 
 ```text
 shippers
 ```
 
-Thông tin shipper.
+Thông tin shipper
 
 ---
-
-## ShipperReports
 
 ```text
 shipper_reports
 ```
 
-Các báo cáo sự cố.
+Báo cáo sự cố
 
 ---
 
-# 7. Quy trình tổng thể
+```text
+notifications
+```
+
+Thông báo hệ thống
+
+---
+
+# 11. OVERALL SYSTEM FLOW
 
 ```text
-Buyer đặt hàng
+User đăng sản phẩm
+        ↓
+Product PENDING
+        ↓
+Admin duyệt
+        ↓
+Product APPROVED
+        ↓
+Marketplace
+        ↓
+Buyer xem sản phẩm
+        ↓
+Add To Cart / Buy Now
         ↓
 Order PENDING
         ↓
-Seller xác nhận
-        ↓
-Order SELLER_CONFIRMED
+Seller ACCEPTED
         ↓
 Tạo Delivery
         ↓
@@ -577,15 +888,60 @@ WAITING_SHIPPER
         ↓
 Shipper nhận đơn
         ↓
-Kiểm tra sản phẩm
+Inspection
         ↓
-Lấy hàng
+PICKING_UP
         ↓
-Giao hàng
+PICKED_UP
         ↓
-Buyer xác nhận
+DELIVERING
+        ↓
+Buyer nhận hàng
         ↓
 DELIVERED
         ↓
 COMPLETED
 ```
+
+# 12. MÀN HÌNH CẦN CÓ
+
+## User
+
+- Marketplace
+- Product Detail
+- Cart
+- Checkout
+- My Orders
+- Order Detail
+- My Listings
+- Create Product Listing
+- Edit Product Listing
+
+---
+
+## Seller
+
+- Incoming Orders
+- Order Detail
+- Delivery Tracking
+
+---
+
+## Shipper
+
+- Available Deliveries
+- My Deliveries
+- Delivery Detail
+- Inspection Form
+- Report Issue
+
+---
+
+## Admin
+
+- Pending Products
+- Product Approval
+- Product Detail
+- Shipper Management
+- Inspection Reports
+- Delivery Reports

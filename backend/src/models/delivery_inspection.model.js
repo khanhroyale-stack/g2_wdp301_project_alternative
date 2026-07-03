@@ -19,8 +19,13 @@ const deliveryInspectionSchema = new mongoose.Schema(
     },
     result: {
       type: String,
-      enum: ["passed", "failed_seller_fault", "failed_shipper_fault"],
+      enum: ["passed", "failed"],
       default: "passed",
+    },
+    faultType: {
+      type: String,
+      enum: ["seller", "shipper", null],
+      default: null,
     },
     conditionNote: {
       type: String,

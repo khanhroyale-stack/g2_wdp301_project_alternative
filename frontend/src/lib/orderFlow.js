@@ -1,29 +1,29 @@
 export const orderStatusMap = {
-  pending: { label: "Cho xac nhan", variant: "warning" },
-  confirmed: { label: "Da xac nhan", variant: "success" },
-  shipping: { label: "Dang giao", variant: "sky" },
-  delivered: { label: "Cho buyer xac nhan", variant: "warning" },
-  completed: { label: "Hoan tat", variant: "success" },
-  cancelled: { label: "Da huy", variant: "danger" },
+  pending: { label: "Chờ xác nhận", variant: "warning" },
+  confirmed: { label: "Đã xác nhận", variant: "success" },
+  shipping: { label: "Đang giao", variant: "sky" },
+  delivered: { label: "Chờ người mua xác nhận", variant: "warning" },
+  completed: { label: "Hoàn tất", variant: "success" },
+  cancelled: { label: "Đã hủy", variant: "danger" },
 };
 
 export const deliveryStatusMap = {
-  pending: { label: "Cho shipper nhan", variant: "warning" },
-  accepted: { label: "Shipper da nhan don", variant: "sky" },
-  picking_up: { label: "Dang lay hang", variant: "sky" },
-  picked_up: { label: "Da lay hang, cho kiem tra", variant: "warning" },
-  in_transit: { label: "Dang giao den buyer", variant: "sky" },
-  delivered: { label: "Da giao thanh cong", variant: "success" },
-  completed: { label: "Hoan tat delivery", variant: "success" },
-  failed: { label: "Giao that bai", variant: "danger" },
+  pending: { label: "Chờ shipper nhận", variant: "warning" },
+  accepted: { label: "Shipper đã nhận đơn", variant: "sky" },
+  picking_up: { label: "Đang lấy hàng", variant: "sky" },
+  picked_up: { label: "Đã lấy hàng, chờ kiểm tra", variant: "warning" },
+  in_transit: { label: "Đang giao đến người mua", variant: "sky" },
+  delivered: { label: "Đã giao thành công", variant: "success" },
+  completed: { label: "Hoàn tất delivery", variant: "success" },
+  failed: { label: "Giao thất bại", variant: "danger" },
 };
 
 export function getOrderStatusInfo(status) {
-  return orderStatusMap[status] || { label: status || "Khong xac dinh", variant: "muted" };
+  return orderStatusMap[status] || { label: status || "Không xác định", variant: "muted" };
 }
 
 export function getDeliveryStatusInfo(status) {
-  return deliveryStatusMap[status] || { label: status || "Chua tao delivery", variant: "muted" };
+  return deliveryStatusMap[status] || { label: status || "Chưa tạo delivery", variant: "muted" };
 }
 
 export function buildOrderTimeline(order) {
@@ -37,8 +37,8 @@ export function buildOrderTimeline(order) {
 
   const items = [
     {
-      label: "Don hang duoc tao",
-      note: "Buyer da gui yeu cau mua hang.",
+      label: "Đơn hàng được tạo",
+      note: "Người mua đã gửi yêu cầu mua hàng.",
       timestamp: order.createdAt,
       kind: "order",
       active: true,
@@ -47,10 +47,10 @@ export function buildOrderTimeline(order) {
       label: getOrderStatusInfo(order.orderStatus).label,
       note:
         order.orderStatus === "cancelled"
-          ? order.cancelReason || "Don hang da bi huy."
+          ? order.cancelReason || "Đơn hàng đã bị hủy."
           : order.orderStatus === "completed"
-            ? "Buyer da xac nhan nhan hang va ket thuc giao dich."
-            : "Trang thai hien tai cua don hang.",
+            ? "Người mua đã xác nhận nhận hàng và kết thúc giao dịch."
+            : "Trạng thái hiện tại của đơn hàng.",
       timestamp: order.updatedAt,
       kind: "order",
       active: true,

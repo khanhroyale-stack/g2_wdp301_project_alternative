@@ -1,8 +1,12 @@
 const Delivery = require("../models/delivery.model");
 const Order = require("../models/order.model");
-const ProductPost = require("../models/product_post.model");
 const DeliveryInspection = require("../models/delivery_inspection.model");
-const ProductImage = require("../models/product_image.model");
+const {
+  getProductImageUrls,
+  getProductThumbnailUrl,
+} = require("../utils/product-images.util");
+const { buildAvailableDeliveryClaimFilter, isDeliveryTransitionAllowed } = require("../utils/business-rules");
+const { releaseOrderInventory } = require("../services/order-inventory.service");
 
 const appendDeliveryHistory = (delivery, status, note) => {
   delivery.history.push({
@@ -14,19 +18,7 @@ const appendDeliveryHistory = (delivery, status, note) => {
 
 const hydrateProductImage = async (delivery) => {
   if (delivery.orderId?.postId?._id) {
-    // Try using thumbnailUrl first since that's what marketplace uses
-    const post = await ProductPost.findById(delivery.orderId.postId._id).select('thumbnailUrl').lean();
-    if (post?.thumbnailUrl) {
-      delivery.orderId.productImage = post.thumbnailUrl;
-    } else {
-      // Fallback to old method if no thumbnailUrl
-      const image = await ProductImage.findOne({
-        productPostId: delivery.orderId.postId._id,
-      })
-        .select('imageUrl')
-        .lean();
-      delivery.orderId.productImage = image?.imageUrl || null;
-    }
+    delivery.orderId.productImage = await getProductThumbnailUrl(delivery.orderId.postId._id);
   }
 };
 
@@ -41,15 +33,14 @@ const getAvailableDeliveries = async (req, res) => {
         populate: [
           { path: "buyerId", select: "fullName phone" },
           { path: "sellerId", select: "fullName phone address" },
-          { path: "postId", select: "title salePrice thumbnailUrl" }, // Added thumbnailUrl!
+          { path: "postId", select: "title salePrice" },
         ],
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // Now we can directly use postId.thumbnailUrl instead of extra query
     for (const delivery of deliveries) {
-      delivery.orderId.productImage = delivery.orderId?.postId?.thumbnailUrl || null;
+      await hydrateProductImage(delivery);
     }
 
     res.json({ success: true, data: deliveries });
@@ -60,27 +51,28 @@ const getAvailableDeliveries = async (req, res) => {
 
 const acceptDelivery = async (req, res) => {
   try {
-    const delivery = await Delivery.findById(req.params.id);
+    const delivery = await Delivery.findOneAndUpdate(
+      buildAvailableDeliveryClaimFilter(req.params.id),
+      {
+        $set: { shipperId: req.user._id, deliveryStatus: "accepted" },
+        $push: {
+          history: {
+            status: "accepted",
+            note: "Shipper da nhan don giao hang.",
+            timestamp: new Date(),
+          },
+        },
+      },
+      { new: true }
+    );
 
     if (!delivery) {
-      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
-    }
-
-    if (delivery.shipperId) {
+      const exists = await Delivery.exists({ _id: req.params.id });
       return res.status(400).json({
         success: false,
-        message: "Don nay da co shipper nhan",
+        message: exists ? "Don nay da co shipper nhan" : "Khong tim thay don giao hang",
       });
     }
-
-    delivery.shipperId = req.user._id;
-    delivery.deliveryStatus = "accepted";
-    appendDeliveryHistory(delivery, "accepted", "Shipper da nhan don giao hang.");
-    await delivery.save();
-
-    await Order.findByIdAndUpdate(delivery.orderId, {
-      orderStatus: "shipping",
-    });
 
     const updatedDelivery = await Delivery.findById(delivery._id)
       .populate("shipperId", "fullName phone")
@@ -118,15 +110,14 @@ const getMyDeliveries = async (req, res) => {
         populate: [
           { path: "buyerId", select: "fullName phone address" },
           { path: "sellerId", select: "fullName phone address" },
-          { path: "postId", select: "title salePrice thumbnailUrl" }, // Added thumbnailUrl!
+          { path: "postId", select: "title salePrice" },
         ],
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // Now we can directly use postId.thumbnailUrl instead of extra query
     for (const delivery of deliveries) {
-      delivery.orderId.productImage = delivery.orderId?.postId?.thumbnailUrl || null;
+      await hydrateProductImage(delivery);
     }
 
     res.json({ success: true, data: deliveries });
@@ -164,13 +155,7 @@ const getDeliveryById = async (req, res) => {
     }
 
     if (delivery.orderId?.postId?._id) {
-      const images = await ProductImage.find({
-        productPostId: delivery.orderId.postId._id,
-      })
-        .select("imageUrl displayOrder")
-        .sort({ displayOrder: 1 })
-        .lean();
-      delivery.orderId.postId.images = images.map((img) => img.imageUrl);
+      delivery.orderId.postId.images = await getProductImageUrls(delivery.orderId.postId._id);
     }
 
     const inspections = await DeliveryInspection.find({ deliveryId: delivery._id })
@@ -201,23 +186,22 @@ const updateDeliveryStatus = async (req, res) => {
       });
     }
 
-    const validTransitions = {
-      accepted: ["picking_up", "failed"],
-      picking_up: ["picked_up", "failed"],
-      picked_up: ["in_transit", "failed"],
-      in_transit: ["delivered", "failed"],
-      delivered: [],
-      completed: [],
-      failed: [],
-      pending: [],
-    };
-
     const currentStatus = delivery.deliveryStatus;
-    if (!validTransitions[currentStatus] || !validTransitions[currentStatus].includes(status)) {
+    if (!isDeliveryTransitionAllowed(currentStatus, status)) {
       return res.status(400).json({
         success: false,
         message: "Khong the chuyen sang trang thai nay",
       });
+    }
+
+    if (status === "in_transit") {
+      const latestInspection = await DeliveryInspection.findOne({ deliveryId: delivery._id }).sort({ createdAt: -1 }).lean();
+      if (!latestInspection || latestInspection.result !== "passed") {
+        return res.status(400).json({
+          success: false,
+          message: "Can co bien ban kiem tra hop le truoc khi bat dau giao hang",
+        });
+      }
     }
 
     delivery.deliveryStatus = status;
@@ -239,15 +223,23 @@ const updateDeliveryStatus = async (req, res) => {
     );
     await delivery.save();
 
-    if (status === "delivered") {
+    if (status === "in_transit") {
+      await Order.findByIdAndUpdate(delivery.orderId, {
+        orderStatus: "shipping",
+      });
+    } else if (status === "delivered") {
       await Order.findByIdAndUpdate(delivery.orderId, {
         orderStatus: "delivered",
       });
     } else if (status === "failed") {
-      await Order.findByIdAndUpdate(delivery.orderId, {
+      const order = await Order.findByIdAndUpdate(delivery.orderId, {
         orderStatus: "cancelled",
         cancelReason: delivery.failureReason,
-      });
+      }, { new: true }).lean();
+
+      if (order?.postId) {
+        await releaseOrderInventory(delivery.orderId);
+      }
     }
 
     const updatedDelivery = await Delivery.findById(delivery._id)

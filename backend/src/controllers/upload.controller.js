@@ -13,6 +13,12 @@ const uploadImages = async (req, res) => {
 
     // Insert raw vào media_files để tuân thủ Atlas JSON Schema validator
     // (schema có additionalProperties:false — Mongoose thêm updatedAt/__v sẽ bị reject)
+    const requestedFileType = req.body.fileType || "product_image";
+    const allowedFileTypes = ["product_image", "inspection", "verification", "evidence", "video", "other"];
+    if (!allowedFileTypes.includes(requestedFileType)) {
+      return res.status(400).json({ success: false, message: "Loai tep khong hop le" });
+    }
+
     const insertResults = await Promise.all(
       req.files.map((file) =>
         db.collection("media_files").insertOne({
@@ -24,7 +30,7 @@ const uploadImages = async (req, res) => {
           storageType: "local",
           localPath: `/uploads/products/${file.filename}`,
           publicUrl: `${BASE_URL}/uploads/products/${file.filename}`,
-          fileType: "product_image",
+          fileType: requestedFileType,
           createdAt: new Date(),
         })
       )

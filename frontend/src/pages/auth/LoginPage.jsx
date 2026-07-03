@@ -17,12 +17,23 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const data = await login(form);
-      // Route theo role
-      if (data.user.role === "admin") navigate("/admin");
-      else if (data.user.role === "shipper") navigate("/shipper");
-      else navigate("/ho-so");
+      if (data.user.role === "shipper") {
+        navigate("/shipper", { replace: true });
+      } else {
+        const from = location.state?.from?.pathname;
+        if (from) {
+          navigate(from, { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Email hoặc mật khẩu không đúng.");
+      const data = err.response?.data;
+      if (data?.needVerification && data?.email) {
+        navigate("/xac-thuc-email", { state: { email: data.email }, replace: true });
+      } else {
+        setError(data?.message || "Email hoac mat khau khong dung.");
+      }
     } finally {
       setLoading(false);
     }

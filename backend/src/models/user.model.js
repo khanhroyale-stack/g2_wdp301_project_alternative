@@ -1,6 +1,36 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+const addressSchema = new mongoose.Schema(
+  {
+    label: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    recipientName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: true, timestamps: true }
+);
+
 const userSchema = new mongoose.Schema(
   {
     fullName: {
@@ -35,22 +65,27 @@ const userSchema = new mongoose.Schema(
       default: null,
       trim: true,
     },
+    addresses: {
+      type: [addressSchema],
+      default: [],
+    },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other"],
+      default: null,
+    },
     role: {
       type: String,
       enum: ["user", "shipper", "admin"],
       default: "user",
     },
-    studentCardUrl: {
-      type: String,
-      default: null,
-    },
-    citizenIdUrl: {
-      type: String,
-      default: null,
-    },
     verificationStatus: {
       type: String,
-      enum: ["unverified", "pending", "verified", "rejected"],
+      enum: ["unverified", "verified"],
       default: "unverified",
     },
     reputationScore: {
@@ -69,6 +104,10 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "inactive", "banned"],
       default: "active",
     },
+    proExpiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -83,6 +122,10 @@ userSchema.pre("save", async function (next) {
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!candidatePassword || !this.passwordHash) {
+    return false;
+  }
+
   return await bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
