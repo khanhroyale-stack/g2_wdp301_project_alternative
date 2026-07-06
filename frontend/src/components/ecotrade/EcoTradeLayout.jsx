@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Box, ShoppingCart, Store, Truck, ChevronDown, ChevronRight, History, PackageSearch } from "lucide-react";
 import Navbar from "../Navbar";
 import Footer from "../Footer";
+import FeaturedReminderBanner from "../FeaturedReminderBanner";
 import { useAuth } from "../../context/AuthContext";
 import usePendingSalesCount from "../../hooks/usePendingSalesCount";
 import { cn } from "../../lib/utils";
@@ -42,7 +43,7 @@ export default function EcoTradeLayout({ children }) {
 
   const isActive = (to) => {
     if (to === "/shipper") return location.pathname === "/shipper" || location.pathname.startsWith("/shipper/don/");
-    if (to === "/quan-ly/bai-dang") return location.pathname === "/quan-ly/bai-dang";
+    if (to === "/quan-ly/bai-dang") return location.pathname === "/quan-ly/bai-dang" || location.pathname === "/goi-pro/chon-san-pham-noi-bat";
     if (to === "/orders/my-orders") return (
       location.pathname === "/orders/my-orders" ||
       location.pathname === "/don-hang" ||
@@ -131,6 +132,7 @@ export default function EcoTradeLayout({ children }) {
         </aside>
 
         <div className="flex-1 min-w-0">
+          <FeaturedReminderBanner />
           {children}
         </div>
       </main>

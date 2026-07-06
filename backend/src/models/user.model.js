@@ -108,12 +108,18 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    hasSetupFeaturedProducts: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
     collection: "users",
   }
 );
+
+userSchema.index({ proExpiresAt: 1, hasSetupFeaturedProducts: 1 });
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("passwordHash")) return next();

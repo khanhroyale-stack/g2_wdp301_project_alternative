@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, NavLink, useNavigate, useParams } from "react-router-dom";
+import { Link, NavLink, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   CheckCircle2,
   ChevronDown,
@@ -13,7 +13,6 @@ import {
   Leaf,
   List,
   LogOut,
-  PackageCheck,
   Plus,
   Save,
   Send,
@@ -141,7 +140,9 @@ const getImageSource = (src) => {
 const CreatePost = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isEditMode = Boolean(id);
+  const returnTo = searchParams.get("returnTo");
 
   const [form, setForm] = useState(defaultForm);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -243,6 +244,11 @@ const CreatePost = () => {
         await productService.updateProduct(id, productData);
       } else {
         await productService.createProduct(productData);
+      }
+
+      if (!isEditMode && returnTo) {
+        navigate(returnTo);
+        return;
       }
 
       setSuccess(true);

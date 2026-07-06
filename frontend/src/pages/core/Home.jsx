@@ -30,7 +30,8 @@ const Home = () => {
       try {
         const res = await productService.getProducts({ limit: 4, sort: "newest" });
         if (res.success) {
-          setFeaturedProducts(res.data);
+          const featured = Array.isArray(res.data) ? [] : res.data?.featuredProducts;
+          setFeaturedProducts(featured || []);
         }
       } catch (err) {
         console.error("Lỗi lấy sản phẩm nổi bật:", err);
@@ -125,8 +126,8 @@ const Home = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <h2 className="text-3xl font-bold text-on-surface mb-2">Đăng bán mới nhất</h2>
-              <p className="text-on-surface-variant text-lg">Những món đồ vừa được lên kệ.</p>
+              <h2 className="text-3xl font-bold text-on-surface mb-2">Sản phẩm nổi bật</h2>
+              <p className="text-on-surface-variant text-lg">Những sản phẩm Pro được ưu tiên hiển thị.</p>
             </div>
             <Link to="/marketplaces" className="text-primary font-semibold hover:text-primary-fixed transition-colors flex items-center gap-1 group">
               Xem tất cả <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
@@ -166,6 +167,11 @@ const Home = () => {
                         }`}>
                         {isRent ? "Cho thuê" : "Bán"}
                       </span>
+                      {product.isFeatured && (
+                        <span className="absolute right-4 top-4 rounded-full bg-[#34d37b] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#07361f]">
+                          Nổi bật
+                        </span>
+                      )}
                     </div>
                     <div className="p-5 flex flex-col flex-grow">
                       <h3 className="font-bold text-on-surface text-lg leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors">{product.title}</h3>

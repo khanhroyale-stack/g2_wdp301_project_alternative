@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
 import PrivateRoute from "./components/PrivateRoute";
@@ -18,13 +18,13 @@ import Profile from "./pages/user/Profile";
 import PublicProfile from "./pages/user/PublicProfile";
 import MyPosts from "./pages/user/MyPosts";
 import CreatePost from "./pages/product/CreatePost";
+import SelectFeaturedProducts from "./pages/user/SelectFeaturedProducts";
 import Rentals from "./pages/user/Rentals";
 import RentalDetail from "./pages/user/RentalDetail";
 import CreateRentalRequest from "./pages/rental/CreateRentalRequest";
 import Messages from "./pages/user/Messages";
 import Notifications from "./pages/user/Notifications";
 import Cart from "./pages/user/Cart";
-import MyOrders from "./pages/user/MyOrders";
 import ProPlans from "./pages/user/ProPlans";
 import ProResult from "./pages/user/ProResult";
 
@@ -137,6 +137,7 @@ function App() {
             <Route path="/gio-hang" element={<PrivateRoute><Cart /></PrivateRoute>} />
             <Route path="/goi-pro" element={<PrivateRoute><ProPlans /></PrivateRoute>} />
             <Route path="/goi-pro/ket-qua" element={<ProResult />} />
+            <Route path="/goi-pro/chon-san-pham-noi-bat" element={<PrivateRoute><SelectFeaturedProducts /></PrivateRoute>} />
 
             <Route path="/don-hang" element={<Navigate to="/orders/my-orders" replace />} />
             <Route path="/don-hang/:id" element={<LegacyOrderRedirect />} />

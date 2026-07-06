@@ -67,6 +67,7 @@ const PRO_PLANS = {
 };
 
 const FREE_POST_LIMIT = 5;
+const MAX_FEATURED_PRODUCTS = 3;
 
 const isUserPro = (user) => {
   const expiry = user?.proExpiresAt;
@@ -90,6 +91,7 @@ module.exports = {
   validateSellerCancellation,
   PRO_PLANS,
   FREE_POST_LIMIT,
+  MAX_FEATURED_PRODUCTS,
   isUserPro,
   computeProExpiry,
 };

@@ -48,4 +48,14 @@ export const authService = {
     const res = await api.put("/auth/change-password", { currentPassword, newPassword });
     return res.data;
   },
+
+  checkFeaturedReminder: async () => {
+    const res = await api.get("/auth/featured-reminder");
+    return res.data;
+  },
+
+  markFeaturedSetupDone: async () => {
+    const res = await api.post("/auth/mark-featured-done");
+    return res.data;
+  },
 };

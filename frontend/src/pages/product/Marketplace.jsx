@@ -42,6 +42,7 @@ const Marketplace = () => {
   const [maxPrice, setMaxPrice] = useState("");
 
   const [products, setProducts] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const keyword = searchParams.get("q") || "";
@@ -67,7 +68,15 @@ const Marketplace = () => {
         if (maxPrice) params.maxPrice = maxPrice;
 
         const res = await productService.getProducts(params);
-        if (res.success) setProducts(res.data);
+        if (res.success) {
+          if (Array.isArray(res.data)) {
+            setFeaturedProducts([]);
+            setProducts(res.data);
+          } else {
+            setFeaturedProducts(res.data?.featuredProducts || []);
+            setProducts(res.data?.products || []);
+          }
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -158,7 +167,7 @@ const Marketplace = () => {
               <h1 className="text-2xl font-bold text-on-surface">
                 {keyword ? `Kết quả tìm kiếm: "${keyword}"` : (isRentPage ? "Thuê đồ" : "Mua sắm")}
               </h1>
-              <p className="text-sm text-on-surface-variant mt-0.5">Tìm thấy {products.length} sản phẩm</p>
+              <p className="text-sm text-on-surface-variant mt-0.5">Tìm thấy {featuredProducts.length + products.length} sản phẩm</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-on-surface-variant">Sắp xếp:</span>
@@ -171,11 +180,59 @@ const Marketplace = () => {
             </div>
           </div>
 
+          {!loading && featuredProducts.length > 0 && (
+            <div className="mb-8">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-on-surface">Sản phẩm nổi bật</h2>
+                  <p className="mt-1 text-sm text-on-surface-variant">Các sản phẩm Pro được ưu tiên hiển thị.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {featuredProducts.map((product) => {
+                  const displayPrice = product.productType === "rent"
+                    ? `${formatPrice(product.rentPricePerDay)}/ngày`
+                    : formatPrice(product.salePrice);
+
+                  return (
+                    <article
+                      key={product._id}
+                      onClick={() => navigate(`/marketplaces/${product._id}`)}
+                      className="cursor-pointer overflow-hidden rounded-2xl border border-[#34d37b] bg-surface-container-lowest shadow-apple transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+                        {getImageUrl(product.thumbnailUrl) ? (
+                          <img alt={product.title} src={getImageUrl(product.thumbnailUrl)} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                        ) : (
+                          <div className="flex h-full flex-col items-center justify-center gap-2 text-on-surface-variant/50">
+                            <span className="material-symbols-outlined text-4xl">image</span>
+                            <span className="text-xs">Chưa có ảnh</span>
+                          </div>
+                        )}
+                        <span className="absolute right-3 top-3 rounded-full bg-[#34d37b] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#07361f]">
+                          Nổi bật
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="line-clamp-2 text-sm font-bold text-on-surface">{product.title}</h3>
+                        <p className="mt-3 text-lg font-black text-primary">{displayPrice}</p>
+                        <div className="mt-3 flex items-center justify-between text-xs text-on-surface-variant">
+                          <span className="truncate">{product.location || "Chưa cập nhật"}</span>
+                          {product.ownerIsPro && <ProBadge />}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex justify-center items-center py-24">
               <span className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></span>
             </div>
-          ) : products.length === 0 ? (
+          ) : products.length === 0 && featuredProducts.length === 0 ? (
             <div className="text-center py-24">
               <span className="material-symbols-outlined text-6xl text-on-surface-variant/40 block mb-4">search_off</span>
               <p className="text-on-surface-variant font-medium">Không tìm thấy sản phẩm phù hợp.</p>

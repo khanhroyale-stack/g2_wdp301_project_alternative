@@ -99,11 +99,23 @@ const productPostSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    featuredAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
     collection: "product_posts",
   }
 );
+
+productPostSchema.index({ ownerId: 1, postStatus: 1, createdAt: -1 });
+productPostSchema.index({ ownerId: 1, isFeatured: 1, featuredAt: -1 });
+productPostSchema.index({ postStatus: 1, isFeatured: -1, featuredAt: -1 });
 
 module.exports = mongoose.model("ProductPost", productPostSchema);

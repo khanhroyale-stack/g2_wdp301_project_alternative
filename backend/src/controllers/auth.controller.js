@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 const { generateOTP, saveOTP, verifyOTP, getResendCooldown } = require("../utils/otp");
 const { sendOTPEmail } = require("../config/email");
+const { isUserPro } = require("../utils/business-rules");
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -53,7 +54,8 @@ const formatUser = (user) => ({
   reputationScore: user.reputationScore,
   accountStatus: user.accountStatus,
   proExpiresAt: user.proExpiresAt,
-  isPro: !!(user.proExpiresAt && new Date(user.proExpiresAt).getTime() > Date.now()),
+  hasSetupFeaturedProducts: !!user.hasSetupFeaturedProducts,
+  isPro: isUserPro(user),
 });
 
 const register = async (req, res) => {
@@ -133,7 +135,15 @@ const verifyEmail = async (req, res) => {
     }
 
     const token = generateToken(user._id);
-    res.json({ success: true, token, user: formatUser(user) });
+    const formattedUser = formatUser(user);
+    res.json({
+      success: true,
+      token,
+      user: formattedUser,
+      featuredReminder: {
+        shouldShow: formattedUser.isPro && !formattedUser.hasSetupFeaturedProducts,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -185,7 +195,15 @@ const login = async (req, res) => {
     }
 
     const token = generateToken(user._id);
-    res.json({ success: true, token, user: formatUser(user) });
+    const formattedUser = formatUser(user);
+    res.json({
+      success: true,
+      token,
+      user: formattedUser,
+      featuredReminder: {
+        shouldShow: formattedUser.isPro && !formattedUser.hasSetupFeaturedProducts,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -302,6 +320,41 @@ const getMe = async (req, res) => {
   res.json({ success: true, user: formatUser(req.user) });
 };
 
+const checkFeaturedReminder = async (req, res) => {
+  try {
+    const isPro = isUserPro(req.user);
+    const shouldShowReminder = isPro && !req.user.hasSetupFeaturedProducts;
+
+    res.json({
+      success: true,
+      data: {
+        shouldShowReminder,
+        isPro,
+        hasSetupFeaturedProducts: !!req.user.hasSetupFeaturedProducts,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const markFeaturedSetupDone = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { hasSetupFeaturedProducts: true },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      user: formatUser(user),
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   register,
   verifyEmail,
@@ -311,4 +364,6 @@ module.exports = {
   changePassword,
   getMe,
   resendOTP,
+  checkFeaturedReminder,
+  markFeaturedSetupDone,
 };

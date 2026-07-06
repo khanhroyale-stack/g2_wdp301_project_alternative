@@ -56,6 +56,7 @@ const createPayment = async (req, res) => {
 
 const vnpayReturn = async (req, res) => {
   const resultUrl = (status) => `${CLIENT_URL}/goi-pro/ket-qua?status=${status}`;
+  const featuredSetupUrl = () => `${CLIENT_URL}/goi-pro/chon-san-pham-noi-bat`;
   try {
     const { isValid, data } = verifyReturn(req.query);
     if (!isValid) {
@@ -69,7 +70,7 @@ const vnpayReturn = async (req, res) => {
 
     // Idempotent: already activated on a previous return hit (e.g. refresh)
     if (sub.status === "paid") {
-      return res.redirect(resultUrl("success"));
+      return res.redirect(featuredSetupUrl());
     }
 
     const paidOk =
@@ -100,9 +101,10 @@ const vnpayReturn = async (req, res) => {
     await sub.save();
 
     user.proExpiresAt = newExpiry;
+    user.hasSetupFeaturedProducts = false;
     await user.save();
 
-    return res.redirect(resultUrl("success"));
+    return res.redirect(featuredSetupUrl());
   } catch (error) {
     return res.redirect(resultUrl("failed"));
   }

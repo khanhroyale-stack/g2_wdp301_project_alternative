@@ -33,6 +33,14 @@ const productService = {
     const response = await api.get("/products/my");
     return response.data;
   },
+  getFeaturedProducts: async () => {
+    const response = await api.get("/products/my/featured");
+    return response.data;
+  },
+  setFeaturedProducts: async (productIds) => {
+    const response = await api.post("/products/my/featured", { productIds });
+    return response.data;
+  },
   adminGetProducts: async (status) => {
     const response = await api.get("/products/admin/all", { params: { status } });
     return response.data;

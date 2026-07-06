@@ -7,6 +7,8 @@ const {
   updateProduct,
   deleteProduct,
   getMyProducts,
+  getFeaturedProducts,
+  setFeaturedProducts,
   adminGetProducts,
   adminApproveProduct,
   adminRejectProduct,
@@ -19,6 +21,8 @@ const router = express.Router();
 router.get("/", getProducts);
 router.get("/categories", getCategories);
 router.get("/my", protect, activeOnly, getMyProducts);
+router.get("/my/featured", protect, activeOnly, getFeaturedProducts);
+router.post("/my/featured", protect, activeOnly, setFeaturedProducts);
 router.get("/admin/all", protect, adminOnly, adminGetProducts);
 router.post("/", protect, activeOnly, createProduct);
 router.patch("/:id/approve", protect, adminOnly, adminApproveProduct);

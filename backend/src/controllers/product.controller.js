@@ -2,14 +2,16 @@ const ProductPost = require("../models/product_post.model");
 const ProductImage = require("../models/product_image.model");
 const Category = require("../models/category.model");
 const MediaFile = require("../models/media_file.model");
+const User = require("../models/user.model");
 const { createNotification } = require("./notification.controller");
-const { validateProductBusinessRules, isUserPro, FREE_POST_LIMIT } = require("../utils/business-rules");
+const { validateProductBusinessRules, isUserPro, FREE_POST_LIMIT, MAX_FEATURED_PRODUCTS } = require("../utils/business-rules");
 const {
   attachImagesToProducts,
   getProductImageUrls,
 } = require("../utils/product-images.util");
 
 const MARKETPLACE_STATUSES = ["approved", "available"];
+const FEATURED_ELIGIBLE_STATUSES = ["approved", "available"];
 const ADMIN_POST_STATUSES = ["pending", "approved", "available", "rejected", "sold", "rented", "inactive", "closed"];
 
 const normalizeProductType = (value) => {
@@ -173,7 +175,30 @@ const getProducts = async (req, res) => {
     if (req.query.sort === "price_asc") sortQuery = { salePrice: 1, rentPricePerDay: 1 };
     if (req.query.sort === "price_desc") sortQuery = { salePrice: -1, rentPricePerDay: -1 };
 
-    const products = await ProductPost.find(filter)
+    const featuredFilter = {
+      ...filter,
+      isFeatured: true,
+      postStatus: { $in: FEATURED_ELIGIBLE_STATUSES },
+    };
+
+    const featuredCandidates = await ProductPost.find(featuredFilter)
+      .populate("ownerId", "fullName email avatarUrl phone reputationScore proExpiresAt")
+      .populate("categoryId", "name icon")
+      .sort({ featuredAt: -1, createdAt: -1 })
+      .limit(MAX_FEATURED_PRODUCTS * 4)
+      .lean();
+
+    const nowMs = Date.now();
+    const featuredProducts = featuredCandidates
+      .filter((p) => p.ownerId?.proExpiresAt && new Date(p.ownerId.proExpiresAt).getTime() > nowMs)
+      .slice(0, MAX_FEATURED_PRODUCTS);
+
+    const featuredIds = featuredProducts.map((p) => p._id);
+    const normalFilter = featuredIds.length
+      ? { ...filter, _id: { $nin: featuredIds } }
+      : filter;
+
+    const products = await ProductPost.find(normalFilter)
       .populate("ownerId", "fullName email avatarUrl phone reputationScore proExpiresAt")
       .populate("categoryId", "name icon")
       .sort(sortQuery)
@@ -181,20 +206,21 @@ const getProducts = async (req, res) => {
       .limit(limit)
       .lean();
 
+    await attachImagesToProducts(featuredProducts);
     await attachImagesToProducts(products);
 
-    const nowMs = Date.now();
-    for (const p of products) {
+    for (const p of [...featuredProducts, ...products]) {
       p.ownerIsPro = !!(p.ownerId?.proExpiresAt && new Date(p.ownerId.proExpiresAt).getTime() > nowMs);
     }
-    // Stable sort: Pro owners' posts first, keep existing order otherwise (within page)
-    products.sort((a, b) => Number(b.ownerIsPro) - Number(a.ownerIsPro));
 
-    const total = await ProductPost.countDocuments(filter);
+    const total = await ProductPost.countDocuments(normalFilter);
 
     res.json({
       success: true,
-      data: products,
+      data: {
+        featuredProducts,
+        products,
+      },
       pagination: {
         page,
         limit,
@@ -322,6 +348,8 @@ const updateProduct = async (req, res) => {
       product.approvedBy = null;
       product.approvedAt = null;
       product.rejectReason = null;
+      product.isFeatured = false;
+      product.featuredAt = null;
     }
     await product.save();
 
@@ -359,6 +387,8 @@ const deleteProduct = async (req, res) => {
     }
 
     product.postStatus = "inactive";
+    product.isFeatured = false;
+    product.featuredAt = null;
     await product.save();
 
     res.json({ success: true, message: "Da an bai dang" });
@@ -377,6 +407,95 @@ const getMyProducts = async (req, res) => {
     await attachImagesToProducts(products);
 
     res.json({ success: true, data: products });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getFeaturedProducts = async (req, res) => {
+  try {
+    const featuredProducts = await ProductPost.find({
+      ownerId: req.user._id,
+      isFeatured: true,
+    })
+      .populate("categoryId", "name icon")
+      .sort({ featuredAt: -1, createdAt: -1 })
+      .lean();
+
+    await attachImagesToProducts(featuredProducts);
+
+    res.json({
+      success: true,
+      data: {
+        featured: featuredProducts,
+        maxAllowed: MAX_FEATURED_PRODUCTS,
+        canSetMore: isUserPro(req.user) && featuredProducts.length < MAX_FEATURED_PRODUCTS,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const setFeaturedProducts = async (req, res) => {
+  try {
+    const { productIds } = req.body;
+
+    if (!isUserPro(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: "Chi tai khoan Pro moi co the chon san pham noi bat",
+      });
+    }
+
+    if (!Array.isArray(productIds) || productIds.length > MAX_FEATURED_PRODUCTS) {
+      return res.status(400).json({
+        success: false,
+        message: `Chi duoc chon toi da ${MAX_FEATURED_PRODUCTS} san pham noi bat`,
+      });
+    }
+
+    const normalizedIds = [...new Set(productIds.map(String).filter(Boolean))];
+    if (normalizedIds.length !== productIds.length) {
+      return res.status(400).json({ success: false, message: "Danh sach san pham khong hop le" });
+    }
+
+    if (normalizedIds.some((id) => !/^[0-9a-fA-F]{24}$/.test(id))) {
+      return res.status(400).json({ success: false, message: "Ma san pham khong hop le" });
+    }
+
+    const products = await ProductPost.find({
+      _id: { $in: normalizedIds },
+      ownerId: req.user._id,
+      postStatus: { $in: FEATURED_ELIGIBLE_STATUSES },
+    }).select("_id").lean();
+
+    if (products.length !== normalizedIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Mot so san pham khong ton tai, khong thuoc ve ban, hoac chua duoc duyet",
+      });
+    }
+
+    await ProductPost.updateMany(
+      { ownerId: req.user._id, isFeatured: true },
+      { $set: { isFeatured: false, featuredAt: null } }
+    );
+
+    if (normalizedIds.length) {
+      await ProductPost.updateMany(
+        { _id: { $in: normalizedIds }, ownerId: req.user._id },
+        { $set: { isFeatured: true, featuredAt: new Date() } }
+      );
+    }
+
+    await User.findByIdAndUpdate(req.user._id, { hasSetupFeaturedProducts: true });
+
+    res.json({
+      success: true,
+      message: "Da cap nhat san pham noi bat thanh cong",
+      data: { selectedCount: normalizedIds.length, maxAllowed: MAX_FEATURED_PRODUCTS },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -422,10 +541,17 @@ const adminChangeStatus = async (req, res) => {
       update.rejectReason = (reason || "").trim() || "Khong dat yeu cau";
       update.approvedBy = null;
       update.approvedAt = null;
+      update.isFeatured = false;
+      update.featuredAt = null;
     } else if (status === "pending") {
       update.approvedBy = null;
       update.approvedAt = null;
       update.rejectReason = null;
+      update.isFeatured = false;
+      update.featuredAt = null;
+    } else if (!FEATURED_ELIGIBLE_STATUSES.includes(status)) {
+      update.isFeatured = false;
+      update.featuredAt = null;
     }
 
     const product = await ProductPost.findByIdAndUpdate(req.params.id, update, { new: true })
@@ -476,6 +602,8 @@ module.exports = {
   updateProduct,
   deleteProduct,
   getMyProducts,
+  getFeaturedProducts,
+  setFeaturedProducts,
   adminGetProducts,
   adminApproveProduct,
   adminRejectProduct,
