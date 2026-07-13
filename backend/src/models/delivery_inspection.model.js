@@ -35,10 +35,15 @@ const deliveryInspectionSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isCorrectCategoryBrandModel: {
+      type: Boolean,
+      default: true,
+    },
     isCorrectImage: {
       type: Boolean,
       default: true,
     },
+    // Legacy field kept for old inspection records and clients.
     isCorrectModel: {
       type: Boolean,
       default: true,
@@ -47,7 +52,31 @@ const deliveryInspectionSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isCorrectQuantity: {
+      type: Boolean,
+      default: true,
+    },
+    isCorrectColorSizeVersion: {
+      type: Boolean,
+      default: true,
+    },
     isAccessoriesEnough: {
+      type: Boolean,
+      default: true,
+    },
+    hasNoNewDamage: {
+      type: Boolean,
+      default: true,
+    },
+    hasNoCounterfeitSigns: {
+      type: Boolean,
+      default: true,
+    },
+    isSerialMatched: {
+      type: Boolean,
+      default: true,
+    },
+    isBasicFunctionWorking: {
       type: Boolean,
       default: true,
     },

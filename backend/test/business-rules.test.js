@@ -29,6 +29,7 @@ test("legacy inspection values normalize into result and faultType", () => {
 test("passed inspection cannot contain a failed check", () => {
   assert.equal(validateInspectionOutcome({ result: "passed", faultType: null, checks: [true, false] }), "Khong the ket luan dat khi co tieu chi khong dat");
   assert.equal(validateInspectionOutcome({ result: "failed", faultType: "seller", checks: [false] }), null);
+  assert.equal(validateInspectionOutcome({ result: "failed", faultType: "seller", checks: [true, true] }), "Can danh dau it nhat mot tieu chi khong dat");
 });
 
 test("seller rejection requires a reason", () => {
@@ -44,7 +45,9 @@ test("reserved inventory is inactive until the order is completed", () => {
 
 test("delivery transitions must follow the required sequence", () => {
   assert.equal(isDeliveryTransitionAllowed("accepted", "picking_up"), true);
-  assert.equal(isDeliveryTransitionAllowed("picked_up", "in_transit"), true);
+  assert.equal(isDeliveryTransitionAllowed("picking_up", "ready_for_delivery"), true);
+  assert.equal(isDeliveryTransitionAllowed("ready_for_delivery", "received"), true);
+  assert.equal(isDeliveryTransitionAllowed("received", "in_transit"), true);
   assert.equal(isDeliveryTransitionAllowed("in_transit", "delivered"), true);
   assert.equal(isDeliveryTransitionAllowed("accepted", "delivered"), false);
   assert.equal(isDeliveryTransitionAllowed("delivered", "in_transit"), false);

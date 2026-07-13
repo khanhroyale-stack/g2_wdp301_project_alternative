@@ -12,10 +12,25 @@ import deliveryService from "../../services/delivery.service";
 
 const nextActionMap = {
   accepted: { label: "Đang đến lấy hàng", nextStatus: "picking_up", variant: "sky" },
-  picking_up: { label: "Đã lấy hàng", nextStatus: "picked_up", variant: "default" },
+  picking_up: { label: "Đã lấy hàng", nextStatus: "ready_for_delivery", variant: "default" },
   picked_up: { label: "Bắt đầu giao hàng", nextStatus: "in_transit", variant: "sky" },
+  received: { label: "Bắt đầu giao hàng", nextStatus: "in_transit", variant: "sky" },
   in_transit: { label: "Đã giao thành công", nextStatus: "delivered", variant: "success" },
 };
+
+const inspectionCheckRows = [
+  ["isCorrectProduct", "Đúng sản phẩm"],
+  ["isCorrectCategoryBrandModel", "Đúng danh mục/thương hiệu/model"],
+  ["isCorrectCondition", "Đúng tình trạng mô tả"],
+  ["isCorrectQuantity", "Đúng số lượng"],
+  ["isCorrectColorSizeVersion", "Đúng màu/kích thước/phiên bản"],
+  ["isAccessoriesEnough", "Đủ phụ kiện"],
+  ["hasNoNewDamage", "Không hư hỏng phát sinh"],
+  ["hasNoCounterfeitSigns", "Không nghi ngờ hàng giả"],
+  ["isSerialMatched", "IMEI/Serial khớp"],
+  ["isCorrectImage", "Khớp ảnh đăng bán"],
+  ["isBasicFunctionWorking", "Hoạt động cơ bản"],
+];
 
 export default function DeliveryDetail() {
   const { id } = useParams();
@@ -74,7 +89,7 @@ export default function DeliveryDetail() {
   const statusInfo = getDeliveryStatusInfo(delivery.deliveryStatus);
   const nextAction = nextActionMap[delivery.deliveryStatus];
   const pickupInspection = delivery.inspections?.find((item) => item.inspectionType === "pickup");
-  const mustInspect = delivery.deliveryStatus === "picked_up";
+  const mustInspect = ["picked_up", "ready_for_delivery", "inspection_failed"].includes(delivery.deliveryStatus);
 
   return (
     <ShipperLayout>
@@ -102,7 +117,7 @@ export default function DeliveryDetail() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3">
-            {!(["delivered", "completed", "failed"].includes(delivery.deliveryStatus)) && (
+            {!(["delivered", "completed", "inspection_failed", "failed"].includes(delivery.deliveryStatus)) && (
               <Button asChild variant="outline" size="lg">
                 <Link to={`/shipper/don/${delivery._id}/bao-cao`}>Báo cáo sự cố</Link>
               </Button>
@@ -366,26 +381,19 @@ export default function DeliveryDetail() {
                       {pickupInspection.result}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Đúng sản phẩm</span>
-                    <span>{pickupInspection.isCorrectProduct ? "Có" : "Không"}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Đúng hình ảnh</span>
-                    <span>{pickupInspection.isCorrectImage ? "Có" : "Không"}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Đúng model</span>
-                    <span>{pickupInspection.isCorrectModel ? "Có" : "Không"}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Đúng tình trạng</span>
-                    <span>{pickupInspection.isCorrectCondition ? "Có" : "Không"}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-muted-foreground">Đủ phụ kiện</span>
-                    <span>{pickupInspection.isAccessoriesEnough ? "Có" : "Không"}</span>
-                  </div>
+                  {inspectionCheckRows.map(([key, label], index) => {
+                    const value = key === "isCorrectCategoryBrandModel"
+                      ? pickupInspection.isCorrectCategoryBrandModel ?? pickupInspection.isCorrectModel
+                      : pickupInspection[key];
+                    return (
+                      <div key={key} className={`flex items-center justify-between gap-3 py-2 ${index < inspectionCheckRows.length - 1 ? "border-b border-border" : ""}`}>
+                        <span className="text-muted-foreground">{label}</span>
+                        <span className={value === false ? "font-semibold text-danger" : "font-semibold text-success"}>
+                          {value === false ? "FAIL" : "PASS"}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </CardContent>
               </Card>
             )}

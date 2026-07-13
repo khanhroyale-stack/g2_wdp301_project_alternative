@@ -4,7 +4,9 @@ const Order = require("../models/order.model");
 const InspectionImage = require("../models/inspection_image.model");
 const ProductPost = require("../models/product_post.model");
 const MediaFile = require("../models/media_file.model");
+const User = require("../models/user.model");
 const { normalizeInspectionOutcome, validateInspectionOutcome } = require("../utils/business-rules");
+const { createNotification } = require("./notification.controller");
 
 const REQUIRED_IMAGE_TYPES = ["front", "back", "accessories"];
 
@@ -38,6 +40,38 @@ const restoreOrderInventory = async (order) => {
   });
 };
 
+const getInspectionChecks = (payload) => ({
+  isCorrectProduct: payload.isCorrectProduct !== false,
+  isCorrectCategoryBrandModel: payload.isCorrectCategoryBrandModel ?? payload.isCorrectModel ?? true,
+  isCorrectCondition: payload.isCorrectCondition !== false,
+  isCorrectQuantity: payload.isCorrectQuantity !== false,
+  isCorrectColorSizeVersion: payload.isCorrectColorSizeVersion !== false,
+  isAccessoriesEnough: payload.isAccessoriesEnough !== false,
+  hasNoNewDamage: payload.hasNoNewDamage ?? !payload.isDamagedByShipper,
+  hasNoCounterfeitSigns: payload.hasNoCounterfeitSigns !== false,
+  isSerialMatched: payload.isSerialMatched !== false,
+  isCorrectImage: payload.isCorrectImage !== false,
+  isBasicFunctionWorking: payload.isBasicFunctionWorking !== false,
+});
+
+const CHECK_LABELS = {
+  isCorrectProduct: "Dung san pham theo don dang ban",
+  isCorrectCategoryBrandModel: "Dung danh muc/thuong hieu/model",
+  isCorrectCondition: "Dung tinh trang nhu nguoi ban mo ta",
+  isCorrectQuantity: "Dung so luong",
+  isCorrectColorSizeVersion: "Dung mau sac/kich thuoc/phien ban",
+  isAccessoriesEnough: "Dung phu kien da cam ket",
+  hasNoNewDamage: "Khong phat sinh hu hong moi",
+  hasNoCounterfeitSigns: "Khong co dau hieu hang gia/hang nhai",
+  isSerialMatched: "IMEI/Serial khop thong tin dang ban",
+  isCorrectImage: "Hinh thuc ben ngoai phu hop voi anh dang ban",
+  isBasicFunctionWorking: "San pham van hoat dong co ban",
+};
+
+const getFailedCheckLabels = (checks) => Object.entries(checks)
+  .filter(([, value]) => value === false)
+  .map(([key]) => CHECK_LABELS[key] || key);
+
 const createInspection = async (req, res) => {
   try {
     const {
@@ -49,14 +83,36 @@ const createInspection = async (req, res) => {
       isCorrectProduct,
       isCorrectImage,
       isCorrectModel,
+      isCorrectCategoryBrandModel,
       isCorrectCondition,
+      isCorrectQuantity,
+      isCorrectColorSizeVersion,
       isAccessoriesEnough,
+      hasNoNewDamage,
+      hasNoCounterfeitSigns,
+      isSerialMatched,
+      isBasicFunctionWorking,
       result,
       faultType,
       inspectionImages,
     } = req.body;
 
     const outcome = normalizeInspectionOutcome(result, faultType);
+    const checks = getInspectionChecks({
+      isCorrectProduct,
+      isCorrectImage,
+      isCorrectModel,
+      isCorrectCategoryBrandModel,
+      isCorrectCondition,
+      isCorrectQuantity,
+      isCorrectColorSizeVersion,
+      isAccessoriesEnough,
+      hasNoNewDamage,
+      hasNoCounterfeitSigns,
+      isSerialMatched,
+      isBasicFunctionWorking,
+      isDamagedByShipper,
+    });
 
     if (!deliveryId || !inspectionType || !result) {
       return res.status(400).json({
@@ -66,7 +122,7 @@ const createInspection = async (req, res) => {
     }
     const outcomeError = validateInspectionOutcome({
       ...outcome,
-      checks: [isCorrectProduct, isCorrectImage, isCorrectModel, isCorrectCondition, isAccessoriesEnough],
+      checks: Object.values(checks),
     });
     if (outcomeError) return res.status(400).json({ success: false, message: outcomeError });
 
@@ -104,10 +160,10 @@ const createInspection = async (req, res) => {
       });
     }
 
-    if (!["picked_up", "in_transit"].includes(delivery.deliveryStatus)) {
+    if (!["picked_up", "ready_for_delivery"].includes(delivery.deliveryStatus)) {
       return res.status(400).json({
         success: false,
-        message: "Chi co the lap bien ban sau khi da lay hang",
+        message: "Chi co the lap bien ban sau khi da lay hang va truoc khi bat dau giao",
       });
     }
 
@@ -127,13 +183,10 @@ const createInspection = async (req, res) => {
       shipperId: req.user._id,
       inspectionType,
       conditionNote: conditionNote || "",
-      isMatchDescription: isMatchDescription !== false,
+      isMatchDescription: isMatchDescription ?? checks.isCorrectCondition,
       isDamagedByShipper: !!isDamagedByShipper,
-      isCorrectProduct: isCorrectProduct !== false,
-      isCorrectImage: isCorrectImage !== false,
-      isCorrectModel: isCorrectModel !== false,
-      isCorrectCondition: isCorrectCondition !== false,
-      isAccessoriesEnough: isAccessoriesEnough !== false,
+      ...checks,
+      isCorrectModel: checks.isCorrectCategoryBrandModel,
       result: outcome.result,
       faultType: outcome.faultType,
     });
@@ -144,25 +197,36 @@ const createInspection = async (req, res) => {
       imageType: image.imageType,
     })));
 
-    if (outcome.result === "failed") {
-      delivery.deliveryStatus = "failed";
-      delivery.failureReason =
-        outcome.faultType === "seller"
-          ? "San pham khong dung mo ta cua seller."
-          : "San pham bi hu hong trong qua trinh xu ly cua shipper.";
+    if (outcome.result === "passed") {
+      delivery.deliveryStatus = "received";
       delivery.history.push({
-        status: "failed",
+        status: "received",
+        note: "Bien ban kiem tra dat tat ca tieu chi. Shipper da nhan hang hop le va san sang giao.",
+        timestamp: new Date(),
+      });
+      await delivery.save();
+    } else {
+      const failedChecks = getFailedCheckLabels(checks);
+      delivery.deliveryStatus = "inspection_failed";
+      delivery.failureReason =
+        `Kiem tra san pham that bai. Tieu chi khong dat: ${failedChecks.join(", ")}. ${conditionNote || ""}`.trim();
+      delivery.history.push({
+        status: "inspection_failed",
         note: delivery.failureReason,
         timestamp: new Date(),
       });
       await delivery.save();
 
-      const order = await Order.findByIdAndUpdate(delivery.orderId, {
-        orderStatus: "cancelled",
-        cancelReason: delivery.failureReason,
-      }, { new: true }).lean();
-
-      await restoreOrderInventory(order);
+      const admins = await User.find({ role: "admin", accountStatus: "active" }).select("_id");
+      await Promise.all(admins.map((admin) => createNotification({
+        recipientId: admin._id,
+        type: "report_update",
+        title: "Bien ban kiem tra that bai",
+        content: `Van don #${String(delivery._id).slice(-8).toUpperCase()} co tieu chi kiem tra khong dat va can Admin xu ly.`,
+        relatedType: "System",
+        relatedId: null,
+        link: "/admin/kiem-dinh",
+      }, req.app.get("io"))));
     }
 
     const populatedInspection = await DeliveryInspection.findById(inspection._id)

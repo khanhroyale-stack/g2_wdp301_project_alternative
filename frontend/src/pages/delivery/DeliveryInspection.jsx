@@ -26,6 +26,20 @@ function CheckRow({ label, checked, onChange, disabled }) {
   );
 }
 
+const INSPECTION_CHECKS = [
+  { key: "isCorrectProduct", label: "Đúng sản phẩm theo đơn đăng bán" },
+  { key: "isCorrectCategoryBrandModel", label: "Đúng danh mục/thương hiệu/model" },
+  { key: "isCorrectCondition", label: "Đúng tình trạng như người bán mô tả" },
+  { key: "isCorrectQuantity", label: "Đúng số lượng" },
+  { key: "isCorrectColorSizeVersion", label: "Đúng màu sắc/kích thước/phiên bản" },
+  { key: "isAccessoriesEnough", label: "Đúng phụ kiện đã cam kết" },
+  { key: "hasNoNewDamage", label: "Không phát sinh hư hỏng mới" },
+  { key: "hasNoCounterfeitSigns", label: "Không có dấu hiệu hàng giả/hàng nhái" },
+  { key: "isSerialMatched", label: "IMEI/Serial khớp thông tin đăng bán" },
+  { key: "isCorrectImage", label: "Hình thức bên ngoài phù hợp với ảnh đăng bán" },
+  { key: "isBasicFunctionWorking", label: "Sản phẩm vẫn hoạt động cơ bản" },
+];
+
 export default function DeliveryInspection() {
   const { id } = useParams();
   const location = useLocation();
@@ -37,10 +51,17 @@ export default function DeliveryInspection() {
   const [inspectionFiles, setInspectionFiles] = useState({ front: null, back: null, accessories: null });
   const [form, setForm] = useState({
     isCorrectProduct: true,
+    isCorrectCategoryBrandModel: true,
     isCorrectImage: true,
     isCorrectModel: true,
     isCorrectCondition: true,
+    isCorrectQuantity: true,
+    isCorrectColorSizeVersion: true,
     isAccessoriesEnough: true,
+    hasNoNewDamage: true,
+    hasNoCounterfeitSigns: true,
+    isSerialMatched: true,
+    isBasicFunctionWorking: true,
     conditionNote: "",
     result: "passed",
     faultType: null,
@@ -56,10 +77,17 @@ export default function DeliveryInspection() {
             setInspection(inspectionRes.data);
             setForm({
               isCorrectProduct: inspectionRes.data.isCorrectProduct !== false,
+              isCorrectCategoryBrandModel: inspectionRes.data.isCorrectCategoryBrandModel ?? inspectionRes.data.isCorrectModel ?? true,
               isCorrectImage: inspectionRes.data.isCorrectImage !== false,
               isCorrectModel: inspectionRes.data.isCorrectModel !== false,
               isCorrectCondition: inspectionRes.data.isCorrectCondition !== false,
+              isCorrectQuantity: inspectionRes.data.isCorrectQuantity !== false,
+              isCorrectColorSizeVersion: inspectionRes.data.isCorrectColorSizeVersion !== false,
               isAccessoriesEnough: inspectionRes.data.isAccessoriesEnough !== false,
+              hasNoNewDamage: inspectionRes.data.hasNoNewDamage !== false,
+              hasNoCounterfeitSigns: inspectionRes.data.hasNoCounterfeitSigns !== false,
+              isSerialMatched: inspectionRes.data.isSerialMatched !== false,
+              isBasicFunctionWorking: inspectionRes.data.isBasicFunctionWorking !== false,
               conditionNote: inspectionRes.data.conditionNote || "",
               result: inspectionRes.data.result?.startsWith("failed") ? "failed" : inspectionRes.data.result || "passed",
               faultType: inspectionRes.data.faultType || (inspectionRes.data.result === "failed_seller_fault" ? "seller" : inspectionRes.data.result === "failed_shipper_fault" ? "shipper" : null),
@@ -100,6 +128,12 @@ export default function DeliveryInspection() {
         return;
       }
 
+      const hasFailedCheck = INSPECTION_CHECKS.some((check) => form[check.key] === false);
+      if (hasFailedCheck && !form.faultType) {
+        alert("Vui lòng chọn lỗi thuộc về seller hay shipper khi có tiêu chí FAIL.");
+        return;
+      }
+
       const uploadRes = await uploadService.uploadImages(
         requiredTypes.map((type) => inspectionFiles[type]),
         "inspection"
@@ -113,15 +147,22 @@ export default function DeliveryInspection() {
         deliveryId: id,
         inspectionType: "pickup",
         conditionNote: form.conditionNote,
-        isMatchDescription: form.result === "passed",
-        isDamagedByShipper: form.result === "failed" && form.faultType === "shipper",
+        isMatchDescription: form.isCorrectCondition,
+        isDamagedByShipper: hasFailedCheck && form.faultType === "shipper" && form.hasNoNewDamage === false,
         isCorrectProduct: form.isCorrectProduct,
+        isCorrectCategoryBrandModel: form.isCorrectCategoryBrandModel,
         isCorrectImage: form.isCorrectImage,
-        isCorrectModel: form.isCorrectModel,
+        isCorrectModel: form.isCorrectCategoryBrandModel,
         isCorrectCondition: form.isCorrectCondition,
+        isCorrectQuantity: form.isCorrectQuantity,
+        isCorrectColorSizeVersion: form.isCorrectColorSizeVersion,
         isAccessoriesEnough: form.isAccessoriesEnough,
-        result: form.result,
-        faultType: form.faultType,
+        hasNoNewDamage: form.hasNoNewDamage,
+        hasNoCounterfeitSigns: form.hasNoCounterfeitSigns,
+        isSerialMatched: form.isSerialMatched,
+        isBasicFunctionWorking: form.isBasicFunctionWorking,
+        result: hasFailedCheck ? "failed" : "passed",
+        faultType: hasFailedCheck ? form.faultType : null,
         inspectionImages,
       });
       if (res.success) navigate(`/shipper/don/${id}`);
@@ -145,6 +186,7 @@ export default function DeliveryInspection() {
   const order = delivery.orderId || {};
   const product = order.postId || {};
   const readOnly = Boolean(inspection);
+  const hasFailedCheck = INSPECTION_CHECKS.some((check) => form[check.key] === false);
 
   return (
     <ShipperLayout>
@@ -190,28 +232,36 @@ export default function DeliveryInspection() {
             <p className="text-lg text-muted-foreground">Shipper cần xác nhận đúng sản phẩm, đúng hình ảnh, đúng model, đúng tình trạng và đủ phụ kiện.</p>
           </CardHeader>
           <CardContent className="space-y-7">
-            <CheckRow label="Đúng sản phẩm?" checked={form.isCorrectProduct} onChange={(value) => setForm((prev) => ({ ...prev, isCorrectProduct: value }))} disabled={readOnly} />
-            <CheckRow label="Đúng hình ảnh?" checked={form.isCorrectImage} onChange={(value) => setForm((prev) => ({ ...prev, isCorrectImage: value }))} disabled={readOnly} />
-            <CheckRow label="Đúng model?" checked={form.isCorrectModel} onChange={(value) => setForm((prev) => ({ ...prev, isCorrectModel: value }))} disabled={readOnly} />
-            <CheckRow label="Đúng tình trạng?" checked={form.isCorrectCondition} onChange={(value) => setForm((prev) => ({ ...prev, isCorrectCondition: value }))} disabled={readOnly} />
-            <CheckRow label="Đủ phụ kiện?" checked={form.isAccessoriesEnough} onChange={(value) => setForm((prev) => ({ ...prev, isAccessoriesEnough: value }))} disabled={readOnly} />
+            {INSPECTION_CHECKS.map((check) => (
+              <CheckRow
+                key={check.key}
+                label={check.label}
+                checked={form[check.key]}
+                onChange={(value) => setForm((prev) => ({ ...prev, [check.key]: value }))}
+                disabled={readOnly}
+              />
+            ))}
 
             <div className="space-y-3">
               <label className="text-[1.1rem] font-semibold">Kết luận kiểm tra</label>
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className={`rounded-2xl border p-4 text-sm font-semibold ${hasFailedCheck ? "border-danger/30 bg-danger-soft text-danger" : "border-success/30 bg-success-soft text-success"}`}>
+                {hasFailedCheck
+                  ? "Có tiêu chí FAIL: biên bản sẽ được đánh giá FAIL và dừng giao để Admin xử lý."
+                  : "Tất cả tiêu chí PASS: biên bản sẽ được đánh giá PASS."}
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
                 {[
-                  { result: "passed", faultType: null, label: "Đạt", variant: "success" },
                   { result: "failed", faultType: "seller", label: "Lỗi từ seller", variant: "warning" },
                   { result: "failed", faultType: "shipper", label: "Lỗi từ shipper", variant: "danger" },
                 ].map((option) => (
                   <button
                     key={`${option.result}-${option.faultType || "none"}`}
                     type="button"
-                    disabled={readOnly}
+                    disabled={readOnly || !hasFailedCheck}
                     onClick={() => setForm((prev) => ({ ...prev, result: option.result, faultType: option.faultType }))}
                     className={`rounded-[20px] border px-4 py-4 text-left transition ${
-                      form.result === option.result && form.faultType === option.faultType ? "border-success bg-success-soft" : "border-border bg-white"
-                    } ${readOnly ? "cursor-default" : "cursor-pointer"}`}
+                      hasFailedCheck && form.result === option.result && form.faultType === option.faultType ? "border-success bg-success-soft" : "border-border bg-white"
+                    } ${readOnly || !hasFailedCheck ? "cursor-default opacity-60" : "cursor-pointer"}`}
                   >
                     <Badge variant={option.variant}>{option.label}</Badge>
                   </button>

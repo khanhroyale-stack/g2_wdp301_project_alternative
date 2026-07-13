@@ -139,7 +139,7 @@ const getShippers = async (req, res) => {
       .lean();
     const counts = await Delivery.aggregate([
       { $match: { shipperId: { $ne: null } } },
-      { $group: { _id: "$shipperId", total: { $sum: 1 }, completed: { $sum: { $cond: [{ $in: ["$deliveryStatus", ["delivered", "completed"]] }, 1, 0] } }, failed: { $sum: { $cond: [{ $eq: ["$deliveryStatus", "failed"] }, 1, 0] } } } },
+      { $group: { _id: "$shipperId", total: { $sum: 1 }, completed: { $sum: { $cond: [{ $in: ["$deliveryStatus", ["delivered", "completed"]] }, 1, 0] } }, failed: { $sum: { $cond: [{ $in: ["$deliveryStatus", ["inspection_failed", "failed"]] }, 1, 0] } } } },
     ]);
     const countMap = new Map(counts.map((item) => [String(item._id), item]));
     res.json({ success: true, data: shippers.map((shipper) => ({ ...shipper, deliveryStats: countMap.get(String(shipper._id)) || { total: 0, completed: 0, failed: 0 } })) });

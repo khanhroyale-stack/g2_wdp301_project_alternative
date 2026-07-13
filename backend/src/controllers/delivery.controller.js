@@ -215,13 +215,17 @@ const updateDeliveryStatus = async (req, res) => {
       status,
       status === "picking_up"
         ? note || "Shipper dang di den diem lay hang."
-        : status === "picked_up"
-          ? note || "Shipper da nhan hang tu seller va cho kiem tra."
+        : status === "ready_for_delivery" || status === "picked_up"
+          ? note || "Shipper da lay hang tu seller va can lap bien ban kiem tra."
+          : status === "received"
+            ? note || "San pham da kiem tra dat va shipper da nhan hang hop le."
           : status === "in_transit"
             ? note || "Shipper bat dau giao hang den buyer."
             : status === "delivered"
               ? note || "Shipper xac nhan da giao hang thanh cong."
-              : delivery.failureReason || note || "Delivery gap su co va duoc danh dau that bai."
+              : status === "inspection_failed"
+                ? note || "Bien ban kiem tra that bai. Delivery dung de Admin xu ly."
+                : delivery.failureReason || note || "Delivery gap su co va duoc danh dau that bai."
     );
     await delivery.save();
 

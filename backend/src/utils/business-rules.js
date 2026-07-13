@@ -28,6 +28,7 @@ const validateInspectionOutcome = ({ result, faultType, checks }) => {
   if (!["passed", "failed"].includes(result)) return "Ket qua kiem dinh khong hop le";
   if (result === "failed" && !["seller", "shipper"].includes(faultType)) return "Can xac dinh loi thuoc seller hay shipper";
   if (result === "passed" && checks.some((value) => value === false)) return "Khong the ket luan dat khi co tieu chi khong dat";
+  if (result === "failed" && checks.every((value) => value !== false)) return "Can danh dau it nhat mot tieu chi khong dat";
   return null;
 };
 
@@ -43,11 +44,14 @@ const getProductAvailabilityStatus = (quantity, soldIfEmpty = false) => (
 const isDeliveryTransitionAllowed = (currentStatus, nextStatus) => {
   const transitions = {
     accepted: ["picking_up", "failed"],
-    picking_up: ["picked_up", "failed"],
-    picked_up: ["in_transit", "failed"],
+    picking_up: ["ready_for_delivery", "picked_up", "failed"],
+    picked_up: ["received", "in_transit", "failed"],
+    ready_for_delivery: ["received", "inspection_failed", "failed"],
+    received: ["in_transit", "failed"],
     in_transit: ["delivered", "failed"],
     delivered: [],
     completed: [],
+    inspection_failed: ["failed"],
     failed: [],
     pending: [],
   };

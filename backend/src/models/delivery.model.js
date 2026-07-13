@@ -39,7 +39,19 @@ const deliverySchema = new mongoose.Schema(
     },
     deliveryStatus: {
       type: String,
-      enum: ["pending", "accepted", "picking_up", "picked_up", "in_transit", "delivered", "completed", "failed"],
+      enum: [
+        "pending",
+        "accepted",
+        "picking_up",
+        "picked_up",
+        "ready_for_delivery",
+        "received",
+        "in_transit",
+        "delivered",
+        "completed",
+        "inspection_failed",
+        "failed",
+      ],
       default: "pending",
     },
     failureReason: {

@@ -17,6 +17,10 @@ const inspectionService = {
     const response = await api.get(`/inspections/${id}`);
     return response.data;
   },
+  getInspectionById: async (id) => {
+    const response = await api.get(`/inspections/${id}`);
+    return response.data;
+  },
   updateInspection: async (id, data) => {
     const response = await api.put(`/inspections/${id}`, data);
     return response.data;
