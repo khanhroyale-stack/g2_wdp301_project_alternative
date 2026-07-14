@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const PrivateRoute = ({ children, adminOnly = false, shipperOnly = false }) => {
+const PrivateRoute = ({ children, adminOnly = false, shipperOnly = false, userOnly = false }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -17,8 +17,9 @@ const PrivateRoute = ({ children, adminOnly = false, shipperOnly = false }) => {
   }
 
   if (!user) return <Navigate to="/dang-nhap" state={{ from: location }} replace />;
-  if (adminOnly && user.role !== "admin") return <Navigate to="/ho-so" replace />;
+  if (adminOnly && user.role !== "admin") return <Navigate to={user.role === "shipper" ? "/shipper" : "/ho-so"} replace />;
   if (shipperOnly && user.role !== "shipper" && user.role !== "admin") return <Navigate to="/ho-so" replace />;
+  if (userOnly && user.role !== "user") return <Navigate to={user.role === "shipper" ? "/shipper" : "/admin"} replace />;
 
   return children;
 };

@@ -39,13 +39,16 @@ const Navbar = () => {
           <Link to="/" className="select-none text-[1.35rem] font-extrabold tracking-tight text-primary">
             EcoTrade
           </Link>
-          <div className="hidden gap-5 md:flex">
-            <NavLink to="/marketplaces" className={linkClass}>Mua sắm</NavLink>
-            <NavLink to="/cho-thue" className={linkClass}>Cho thuê</NavLink>
-          </div>
+          {user?.role !== "shipper" ? (
+            <div className="hidden gap-5 md:flex">
+              <NavLink to="/marketplaces" className={linkClass}>Mua sắm</NavLink>
+              <NavLink to="/cho-thue" className={linkClass}>Cho thuê</NavLink>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2">
+          {user?.role !== "shipper" ? (
           <div className="hidden w-56 items-center gap-2 rounded-full border border-surface-variant/60 bg-surface-container-low px-4 py-2 lg:flex">
             <span className="material-symbols-outlined text-[17px] text-on-surface-variant">search</span>
             <input
@@ -54,8 +57,9 @@ const Navbar = () => {
               onKeyDown={(event) => event.key === "Enter" && navigate(`/marketplaces?q=${event.target.value}`)}
             />
           </div>
+          ) : null}
 
-          {user && user.role !== "admin" ? (
+          {user?.role === "user" ? (
             <Link
               to="/dang-tin"
               className="hidden items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:opacity-90 md:flex"
@@ -104,7 +108,7 @@ const Navbar = () => {
                     <p className="mt-0.5 text-xs text-on-surface-variant">{roleLabel[user.role] || "Người dùng"}</p>
                   </div>
 
-                  {user.role !== "admin" ? (
+                  {user.role === "user" ? (
                     <>
                       <Link to="/ho-so" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                         <span className="material-symbols-outlined text-[18px] text-on-surface-variant">person</span>
@@ -145,12 +149,12 @@ const Navbar = () => {
                         Tin nhắn
                       </Link>
                     </>
-                  ) : (
+                  ) : user.role === "admin" ? (
                     <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
                       <span className="material-symbols-outlined text-[18px] text-on-surface-variant">admin_panel_settings</span>
                       Trang quản trị
                     </Link>
-                  )}
+                  ) : null}
 
                   {user.role === "shipper" ? (
                     <Link to="/shipper" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface transition-colors hover:bg-surface-container-low">
@@ -189,11 +193,15 @@ const Navbar = () => {
 
       {menuOpen ? (
         <div className="absolute left-0 top-16 z-40 flex w-full flex-col gap-1 border-b border-surface-variant bg-surface px-6 py-4 shadow-md md:hidden">
-          <NavLink to="/marketplaces" className={linkClass} onClick={() => setMenuOpen(false)}>Mua sắm</NavLink>
-          <NavLink to="/cho-thue" className={linkClass} onClick={() => setMenuOpen(false)}>Cho thuê</NavLink>
+          {user?.role !== "shipper" ? (
+            <>
+              <NavLink to="/marketplaces" className={linkClass} onClick={() => setMenuOpen(false)}>Mua sắm</NavLink>
+              <NavLink to="/cho-thue" className={linkClass} onClick={() => setMenuOpen(false)}>Cho thuê</NavLink>
+            </>
+          ) : null}
           {user ? (
             <>
-              {user.role !== "admin" ? (
+              {user.role === "user" ? (
                 <>
                   <NavLink to="/ho-so" className={linkClass} onClick={() => setMenuOpen(false)}>Hồ sơ cá nhân</NavLink>
                   <NavLink to="/goi-pro" className={linkClass} onClick={() => setMenuOpen(false)}>Nâng cấp Pro</NavLink>
@@ -202,9 +210,9 @@ const Navbar = () => {
                   <NavLink to="/gio-hang" className={linkClass} onClick={() => setMenuOpen(false)}>Giỏ hàng</NavLink>
                   <NavLink to="/orders/my-sales" className={linkClass} onClick={() => setMenuOpen(false)}>Đơn bán</NavLink>
                 </>
-              ) : (
+              ) : user.role === "admin" ? (
                 <NavLink to="/admin" className={linkClass} onClick={() => setMenuOpen(false)}>Trang quản trị</NavLink>
-              )}
+              ) : null}
               {user.role === "shipper" && (
                 <NavLink to="/shipper" className={linkClass} onClick={() => setMenuOpen(false)}>Trang shipper</NavLink>
               )}
