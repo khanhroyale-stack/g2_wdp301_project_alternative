@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import ShipperLayout from "../../components/shipper/ShipperLayout";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -38,7 +39,7 @@ export default function ShipperReport() {
       await deliveryService.updateDeliveryStatus(id, "failed", { failureReason: description });
       navigate(`/shipper/don/${id}`);
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể gửi báo cáo sự cố.");
+      toast.error(error.response?.data?.message || "Không thể gửi báo cáo sự cố.");
     } finally {
       setSubmitting(false);
     }
@@ -60,7 +61,9 @@ export default function ShipperReport() {
         <Card>
           <CardHeader className="pb-6">
             <CardTitle className="text-2xl font-extrabold">
-              Báo cáo sự cố giao hàng
+              {["pending", "accepted", "picking_up"].includes(delivery?.deliveryStatus)
+                ? "Báo cáo sự cố nhận hàng"
+                : "Báo cáo sự cố giao hàng"}
             </CardTitle>
             <p className="text-muted-foreground">
               Vận đơn #{String(delivery?._id || id).slice(-8).toUpperCase()}

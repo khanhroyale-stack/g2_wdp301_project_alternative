@@ -59,7 +59,7 @@ export default function Cart() {
         setCart(res.data);
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Khong the xoa san pham khoi gio hang");
+      toast.error(error.response?.data?.message || "Khong the xoa san pham khoi gio hang");
     }
   };
 
@@ -70,7 +70,7 @@ export default function Cart() {
         setCart(res.data);
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Khong the cap nhat so luong san pham");
+      toast.error(error.response?.data?.message || "Khong the cap nhat so luong san pham");
     }
   };
 
@@ -85,7 +85,7 @@ export default function Cart() {
 
   const handleCheckout = async () => {
     if (!form.recipientName || !form.buyerPhone || !form.buyerAddress) {
-      alert("Vui long dien day du thong tin nhan hang");
+      toast.error("Vui long dien day du thong tin nhan hang");
       return;
     }
 
@@ -125,9 +125,9 @@ export default function Cart() {
               <Leaf className="h-3.5 w-3.5" />
               EcoTrade
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-[3rem]">Gio hang cua toi</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight sm:text-[3rem]">Giỏ hàng của tôi</h1>
             <p className="mt-3 text-xl text-muted-foreground">
-              Xem lai cac san pham da chon truoc khi tao don hang.
+              Xem lại các sản phẩm đã chọn trước khi tạo đơn hàng.
             </p>
           </div>
           <Card className="border-success/20 bg-gradient-to-br from-[#f5fdf8] to-success-soft/50 shadow-sm">
@@ -136,8 +136,8 @@ export default function Cart() {
                 <ShoppingCart className="h-6 w-6" />
               </div>
               <div>
-                <div className="text-lg font-bold">{summary.itemCount} san pham</div>
-                <div className="text-sm text-muted-foreground">San sang checkout khi thong tin nhan hang day du.</div>
+                <div className="text-lg font-bold">{summary.itemCount} sản phẩm</div>
+                <div className="text-sm text-muted-foreground">Sẵn sàng checkout khi thông tin nhận hàng đầy đủ.</div>
               </div>
             </CardContent>
           </Card>
@@ -150,13 +150,13 @@ export default function Cart() {
                 <Archive className="h-9 w-9 text-success" />
               </div>
               <div>
-                <div className="text-2xl font-bold">Gio hang dang trong</div>
-                <div className="mt-2 max-w-md text-muted-foreground">Ban chua them san pham nao vao gio hang.</div>
+                <div className="text-2xl font-bold">Giỏ hàng đang trống</div>
+                <div className="mt-2 max-w-md text-muted-foreground">Bạn chưa thêm sản phẩm nào vào giỏ hàng.</div>
               </div>
               <Button asChild size="lg" className="mt-1 gap-2">
                 <Link to="/marketplaces">
                   <ShoppingCart className="h-4 w-4" />
-                  Tiep tuc mua sam
+                  Tiếp tục mua sắm
                 </Link>
               </Button>
             </CardContent>
@@ -187,21 +187,21 @@ export default function Cart() {
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <div className="text-[1.45rem] font-bold">
-                                {item.product?.title || "San pham EcoTrade"}
+                                {item.product?.title || "Sản phẩm EcoTrade"}
                               </div>
                               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                                 <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
-                                  {item.product?.categoryId?.name || "Khac"}
+                                  {item.product?.categoryId?.name || "Khác"}
                                 </span>
                                 <span>•</span>
-                                <span>{item.product?.ownerId?.fullName || "Nguoi ban"}</span>
+                                <span>{item.product?.ownerId?.fullName || "Người bán"}</span>
                               </div>
                               <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
                                 <Truck className="h-4 w-4" />
-                                Phi ship du kien {formatPrice(35000)}
+                                Phí ship dự kiến {formatPrice(35000)}
                               </div>
                               <div className="mt-4 flex flex-wrap items-center gap-3">
-                                <span className="text-sm font-medium text-muted-foreground">So luong</span>
+                                <span className="text-sm font-medium text-muted-foreground">Số lượng</span>
                                 <div className="flex items-center overflow-hidden rounded-lg border border-border">
                                   <button
                                     type="button"
@@ -229,7 +229,7 @@ export default function Cart() {
                                   </button>
                                 </div>
                                 <span className="text-xs text-muted-foreground">
-                                  Con lai {Math.max(Number(item.product?.quantity) || 0, 0)}
+                                  Còn lại {Math.max(Number(item.product?.quantity) || 0, 0)}
                                 </span>
                               </div>
                             </div>
@@ -243,7 +243,7 @@ export default function Cart() {
                                 onClick={() => handleRemove(item.productId)}
                               >
                                 <Trash2 className="h-4 w-4" />
-                                Xoa
+                                Xóa
                               </Button>
                             </div>
                           </div>
@@ -260,14 +260,14 @@ export default function Cart() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-[1.8rem]">
                     <PackageCheck className="h-5 w-5 text-success" />
-                    Thong tin nhan hang
+                    Thông tin nhận hàng
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="relative">
                     <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="Ho va ten nguoi nhan"
+                      placeholder="Họ và tên người nhận"
                       value={form.recipientName}
                       onChange={(e) => setForm({ ...form, recipientName: e.target.value })}
                       className="pl-9"
@@ -276,7 +276,7 @@ export default function Cart() {
                   <div className="relative">
                     <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="So dien thoai"
+                      placeholder="Số điện thoại"
                       value={form.buyerPhone}
                       onChange={(e) => setForm({ ...form, buyerPhone: e.target.value })}
                       className="pl-9"
@@ -285,7 +285,7 @@ export default function Cart() {
                   <div className="relative">
                     <MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Textarea
-                      placeholder="Dia chi giao hang"
+                      placeholder="Địa chỉ giao hàng"
                       value={form.buyerAddress}
                       onChange={(e) => setForm({ ...form, buyerAddress: e.target.value })}
                       className="min-h-[110px] pl-9"
@@ -294,7 +294,7 @@ export default function Cart() {
                   <div className="relative">
                     <MessageSquare className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Textarea
-                      placeholder="Ghi chu cho nguoi ban (khong bat buoc)"
+                      placeholder="Ghi chú cho người bán (không bắt buộc)"
                       value={form.note}
                       onChange={(e) => setForm({ ...form, note: e.target.value })}
                       className="min-h-[90px] pl-9"
@@ -307,25 +307,25 @@ export default function Cart() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-[1.8rem]">
                     <Receipt className="h-5 w-5 text-success" />
-                    Tom tat gio hang
+                    Tóm tắt giỏ hàng
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">So san pham</span>
-                    <span className="font-medium">{summary.itemCount}</span>
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">Số sản phẩm</span>
+                    <span className="font-medium whitespace-nowrap">{summary.itemCount}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tam tinh</span>
-                    <span className="font-medium">{formatPrice(summary.subtotal)}</span>
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">Tạm tính</span>
+                    <span className="font-medium whitespace-nowrap">{formatPrice(summary.subtotal)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Phi van chuyen</span>
-                    <span className="font-medium">{formatPrice(summary.shippingFee)}</span>
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">Phí vận chuyển</span>
+                    <span className="font-medium whitespace-nowrap">{formatPrice(summary.shippingFee)}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl bg-success-soft/60 px-4 py-4">
-                    <span className="text-[1.15rem] font-bold">Tong cong</span>
-                    <span className="text-[1.9rem] font-extrabold text-success">
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-success-soft/60 px-4 py-4">
+                    <span className="text-[1.15rem] font-bold">Tổng cộng</span>
+                    <span className="text-2xl font-extrabold text-success whitespace-nowrap">
                       {formatPrice(summary.totalAmount)}
                     </span>
                   </div>
@@ -333,12 +333,12 @@ export default function Cart() {
                     {submitting ? (
                       <>
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                        Dang checkout...
+                        Đang checkout...
                       </>
                     ) : (
                       <>
                         <ShoppingCart className="h-4 w-4" />
-                        Checkout gio hang
+                        Checkout giỏ hàng
                       </>
                     )}
                   </Button>

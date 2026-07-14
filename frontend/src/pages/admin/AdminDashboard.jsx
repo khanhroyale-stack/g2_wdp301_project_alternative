@@ -18,12 +18,12 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="app-shell flex">
+      <div className="min-h-screen bg-background flex">
         <Sidebar variant="admin" />
         <main className="flex flex-1 items-center justify-center md:ml-72">
-          <div className="flex flex-col items-center gap-3 text-on-surface-variant">
-            <span className="material-symbols-outlined text-4xl animate-spin text-primary">refresh</span>
-            <p className="text-sm font-medium">Đang tải dữ liệu thống kê...</p>
+          <div className="flex flex-col items-center gap-4 text-primary/40">
+            <div className="h-12 w-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+            <p className="text-xs font-black uppercase tracking-widest">Đang tải trung tâm dữ liệu...</p>
           </div>
         </main>
       </div>
@@ -35,158 +35,178 @@ const AdminDashboard = () => {
       icon: "group",
       label: "Tổng người dùng",
       value: stats?.users?.total ?? 0,
-      badge: "Thành viên",
-      badgeColor: "text-primary bg-primary-fixed-dim/20",
-      bg: "bg-secondary-container text-on-secondary-container",
+      badge: "Cộng đồng",
+      badgeColor: "text-primary bg-primary/10 border-primary/10",
+      bg: "bg-primary/5 text-primary",
     },
     {
       icon: "pending_actions",
-      label: "Chờ xác minh KYC",
+      label: "Xác minh KYC",
       value: stats?.users?.pendingVerify ?? 0,
       badge: "Cần duyệt",
-      badgeColor: "text-error bg-error/10",
-      bg: "bg-error-container text-on-error-container",
+      badgeColor: "text-secondary bg-secondary/10 border-secondary/10",
+      bg: "bg-secondary/5 text-secondary",
     },
     {
       icon: "inventory_2",
-      label: "Bài đăng chờ duyệt",
+      label: "Bài đăng mới",
       value: stats?.products?.pending ?? 0,
-      badge: "Pending",
-      badgeColor: "text-error bg-error/10",
-      bg: "bg-surface-container-high text-on-surface",
+      badge: "Chờ duyệt",
+      badgeColor: "text-error bg-error/10 border-error/10",
+      bg: "bg-error/5 text-error",
     },
     {
       icon: "check_circle",
-      label: "Đơn hàng hoàn tất",
+      label: "Đơn hoàn tất",
       value: stats?.orders?.completed ?? 0,
-      badge: "Mua bán",
-      badgeColor: "text-primary bg-primary-fixed-dim/20",
-      bg: "bg-secondary-container text-on-secondary-container",
+      badge: "Giao dịch",
+      badgeColor: "text-primary bg-primary/10 border-primary/10",
+      bg: "bg-primary/5 text-primary",
     },
     {
       icon: "handshake",
-      label: "Hợp đồng đang thuê",
+      label: "Đang thuê",
       value: stats?.rentals?.active ?? 0,
-      badge: "Active",
-      badgeColor: "text-on-surface-variant bg-surface-container-high",
-      bg: "bg-surface-container-high text-on-surface",
+      badge: "Hợp đồng",
+      badgeColor: "text-sky-600 bg-sky-50 border-sky-100",
+      bg: "bg-sky-50 text-sky-600",
     },
     {
       icon: "report",
-      label: "Báo cáo chờ xử lý",
+      label: "Báo cáo vi phạm",
       value: stats?.reports?.pending ?? 0,
-      badge: "Cần xử lý",
-      badgeColor: "text-error bg-error/10",
-      bg: "bg-error-container text-on-error-container",
+      badge: "Ưu tiên",
+      badgeColor: "text-error bg-error/10 border-error/10",
+      bg: "bg-error/5 text-error",
     },
   ];
 
   const detailItems = [
     { label: "Tài khoản bị khóa", value: stats?.users?.banned ?? 0, color: "text-error" },
     { label: "Sản phẩm active", value: stats?.products?.active ?? 0, color: "text-primary" },
-    { label: "Tổng số shipper", value: stats?.shippers?.total ?? 0, color: "text-on-surface" },
-    { label: "Báo cáo đã giải quyết", value: stats?.reports?.resolved ?? 0, color: "text-on-secondary-container" },
-    { label: "Hợp đồng hoàn tất", value: stats?.rentals?.completed ?? 0, color: "text-on-surface" },
-    { label: "Hợp đồng tranh chấp", value: stats?.rentals?.disputed ?? 0, color: "text-error" },
-    { label: "Đơn hàng bị hủy", value: stats?.orders?.cancelled ?? 0, color: "text-on-surface-variant" },
+    { label: "Tổng số shipper", value: stats?.shippers?.total ?? 0, color: "text-foreground" },
+    { label: "Báo cáo đã xử lý", value: stats?.reports?.resolved ?? 0, color: "text-primary" },
+    { label: "Hợp đồng hoàn tất", value: stats?.rentals?.completed ?? 0, color: "text-foreground" },
+    { label: "Hợp đồng tranh chấp", value: stats?.rentals?.disputed ?? 0, color: "text-secondary" },
+    { label: "Đơn hàng bị hủy", value: stats?.orders?.cancelled ?? 0, color: "text-on-surface-variant/60" },
     { label: "Tổng đánh giá", value: stats?.reviews?.total ?? 0, color: "text-primary" },
   ];
 
   return (
-    <div className="app-shell flex">
+    <div className="min-h-screen bg-background flex selection:bg-primary/20">
       <Sidebar variant="admin" />
-      <main className="flex-1 px-4 py-10 md:ml-72 md:px-10">
-        <header className="mb-8 rounded-[28px] border border-surface-variant/40 bg-[linear-gradient(135deg,#ffffff_0%,#edf7f0_100%)] p-7 shadow-apple">
-          <h2 className="page-title mb-1">Trang quản trị</h2>
-          <p className="page-subtitle mt-0">Tổng quan dữ liệu hoạt động thực tế của toàn hệ thống.</p>
+      <main className="flex-1 px-4 py-12 md:ml-72 md:px-12">
+        <header className="relative mb-12 overflow-hidden rounded-organic bg-gradient-to-br from-primary to-primary-container p-10 shadow-apple-md">
+          {/* Animated Blobs */}
+          <div className="absolute -right-16 -top-16 h-48 w-48 animate-blob rounded-full bg-white/10 blur-3xl"></div>
+          <div className="absolute -left-16 -bottom-16 h-48 w-48 animate-blob animation-delay-4000 rounded-full bg-secondary/10 blur-3xl"></div>
+          
+          <div className="relative z-10">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/80 backdrop-blur-md border border-white/10">
+              <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse"></span>
+              Trung tâm kiểm soát hệ thống
+            </div>
+            <h1 className="text-4xl font-display font-black text-white md:text-5xl tracking-tight mb-2">Xin chào, Quản trị viên</h1>
+            <p className="text-lg font-medium text-white/70">Theo dõi toàn diện các hoạt động và chỉ số vận hành của EcoTrade.</p>
+          </div>
         </header>
 
-        <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="mb-12 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {statsCards.map((item) => (
             <div
               key={item.label}
-              className="panel-surface flex flex-col gap-4 p-5 transition-transform hover:-translate-y-0.5"
+              className="bg-white rounded-organic p-7 shadow-sm border border-primary/5 transition-all hover:shadow-apple-md group"
             >
-              <div className="flex items-start justify-between">
-                <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.bg}`}>
-                  <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
+              <div className="flex items-start justify-between mb-6">
+                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${item.bg} shadow-inner transition-transform group-hover:scale-110`}>
+                  <span className="material-symbols-outlined text-2xl">{item.icon}</span>
                 </div>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.badgeColor}`}>{item.badge}</span>
+                <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest border ${item.badgeColor}`}>{item.badge}</span>
               </div>
               <div>
-                <p className="mb-1 text-sm text-on-surface-variant">{item.label}</p>
-                <p className="text-3xl font-extrabold text-on-surface">{item.value.toLocaleString()}</p>
+                <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40 group-hover:text-primary transition-colors">{item.label}</p>
+                <p className="text-4xl font-display font-black text-foreground">{item.value.toLocaleString()}</p>
               </div>
             </div>
           ))}
         </section>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <section className="panel-surface xl:col-span-2 p-6">
-            <h3 className="mb-6 flex items-center gap-2 text-base font-bold text-on-surface">
-              <span className="material-symbols-outlined text-primary">bar_chart</span>
-              Chi tiết hoạt động
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
+          <section className="bg-white rounded-organic xl:col-span-2 p-10 border border-primary/5 shadow-sm">
+            <h3 className="mb-10 flex items-center gap-3 font-display text-xl font-black text-foreground">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary">
+                <span className="material-symbols-outlined text-[20px]">analytics</span>
+              </div>
+              Hoạt động chi tiết
             </h3>
-            <div className="mb-8 grid grid-cols-2 gap-5 md:grid-cols-4">
+            
+            <div className="mb-12 grid grid-cols-2 gap-x-10 gap-y-8 md:grid-cols-4">
               {detailItems.map((item) => (
-                <div key={item.label} className="flex flex-col gap-1">
-                  <p className="text-xs leading-tight text-on-surface-variant">{item.label}</p>
-                  <p className={`text-xl font-bold ${item.color}`}>{item.value.toLocaleString()}</p>
+                <div key={item.label} className="group">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40 mb-2 group-hover:text-primary transition-colors">{item.label}</p>
+                  <p className={`text-2xl font-display font-black ${item.color}`}>{item.value.toLocaleString()}</p>
                 </div>
               ))}
             </div>
-            <div className="flex flex-wrap gap-3 border-t border-surface-variant/40 pt-5">
-              <Link to="/admin/nguoi-dung" className="rounded-xl bg-surface-container-low px-5 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container">
-                Quản lý người dùng
+
+            <div className="flex flex-wrap gap-4 border-t border-primary/5 pt-10">
+              <Link to="/admin/nguoi-dung" className="rounded-pill bg-background px-8 py-3.5 text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all">
+                Quản lý thành viên
               </Link>
-              <Link to="/admin/duyet-bai-dang" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:opacity-90">
-                Duyệt bài đăng
+              <Link to="/admin/duyet-bai-dang" className="rounded-pill bg-primary px-8 py-3.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+                Duyệt bài đăng mới
               </Link>
-              <Link to="/admin/bao-cao" className="rounded-xl border border-error/30 px-5 py-2.5 text-sm font-semibold text-error transition-colors hover:bg-error/5">
-                Xem báo cáo vi phạm
+              <Link to="/admin/bao-cao" className="rounded-pill border-2 border-error/10 px-8 py-3.5 text-xs font-black uppercase tracking-widest text-error hover:bg-error/5 transition-all">
+                Báo cáo vi phạm
               </Link>
             </div>
           </section>
 
-          <section className="panel-surface flex flex-col p-6">
-            <h3 className="mb-5 flex items-center gap-2 text-base font-bold text-on-surface">
-              <span className="material-symbols-outlined text-primary">flash_on</span>
+          <section className="bg-white rounded-organic p-10 border border-primary/5 shadow-sm flex flex-col">
+            <h3 className="mb-8 flex items-center gap-3 font-display text-xl font-black text-foreground">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/5 text-secondary">
+                <span className="material-symbols-outlined text-[20px]">bolt</span>
+              </div>
               Truy cập nhanh
             </h3>
-            <div className="flex flex-1 flex-col gap-2">
+            <div className="flex flex-1 flex-col gap-3">
               {[
                 {
                   to: "/admin/duyet-bai-dang",
                   icon: "fact_check",
-                  label: "Duyệt bài đăng",
+                  label: "Bài đăng chờ duyệt",
                   badge: stats?.products?.pending > 0 ? stats.products.pending : null,
+                  color: "primary"
                 },
                 {
                   to: "/admin/bao-cao",
                   icon: "report",
-                  label: "Báo cáo vi phạm",
+                  label: "Báo cáo khẩn cấp",
                   badge: stats?.reports?.pending > 0 ? stats.reports.pending : null,
+                  color: "error"
                 },
-                { to: "/admin/don-hang", icon: "receipt_long", label: "Quản lý đơn hàng", badge: null },
-                { to: "/admin/hop-dong", icon: "description", label: "Hợp đồng thuê", badge: null },
-                { to: "/admin/danh-muc", icon: "category", label: "Quản lý danh mục", badge: null },
-              ].map(({ to, icon, label, badge }) => (
+                { to: "/admin/don-hang", icon: "receipt_long", label: "Quản lý đơn hàng", color: "primary" },
+                { to: "/admin/hop-dong", icon: "description", label: "Quản lý hợp đồng", color: "primary" },
+                { to: "/admin/danh-muc", icon: "category", label: "Cấu trúc danh mục", color: "primary" },
+              ].map(({ to, icon, label, badge, color }) => (
                 <Link
                   key={to}
                   to={to}
-                  className="flex items-center justify-between rounded-2xl border border-surface-variant/50 p-3.5 transition-all hover:border-primary/40 hover:bg-primary/5"
+                  className="group flex items-center justify-between rounded-2xl border border-primary/5 bg-background/30 p-4 transition-all hover:border-primary/20 hover:bg-white hover:shadow-apple"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white text-${color} shadow-sm group-hover:bg-primary group-hover:text-white transition-all`}>
                       <span className="material-symbols-outlined text-[18px]">{icon}</span>
                     </div>
-                    <span className="text-sm font-medium text-on-surface">{label}</span>
+                    <span className="text-sm font-bold text-foreground">{label}</span>
                   </div>
                   {badge ? (
-                    <span className="min-w-[20px] rounded-full bg-error px-2 py-0.5 text-center text-[10px] font-bold text-on-error">
+                    <span className="min-w-[24px] h-6 flex items-center justify-center rounded-full bg-error px-2 text-[10px] font-black text-white shadow-sm shadow-error/20">
                       {badge > 99 ? "99+" : badge}
                     </span>
-                  ) : null}
+                  ) : (
+                    <span className="material-symbols-outlined text-[18px] text-primary/20 group-hover:text-primary transition-colors">chevron_right</span>
+                  )}
                 </Link>
               ))}
             </div>

@@ -476,35 +476,28 @@ export default function CreateOrder() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5 p-6">
-                <div className="space-y-4 text-[1.05rem]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#667085]">Tổng tiền hàng</span>
-                    <span>{subtotal}</span>
+                <div className="space-y-4 text-base">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-on-surface-variant whitespace-nowrap">Tổng tiền hàng</span>
+                    <span className="whitespace-nowrap font-medium text-on-surface">{subtotal}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#667085]">Phí vận chuyển</span>
-                    <span>{shippingFee}</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-on-surface-variant whitespace-nowrap">Phí vận chuyển</span>
+                    <span className="whitespace-nowrap font-medium text-on-surface">{shippingFee}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#667085]">Giảm giá voucher</span>
-                    <span>0 đ</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-on-surface-variant whitespace-nowrap">Giảm giá voucher</span>
+                    <span className="whitespace-nowrap font-medium text-danger">0 đ</span>
                   </div>
                 </div>
 
-                <div className="border-t border-dashed border-[#d9efdf] pt-5">
-                  <div className="flex items-end justify-between">
+                <div className="border-t border-dashed border-surface-variant/30 pt-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="text-[1.05rem] font-bold text-[#202124]">Tổng thanh toán:</div>
-                      <div className="text-xs text-[#667085]">(Đã bao gồm VAT nếu có)</div>
+                      <div className="text-lg font-bold text-on-surface">Tổng thanh toán:</div>
+                      <div className="text-xs text-on-surface-variant">(Đã bao gồm VAT nếu có)</div>
                     </div>
-                    <div className="text-[2rem] font-extrabold text-[#18c76b]">{totalAmount}</div>
-                  </div>
-                </div>
-
-                <div className="rounded-[18px] bg-white px-4 py-4">
-                  <div className="flex items-start gap-3 text-sm text-[#667085]">
-                    <AlertCircle className="mt-0.5 h-4 w-4 text-[#3b82f6]" />
-                    <p>Bạn có thể tích lũy điểm EcoTradePoints sau khi đơn hàng được xác nhận thành công.</p>
+                    <div className="text-2xl md:text-3xl font-extrabold text-primary">{totalAmount}</div>
                   </div>
                 </div>
 
@@ -517,19 +510,19 @@ export default function CreateOrder() {
                 </Button>
               </CardContent>
 
-              <div className="border-t border-[#eef1f4] px-6 py-4 text-center text-xs leading-6 text-[#667085]">
+              <div className="border-t border-surface-variant/30 px-6 py-4 text-center text-xs leading-6 text-on-surface-variant">
                 Bằng việc nhấn đặt hàng, bạn đồng ý tuân thủ Điều khoản dịch vụ và Chính sách bảo mật của MarketPlace.
               </div>
             </Card>
 
             <Card>
               <CardContent className="flex items-center gap-4 pt-6">
-                <div className="rounded-2xl bg-[#eefcf4] p-3 text-[#18c76b]">
+                <div className="rounded-2xl bg-success-soft p-3 text-success">
                   <AlertCircle className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-[#202124]">Cần hỗ trợ?</div>
-                  <div className="text-sm text-[#667085]">Liên hệ ngay với CSKH 24/7</div>
+                  <div className="text-lg font-bold text-on-surface">Cần hỗ trợ?</div>
+                  <div className="text-sm text-on-surface-variant">Liên hệ ngay với CSKH 24/7</div>
                 </div>
               </CardContent>
             </Card>

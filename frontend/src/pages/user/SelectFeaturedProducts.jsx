@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   BadgeCheck,
   Check,
@@ -48,7 +49,7 @@ export default function SelectFeaturedProducts() {
           setSelectedIds(eligible.filter((item) => item.isFeatured).map((item) => item._id).slice(0, MAX_FEATURED));
         }
       } catch (error) {
-        alert(error.response?.data?.message || "Không thể tải danh sách sản phẩm.");
+        toast.error(error.response?.data?.message || "Không thể tải danh sách sản phẩm.");
       } finally {
         setLoading(false);
       }
@@ -81,7 +82,7 @@ export default function SelectFeaturedProducts() {
       await refreshUser();
       navigate("/quan-ly/bai-dang");
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể cập nhật sản phẩm nổi bật.");
+      toast.error(error.response?.data?.message || "Không thể cập nhật sản phẩm nổi bật.");
     } finally {
       setSubmitting(false);
     }

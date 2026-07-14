@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Urbanist:wght@400;500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -10,26 +10,26 @@
   }
 
   :root {
-    --background: 150 24% 97%;
-    --foreground: 160 20% 14%;
-    --card: 0 0% 100%;
-    --card-foreground: 160 20% 14%;
-    --primary: 156 64% 31%;
+    --background: 145 36% 96%; /* #F4F9F5 */
+    --foreground: 160 15% 12%; /* #1B2623 */
+    --card: 0 0% 100%; /* #FDFDFD */
+    --card-foreground: 160 15% 12%;
+    --primary: 145 36% 26%; /* #2A5A3B */
     --primary-foreground: 0 0% 100%;
-    --secondary: 148 27% 93%;
-    --secondary-foreground: 160 20% 18%;
+    --secondary: 12 68% 62%; /* #E07A5F */
+    --secondary-foreground: 0 0% 100%;
     --muted: 150 18% 95%;
     --muted-foreground: 160 10% 41%;
     --accent: 153 47% 92%;
     --accent-foreground: 156 62% 28%;
     --border: 154 17% 86%;
     --input: 154 16% 82%;
-    --ring: 156 64% 31%;
-    --success: 145 63% 42%;
+    --ring: 145 36% 26%;
+    --success: 145 36% 26%;
     --success-foreground: 0 0% 100%;
     --success-soft: 145 52% 93%;
-    --warning: 34 92% 52%;
-    --warning-foreground: 25 95% 24%;
+    --warning: 12 68% 62%;
+    --warning-foreground: 0 0% 100%;
     --warning-soft: 30 100% 95%;
     --danger: 6 78% 54%;
     --danger-foreground: 0 0% 100%;
@@ -37,7 +37,7 @@
     --sky: 199 84% 47%;
     --sky-foreground: 0 0% 100%;
     --sky-soft: 203 100% 95%;
-    --page-bg: linear-gradient(180deg, #f7fbf8 0%, #eef5f0 100%);
+    --page-bg: #F4F9F5;
   }
 
   html {
@@ -47,7 +47,7 @@
   body {
     @apply bg-background font-sans text-foreground antialiased;
     background: var(--page-bg);
-    color: #16201b;
+    color: #1B2623;
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
@@ -131,6 +131,19 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #bbcabf;
+}
+
+.leaf-texture {
+  position: relative;
+}
+.leaf-texture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('https://images.unsplash.com/photo-1598940603846-a1edd0ef2574?crop=entropy&cs=srgb&fm=jpg&q=85');
+  background-size: cover;
+  opacity: 0.05;
+  pointer-events: none;
 }
 
 @layer components {

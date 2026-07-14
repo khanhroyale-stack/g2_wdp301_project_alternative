@@ -22,13 +22,13 @@ const getOrCreateRoom = async (req, res) => {
     })
       .populate("buyerId", "fullName avatarUrl")
       .populate("sellerId", "fullName avatarUrl")
-      .populate("postId", "title");
+      .populate("postId", "title salePrice rentPricePerDay productType");
 
     if (!room) {
       room = await ChatRoom.create({ postId, buyerId: myId, sellerId: otherUserId });
       await room.populate("buyerId", "fullName avatarUrl");
       await room.populate("sellerId", "fullName avatarUrl");
-      await room.populate("postId", "title");
+      await room.populate("postId", "title salePrice rentPricePerDay productType");
     }
 
     // Lấy tin nhắn gần nhất (50 tin)
@@ -53,7 +53,7 @@ const getMyRooms = async (req, res) => {
     })
       .populate("buyerId", "fullName avatarUrl")
       .populate("sellerId", "fullName avatarUrl")
-      .populate("postId", "title");
+      .populate("postId", "title salePrice rentPricePerDay productType");
 
     // unreadCount: 1 query duy nhất cho tất cả room (thay cho N query lồng trong map cũ)
     const roomIds = rooms.map((r) => r._id);
@@ -188,7 +188,7 @@ const adminGetRoomMessages = async (req, res) => {
     const room = await ChatRoom.findById(req.params.roomId)
       .populate("buyerId", "fullName email")
       .populate("sellerId", "fullName email")
-      .populate("postId", "title");
+      .populate("postId", "title salePrice rentPricePerDay productType");
     if (!room) return res.status(404).json({ success: false, message: "Không tìm thấy" });
 
     const messages = await Message.find({ chatRoomId: room._id })

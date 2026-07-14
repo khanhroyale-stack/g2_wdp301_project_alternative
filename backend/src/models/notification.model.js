@@ -9,16 +9,6 @@ const notificationSchema = new mongoose.Schema(
     },
     notificationType: {
       type: String,
-      enum: [
-        "order_update",
-        "rental_update",
-        "payment",
-        "report_update",
-        "verification_update",
-        "review",
-        "chat",
-        "system",
-      ],
       required: true,
     },
     title: {
@@ -35,7 +25,6 @@ const notificationSchema = new mongoose.Schema(
     },
     relatedType: {
       type: String,
-      enum: ["Order", "RentalContract", "Report", "Review", "ChatRoom", "System"],
       default: null,
     },
     relatedId: {

@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useChat } from "../context/ChatContext";
 import usePendingSalesCount from "../hooks/usePendingSalesCount";
 import ProBadge from "./ui/ProBadge";
 
@@ -12,6 +13,7 @@ const roleLabel = {
 
 const Navbar = () => {
   const { user, logout, unreadCount } = useAuth();
+  const { unreadChatCount } = useChat() || { unreadChatCount: 0 };
   const pendingSalesCount = usePendingSalesCount();
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,10 +35,10 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed left-0 top-0 z-50 h-16 w-full border-b border-surface-variant/50 bg-surface/90 shadow-[0px_8px_30px_rgba(17,38,28,0.05)] backdrop-blur-xl">
+    <nav className="fixed left-0 top-0 z-50 h-16 w-full border-b border-primary/10 bg-background/80 shadow-[0px_8px_30px_rgba(42,90,59,0.05)] backdrop-blur-xl">
       <div className="mx-auto flex h-full max-w-[1400px] items-center justify-between gap-4 px-4 md:px-10">
         <div className="flex items-center gap-8">
-          <Link to="/" className="select-none text-[1.35rem] font-extrabold tracking-tight text-primary">
+          <Link to="/" className="select-none text-[1.5rem] font-display font-black tracking-tight text-primary">
             EcoTrade
           </Link>
           {user?.role !== "shipper" ? (
@@ -49,11 +51,11 @@ const Navbar = () => {
 
         <div className="flex items-center gap-2">
           {user?.role !== "shipper" ? (
-          <div className="hidden w-56 items-center gap-2 rounded-full border border-surface-variant/60 bg-surface-container-low px-4 py-2 lg:flex">
-            <span className="material-symbols-outlined text-[17px] text-on-surface-variant">search</span>
+          <div className="hidden w-56 items-center gap-2 rounded-full border border-primary/10 bg-background/50 px-4 py-2 lg:flex focus-within:border-primary/30 transition-all">
+            <span className="material-symbols-outlined text-[17px] text-primary/40">search</span>
             <input
-              className="w-full border-none bg-transparent text-sm text-on-surface outline-none placeholder:text-on-surface-variant"
-              placeholder="Tìm kiếm sản phẩm..."
+              className="w-full border-none bg-transparent text-sm text-foreground outline-none placeholder:text-primary/30"
+              placeholder="Tìm kiếm đồ dùng..."
               onKeyDown={(event) => event.key === "Enter" && navigate(`/marketplaces?q=${event.target.value}`)}
             />
           </div>
@@ -62,11 +64,25 @@ const Navbar = () => {
           {user?.role === "user" ? (
             <Link
               to="/dang-tin"
-              className="hidden items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:opacity-90 md:flex"
+              className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 md:flex"
             >
-              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span className="material-symbols-outlined text-[16px]">add_circle</span>
               Đăng tin
             </Link>
+          ) : null}
+
+          {user?.role === "user" ? (
+            <button
+              onClick={() => navigate("/tin-nhan")}
+              className="relative rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"
+            >
+              <span className="material-symbols-outlined">chat</span>
+              {unreadChatCount > 0 ? (
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-error text-[9px] font-bold leading-none text-on-error">
+                  {unreadChatCount > 9 ? "9+" : unreadChatCount}
+                </span>
+              ) : null}
+            </button>
           ) : null}
 
           <button

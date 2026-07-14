@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../../components/Sidebar";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import notificationService from "../../services/notification.service";
 import { useAuth } from "../../context/AuthContext";
 
@@ -94,9 +94,7 @@ const Notifications = () => {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="flex min-h-screen bg-[#F5F5F7]">
-      <Sidebar variant="user" />
-      <main className="flex-1 px-4 py-10 md:ml-72 md:px-10">
+    <EcoTradeLayout>
         <div className="mx-auto max-w-3xl">
           <div className="mb-8 flex items-center justify-between">
             <div>
@@ -183,8 +181,7 @@ const Notifications = () => {
             )}
           </div>
         </div>
-      </main>
-    </div>
+    </EcoTradeLayout>
   );
 };
 

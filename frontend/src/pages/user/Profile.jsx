@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import Sidebar from "../../components/Sidebar";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import AccountStatusCard from "../../components/ui/AccountStatusCard";
 import userService from "../../services/user.service";
 import { authService } from "../../services/auth.service";
@@ -99,258 +99,284 @@ const Profile = () => {
     { key: "overview", label: "Tổng quan", icon: "person" },
     { key: "edit", label: "Chỉnh sửa", icon: "edit" },
     { key: "security", label: "Bảo mật", icon: "lock" },
-    { key: "reputation", label: "Lịch sử uy tín", icon: "history" },
+    { key: "reputation", label: "Điểm uy tín", icon: "history" },
   ];
 
   return (
-    <div className="app-shell flex">
-      <Sidebar variant="user" />
-      <main className="flex-1 px-4 py-10 md:ml-72 md:px-10">
+    <EcoTradeLayout>
         <div className="mx-auto max-w-5xl">
-          <div className="mb-8 overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#146c43_0%,#56d892_100%)] p-8 shadow-[0px_20px_50px_rgba(20,108,67,0.16)]">
-            <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
-              <div className="flex items-center gap-5">
-                <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/40 bg-white/20 text-3xl font-black text-white shadow-lg">
-                  {user?.avatarUrl
-                    ? <img src={user.avatarUrl} alt={displayName} className="h-full w-full rounded-full object-cover" />
-                    : displayName.charAt(0).toUpperCase() || "U"}
+          {/* Premium Hero Section */}
+          <div className="relative mb-12 overflow-hidden rounded-organic bg-gradient-to-br from-primary to-primary-container p-12 shadow-apple-md">
+            {/* Animated Blobs */}
+            <div className="absolute -right-20 -top-20 h-64 w-64 animate-blob rounded-full bg-white/10 blur-3xl"></div>
+            <div className="absolute -left-20 -bottom-20 h-64 w-64 animate-blob animation-delay-2000 rounded-full bg-secondary/20 blur-3xl"></div>
+            
+            <div className="relative z-10 flex flex-col justify-between gap-10 lg:flex-row lg:items-center">
+              <div className="flex flex-col items-center gap-8 md:flex-row">
+                <div className="group relative">
+                  <div className="absolute -inset-2 animate-pulse-slow rounded-full bg-white/20 blur-lg transition-all group-hover:bg-white/30"></div>
+                  <div className="relative flex h-32 w-32 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white/50 bg-white/20 text-5xl font-display font-black text-white shadow-2xl backdrop-blur-sm">
+                    {user?.avatarUrl
+                      ? <img src={user.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                      : displayName.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  {user?.verificationStatus === "verified" && (
+                    <div className="absolute bottom-1 right-1 flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary shadow-lg border-2 border-primary/20">
+                      <span className="material-symbols-outlined text-[18px]">verified</span>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-white/75">Hồ sơ cá nhân</p>
-                  <h1 className="text-2xl font-black leading-tight text-white md:text-3xl">{displayName}</h1>
-                  <p className="mt-0.5 text-sm text-white/75">{user?.email}</p>
+                
+                <div className="text-center md:text-left">
+                  <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/80 backdrop-blur-md border border-white/10">
+                    <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse"></span>
+                    Tài khoản {user?.role === "admin" ? "Quản trị" : user?.role === "shipper" ? "Vận chuyển" : "Người dùng"}
+                  </div>
+                  <h1 className="text-4xl font-display font-black leading-tight text-white md:text-5xl tracking-tight">{displayName}</h1>
+                  <p className="mt-2 text-lg font-medium text-white/70">{user?.email}</p>
                 </div>
               </div>
-              <div className="min-w-[150px] rounded-2xl border border-white/20 bg-white/10 p-5 text-center backdrop-blur">
-                <p className="mb-1 text-xs font-medium text-white/75">Điểm uy tín</p>
-                <p className="text-4xl font-black text-white">{user?.reputationScore ?? 100}</p>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/20">
-                  <div className="h-full rounded-full bg-white" style={{ width: `${Math.min(user?.reputationScore ?? 100, 100)}%` }} />
+
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative min-w-[200px] overflow-hidden rounded-3xl border border-white/20 bg-white/10 p-6 text-center backdrop-blur-xl shadow-inner">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-white/60">Chỉ số tin cậy</p>
+                  <p className="text-5xl font-display font-black text-white leading-none mb-4">{user?.reputationScore ?? 100}</p>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/20 p-0.5">
+                    <div className="h-full rounded-full bg-secondary shadow-[0_0_15px_rgba(224,122,95,0.5)] transition-all duration-1000" style={{ width: `${Math.min(user?.reputationScore ?? 100, 100)}%` }} />
+                  </div>
+                  <p className="mt-4 text-[11px] font-bold text-white/60 uppercase tracking-widest">Tuyệt vời</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <AccountStatusCard className="mb-8" />
+          <AccountStatusCard className="mb-10" />
 
-          <div className="mb-6 flex w-fit gap-0.5 rounded-2xl border border-surface-variant/30 bg-surface-container-lowest p-1 shadow-sm">
+          {/* Pill Tabs */}
+          <div className="mb-10 flex flex-wrap gap-2">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${activeTab === tab.key ? "bg-primary text-on-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"
-                  }`}
+                className={`flex items-center gap-2 rounded-pill px-8 py-3.5 text-sm font-bold transition-all ${
+                  activeTab === tab.key 
+                    ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                    : "bg-white text-on-surface-variant hover:bg-primary/5 hover:text-primary border border-primary/5 shadow-sm"
+                }`}
               >
-                <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+                <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
           </div>
 
-          <div className="panel-surface overflow-hidden">
-            {activeTab === "overview" ? (
-              <div>
-                <div className="border-b border-surface-variant/30 bg-surface-bright/40 px-6 py-4">
-                  <h2 className="flex items-center gap-2 font-bold text-on-surface">
-                    <span className="material-symbols-outlined text-[20px] text-primary">person</span>
-                    Thông tin liên hệ
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2">
-                  {[
-                    { label: "Họ và tên", value: displayName },
-                    { label: "Email", value: user?.email },
-                    { label: "Số điện thoại", value: user?.phone || "Chưa cập nhật" },
-                    { label: "Địa chỉ", value: user?.address || "Chưa cập nhật" },
-                    { label: "Ngày sinh", value: user?.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString("vi-VN") : "Chưa cập nhật" },
-                    { label: "Giới tính", value: user?.gender ? { male: "Nam", female: "Nữ", other: "Khác" }[user.gender] : "Chưa cập nhật" },
-                    { label: "Vai trò", value: { admin: "Quản trị viên", shipper: "Shipper", user: "Người dùng" }[user?.role] || "Người dùng" },
-                    { label: "Trạng thái tài khoản", value: user?.accountStatus === "active" ? "Đang hoạt động" : "Bị khóa" },
-                  ].map((item) => (
-                    <div key={item.label}>
-                      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                        {item.label}
-                      </label>
-                      <div className="rounded-xl border border-surface-variant/30 bg-surface-container-low px-4 py-3 text-sm font-medium text-on-surface">
-                        {item.value}
+          <div className="panel-surface overflow-hidden bg-white p-2">
+            <div className="rounded-[1.5rem] border border-primary/5 bg-background/30 overflow-hidden">
+              {activeTab === "overview" ? (
+                <div>
+                  <div className="border-b border-primary/5 bg-white px-10 py-6">
+                    <h2 className="flex items-center gap-3 font-display text-xl font-black text-foreground">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary">
+                        <span className="material-symbols-outlined text-[20px]">person</span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {activeTab === "edit" && (
-              <div>
-                <div className="px-6 py-4 border-b border-surface-variant/30 bg-surface-bright/40">
-                  <h2 className="font-bold text-on-surface flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[20px]">edit</span>
-                    Chỉnh sửa hồ sơ
-                  </h2>
-                </div>
-                <form onSubmit={handleEditProfile} className="p-6">
-                  {[
-                    { key: "fullName", label: "Họ và tên", ph: "Nguyễn Văn A", required: true },
-                    { key: "phone", label: "Số điện thoại", ph: "0901234567" },
-                    { key: "address", label: "Địa chỉ", ph: "Khu Công nghệ cao Hòa Lạc, Hà Nội" },
-                    { key: "avatarUrl", label: "URL ảnh đại diện", ph: "https://..." },
-                  ].map((f) => (
-                    <div key={f.key} className="mb-4">
-                      <label className="block text-sm font-medium text-on-surface mb-1.5">
-                        {f.label} {f.required && <span className="text-error">*</span>}
-                      </label>
-                      <input
-                        type="text"
-                        required={!!f.required}
-                        placeholder={f.ph}
-                        value={editForm[f.key]}
-                        onChange={(e) => setEditForm({ ...editForm, [f.key]: e.target.value })}
-                        className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
-                      />
-                    </div>
-                  ))}
-
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-on-surface mb-1.5">Ngày sinh</label>
-                      <input
-                        type="date"
-                        max={new Date().toISOString().split("T")[0]}
-                        value={editForm.dateOfBirth}
-                        onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
-                        className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-on-surface mb-1.5">Giới tính</label>
-                      <select
-                        value={editForm.gender}
-                        onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
-                        className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
-                      >
-                        <option value="">-- Chọn --</option>
-                        <option value="male">Nam</option>
-                        <option value="female">Nữ</option>
-                        <option value="other">Khác</option>
-                      </select>
-                    </div>
+                      Thông tin hồ sơ
+                    </h2>
                   </div>
-
-                  {editForm.avatarUrl && (
-                    <div className="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl border border-surface-variant/30 mb-4">
-                      <img src={editForm.avatarUrl} alt="preview"
-                        className="w-12 h-12 rounded-full object-cover border-2 border-surface-variant"
-                        onError={(e) => { e.target.style.display = "none"; }} />
-                      <p className="text-xs text-on-surface-variant">Xem trước ảnh đại diện</p>
-                    </div>
-                  )}
-
-                  <div className="flex gap-3 mt-2">
-                    <button type="button" onClick={() => setActiveTab("overview")}
-                      className="flex-1 py-3 border border-surface-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-all">
-                      Hủy
-                    </button>
-                    <button type="submit" disabled={editLoading}
-                      className="flex-1 py-3 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60">
-                      {editLoading ? "Đang lưu..." : "Lưu thay đổi"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {activeTab === "security" ? (
-              <div>
-                <div className="border-b border-surface-variant/30 bg-surface-bright/40 px-6 py-4">
-                  <h2 className="flex items-center gap-2 font-bold text-on-surface">
-                    <span className="material-symbols-outlined text-[20px]">lock</span>
-                    Đổi mật khẩu
-                  </h2>
-                </div>
-                <form onSubmit={handleChangePassword} className="max-w-md p-6">
-                  {passMsg ? (
-                    <div className={`mb-5 flex items-center gap-2 rounded-xl border p-3.5 text-sm ${passMsg.type === "success"
-                      ? "border-secondary-container bg-secondary-container/30 text-on-secondary-container"
-                      : "border-error/20 bg-error-container/30 text-error"
-                      }`}>
-                      <span className="material-symbols-outlined text-[16px]">
-                        {passMsg.type === "success" ? "check_circle" : "error"}
-                      </span>
-                      {passMsg.text}
-                    </div>
-                  ) : null}
-                  {[
-                    { key: "current", label: "Mật khẩu hiện tại", ph: "••••••••" },
-                    { key: "newPass", label: "Mật khẩu mới", ph: "Tối thiểu 6 ký tự" },
-                    { key: "confirm", label: "Xác nhận mật khẩu", ph: "Nhập lại mật khẩu mới" },
-                  ].map((field) => (
-                    <div key={field.key} className="mb-4">
-                      <label className="mb-1.5 block text-sm font-medium text-on-surface">{field.label}</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={6}
-                        placeholder={field.ph}
-                        value={passwords[field.key]}
-                        onChange={(e) => setPasswords({ ...passwords, [field.key]: e.target.value })}
-                        className="w-full rounded-xl border border-surface-variant bg-surface-bright px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    type="submit"
-                    disabled={passLoading}
-                    className="mt-2 rounded-xl bg-primary px-7 py-3 text-sm font-semibold text-on-primary transition-all hover:opacity-90 disabled:opacity-60"
-                  >
-                    {passLoading ? "Đang cập nhật..." : "Cập nhật mật khẩu"}
-                  </button>
-                </form>
-              </div>
-            ) : null}
-
-            {activeTab === "reputation" ? (
-              <div>
-                <div className="border-b border-surface-variant/30 bg-surface-bright/40 px-6 py-4">
-                  <h2 className="flex items-center gap-2 font-bold text-on-surface">
-                    <span className="material-symbols-outlined text-[20px]">history</span>
-                    Lịch sử điểm uy tín
-                  </h2>
-                </div>
-                {histLoading ? (
-                  <div className="flex justify-center p-10">
-                    <span className="material-symbols-outlined animate-spin text-2xl text-primary">refresh</span>
-                  </div>
-                ) : history.length === 0 ? (
-                  <div className="flex flex-col items-center gap-3 p-12 text-center text-on-surface-variant">
-                    <span className="material-symbols-outlined text-5xl opacity-30">verified</span>
-                    <p className="font-medium text-on-surface">Chưa từng bị trừ điểm uy tín.</p>
-                    <p className="text-sm">Hãy tiếp tục duy trì chất lượng giao dịch tốt.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-surface-variant/30">
-                    {history.map((item, index) => (
-                      <div key={index} className="flex items-start gap-4 px-6 py-5">
-                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-error/10 text-sm font-black text-error">
-                          {item.changeAmount}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-on-surface">{item.reason}</p>
-                          <div className="mt-1.5 flex flex-wrap gap-4 text-xs text-on-surface-variant">
-                            <span>{new Date(item.createdAt).toLocaleDateString("vi-VN")}</span>
-                            <span>Bởi: {item.changedBy?.fullName || "Admin"}</span>
-                            <span className="font-medium text-on-surface">Mức vi phạm: {item.violationLevel}</span>
-                          </div>
+                  <div className="grid grid-cols-1 gap-6 p-10 md:grid-cols-2">
+                    {[
+                      { label: "Họ và tên", value: displayName, icon: "badge" },
+                      { label: "Email liên hệ", value: user?.email, icon: "mail" },
+                      { label: "Số điện thoại", value: user?.phone || "Chưa cập nhật", icon: "phone" },
+                      { label: "Địa chỉ nhận hàng", value: user?.address || "Chưa cập nhật", icon: "location_on" },
+                      { label: "Ngày sinh", value: user?.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString("vi-VN") : "Chưa cập nhật", icon: "cake" },
+                      { label: "Giới tính", value: user?.gender ? { male: "Nam", female: "Nữ", other: "Khác" }[user.gender] : "Chưa cập nhật", icon: "transgender" },
+                    ].map((item) => (
+                      <div key={item.label} className="group">
+                        <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.15em] text-primary/40 group-hover:text-primary transition-colors">
+                          {item.label}
+                        </label>
+                        <div className="flex items-center gap-4 rounded-2xl border border-primary/5 bg-white px-5 py-4 text-sm font-bold text-foreground shadow-sm transition-all group-hover:border-primary/20 group-hover:shadow-apple">
+                          <span className="material-symbols-outlined text-[18px] text-primary/30">{item.icon}</span>
+                          {item.value}
                         </div>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            ) : null}
+                </div>
+              ) : null}
+
+              {activeTab === "edit" && (
+                <div>
+                  <div className="px-10 py-6 border-b border-primary/5 bg-white">
+                    <h2 className="font-display text-xl font-black text-foreground flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary">
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                      </div>
+                      Chỉnh sửa thông tin
+                    </h2>
+                  </div>
+                  <form onSubmit={handleEditProfile} className="p-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                      {[
+                        { key: "fullName", label: "Họ và tên", ph: "Nguyễn Văn A", required: true },
+                        { key: "phone", label: "Số điện thoại", ph: "0901234567" },
+                        { key: "address", label: "Địa chỉ hiện tại", ph: "Khu Công nghệ cao Hòa Lạc, Hà Nội", fullWidth: true },
+                        { key: "avatarUrl", label: "Đường dẫn ảnh đại diện", ph: "https://...", fullWidth: true },
+                      ].map((f) => (
+                        <div key={f.key} className={f.fullWidth ? "md:col-span-2" : ""}>
+                          <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 mb-2">
+                            {f.label} {f.required && <span className="text-secondary">*</span>}
+                          </label>
+                          <input
+                            type="text"
+                            required={!!f.required}
+                            placeholder={f.ph}
+                            value={editForm[f.key]}
+                            onChange={(e) => setEditForm({ ...editForm, [f.key]: e.target.value })}
+                            className="w-full px-5 py-4 border border-primary/10 rounded-2xl text-sm font-bold bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all placeholder:text-foreground/20"
+                          />
+                        </div>
+                      ))}
+
+                      <div>
+                        <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 mb-2">Ngày sinh</label>
+                        <input
+                          type="date"
+                          max={new Date().toISOString().split("T")[0]}
+                          value={editForm.dateOfBirth}
+                          onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                          className="w-full px-5 py-4 border border-primary/10 rounded-2xl text-sm font-bold bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 mb-2">Giới tính</label>
+                        <select
+                          value={editForm.gender}
+                          onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                          className="w-full px-5 py-4 border border-primary/10 rounded-2xl text-sm font-bold bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="">-- Chọn --</option>
+                          <option value="male">Nam</option>
+                          <option value="female">Nữ</option>
+                          <option value="other">Khác</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <button type="button" onClick={() => setActiveTab("overview")}
+                        className="flex-1 py-4 border-2 border-primary/10 rounded-pill text-sm font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all">
+                        Hủy bỏ
+                      </button>
+                      <button type="submit" disabled={editLoading}
+                        className="flex-1 py-4 bg-primary text-white rounded-pill text-sm font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-60">
+                        {editLoading ? "Đang lưu..." : "Cập nhật hồ sơ"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {activeTab === "security" ? (
+                <div>
+                  <div className="border-b border-primary/5 bg-white px-10 py-6">
+                    <h2 className="flex items-center gap-3 font-display text-xl font-black text-foreground">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary">
+                        <span className="material-symbols-outlined text-[20px]">lock</span>
+                      </div>
+                      Bảo mật tài khoản
+                    </h2>
+                  </div>
+                  <form onSubmit={handleChangePassword} className="max-w-xl p-10">
+                    {passMsg ? (
+                      <div className={`mb-8 flex items-center gap-3 rounded-2xl border p-5 text-sm font-bold ${passMsg.type === "success"
+                        ? "border-primary/20 bg-primary/5 text-primary"
+                        : "border-secondary/20 bg-secondary/5 text-secondary"
+                        }`}>
+                        <span className="material-symbols-outlined text-[20px]">
+                          {passMsg.type === "success" ? "check_circle" : "error"}
+                        </span>
+                        {passMsg.text}
+                      </div>
+                    ) : null}
+                    {[
+                      { key: "current", label: "Mật khẩu hiện tại", ph: "••••••••" },
+                      { key: "newPass", label: "Mật khẩu mới", ph: "Tối thiểu 6 ký tự" },
+                      { key: "confirm", label: "Xác nhận mật khẩu mới", ph: "Nhập lại mật khẩu mới" },
+                    ].map((field) => (
+                      <div key={field.key} className="mb-6">
+                        <label className="mb-2 block text-xs font-black uppercase tracking-widest text-foreground/40">{field.label}</label>
+                        <input
+                          type="password"
+                          required
+                          minLength={6}
+                          placeholder={field.ph}
+                          value={passwords[field.key]}
+                          onChange={(e) => setPasswords({ ...passwords, [field.key]: e.target.value })}
+                          className="w-full rounded-2xl border border-primary/10 bg-white px-5 py-4 text-sm font-bold outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/5"
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="submit"
+                      disabled={passLoading}
+                      className="mt-2 w-full md:w-auto rounded-pill bg-primary px-12 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
+                    >
+                      {passLoading ? "Đang xử lý..." : "Đổi mật khẩu"}
+                    </button>
+                  </form>
+                </div>
+              ) : null}
+
+              {activeTab === "reputation" ? (
+                <div>
+                  <div className="border-b border-primary/5 bg-white px-10 py-6">
+                    <h2 className="flex items-center gap-3 font-display text-xl font-black text-foreground">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary">
+                        <span className="material-symbols-outlined text-[20px]">history</span>
+                      </div>
+                      Lịch sử điểm uy tín
+                    </h2>
+                  </div>
+                  {histLoading ? (
+                    <div className="flex justify-center p-20">
+                      <div className="h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                    </div>
+                  ) : history.length === 0 ? (
+                    <div className="flex flex-col items-center gap-6 p-20 text-center">
+                      <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/5 text-primary/20">
+                        <span className="material-symbols-outlined text-6xl">verified_user</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-display font-black text-foreground mb-2">Hồ sơ tuyệt vời!</h3>
+                        <p className="text-on-surface-variant font-medium">Bạn chưa từng bị trừ điểm uy tín nào.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-primary/5">
+                      {history.map((item, index) => (
+                        <div key={index} className="flex items-start gap-6 px-10 py-8 hover:bg-primary/5 transition-colors">
+                          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-secondary/10 text-lg font-black text-secondary border border-secondary/20 shadow-sm shadow-secondary/10">
+                            {item.changeAmount}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-base font-bold text-foreground mb-2">{item.reason}</p>
+                            <div className="flex flex-wrap gap-6 text-[10px] font-black uppercase tracking-[0.1em] text-on-surface-variant/40">
+                              <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[14px]">calendar_today</span> {new Date(item.createdAt).toLocaleDateString("vi-VN")}</span>
+                              <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[14px]">person</span> {item.changedBy?.fullName || "Hệ thống"}</span>
+                              <span className="flex items-center gap-2 text-secondary/60"><span className="material-symbols-outlined text-[14px]">warning</span> Vi phạm: {item.violationLevel}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
-      </main>
-    </div>
+    </EcoTradeLayout>
   );
 };
 

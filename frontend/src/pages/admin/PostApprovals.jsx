@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import productService from "../../services/product.service";
+import toast from "react-hot-toast";
 
 const STATUS_FILTER = ["pending", "approved", "rejected", "closed"];
 const STATUS_MAP = {
@@ -40,13 +41,13 @@ const PostApprovals = () => {
       const res = await productService.adminApproveProduct(id);
       if (res.success) fetchPosts();
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi duyệt bài");
+      toast.error(err.response?.data?.message || "Lỗi khi duyệt bài");
     }
   };
 
   const handleReject = async () => {
     try {
-      if (!rejectReason) return alert("Vui lòng nhập lý do từ chối");
+      if (!rejectReason) return toast.error("Vui lòng nhập lý do từ chối");
 
       let res;
       if (showModal.postStatus && showModal.postStatus !== "pending") {
@@ -61,7 +62,7 @@ const PostApprovals = () => {
         fetchPosts();
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi từ chối bài");
+      toast.error(err.response?.data?.message || "Lỗi khi từ chối bài");
     }
   };
 
@@ -70,7 +71,7 @@ const PostApprovals = () => {
       const res = await productService.adminChangeStatus(id, status, reason);
       if (res.success) fetchPosts();
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi đổi trạng thái");
+      toast.error(err.response?.data?.message || "Lỗi khi đổi trạng thái");
     }
   };
 
@@ -249,91 +250,237 @@ const PostApprovals = () => {
         </div>
       )}
 
-      {showDetailModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4 overflow-y-auto py-8">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl border border-surface-variant/20">
-            <div className="p-8">
-              <div className="flex items-start justify-between gap-6 mb-6">
-                <div className="flex-1">
-                  <h2 className="text-2xl font-extrabold text-on-surface mb-2">{showDetailModal.title}</h2>
-                  <p className="text-sm text-on-surface-variant">
-                    Tạo lúc: {new Date(showDetailModal.createdAt).toLocaleString("vi-VN")}
-                  </p>
+      {showDetailModal && (() => {
+        const post = showDetailModal;
+        const s = STATUS_MAP[post.postStatus] || { label: post.postStatus, color: "bg-surface-variant text-on-surface" };
+        const images = post.images?.length > 0 ? post.images : post.thumbnailUrl ? [post.thumbnailUrl] : [];
+        const [activeImg, setActiveImg] = [post._activeImg ?? 0, (idx) => setShowDetailModal({ ...post, _activeImg: idx })];
+        const conditionLabel = post.conditionStatus === "new" ? "Mới 100%" : post.conditionStatus === "like_new" ? "Như mới" : post.conditionStatus === "good" ? "Đã dùng – Còn tốt" : post.conditionStatus === "fair" ? "Đã dùng – Có lỗi nhỏ" : post.conditionStatus || "N/A";
+        const isRent = post.productType === "rent";
+
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 px-4 py-8 overflow-y-auto">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl border border-surface-variant/20 my-auto">
+
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 px-8 pt-7 pb-5 border-b border-surface-variant/20">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wide flex-shrink-0 ${s.color}`}>{s.label}</span>
+                    <span className="text-xs text-on-surface-variant">{new Date(post.createdAt).toLocaleString("vi-VN")}</span>
+                  </div>
+                  <h2 className="text-xl font-extrabold text-on-surface leading-tight">{post.title}</h2>
                 </div>
-                <button onClick={() => setShowDetailModal(null)} className="p-2 hover:bg-surface-container-low rounded-xl transition-all text-on-surface-variant">
+                <button onClick={() => setShowDetailModal(null)} className="p-2 hover:bg-surface-container-low rounded-xl transition-all text-on-surface-variant flex-shrink-0">
                   <span className="material-symbols-outlined text-2xl">close</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  {showDetailModal.thumbnailUrl ? (
-                    <img
-                      src={getImageUrl(showDetailModal.thumbnailUrl)}
-                      alt={showDetailModal.title}
-                      className="w-full h-64 object-cover rounded-2xl shadow-inner"
-                    />
-                  ) : (
-                    <div className="w-full h-64 bg-surface-container-low rounded-2xl flex items-center justify-center">
-                      <span className="material-symbols-outlined text-6xl text-on-surface-variant">image</span>
+              <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                  {/* Left: Image gallery */}
+                  <div className="flex flex-col gap-3">
+                    <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-surface-container-low">
+                      {images.length > 0 ? (
+                        <img
+                          src={images[activeImg]}
+                          alt={post.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="material-symbols-outlined text-5xl text-on-surface-variant">image</span>
+                        </div>
+                      )}
+                      {images.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setActiveImg((activeImg - 1 + images.length) % images.length)}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveImg((activeImg + 1) % images.length)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                          </button>
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                            {images.map((_, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setActiveImg(idx)}
+                                className={`rounded-full transition-all ${activeImg === idx ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"}`}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
-                  )}
+
+                    {/* Thumbnail strip */}
+                    {images.length > 1 && (
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {images.map((img, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveImg(idx)}
+                            className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${activeImg === idx ? "border-primary scale-105 shadow" : "border-transparent opacity-70 hover:opacity-100"}`}
+                          >
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="text-xs text-on-surface-variant text-center">
+                      {images.length} ảnh • Ảnh {activeImg + 1}/{images.length || 1}
+                    </div>
+                  </div>
+
+                  {/* Right: Product details */}
+                  <div className="space-y-5">
+                    {/* Seller info */}
+                    <div className="rounded-xl bg-surface-container-low p-4">
+                      <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Người đăng</h3>
+                      <p className="font-semibold text-on-surface">{post.ownerId?.fullName || "N/A"}</p>
+                      {post.ownerId?.email && <p className="text-sm text-on-surface-variant mt-0.5">{post.ownerId.email}</p>}
+                      {post.ownerId?.phone && <p className="text-sm text-on-surface-variant">📞 {post.ownerId.phone}</p>}
+                    </div>
+
+                    {/* Category & type */}
+                    <div>
+                      <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Danh mục & Loại bài</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex items-center rounded-full bg-secondary/10 px-3 py-1 text-sm font-semibold text-secondary">
+                          {post.categoryId?.name || "Chưa có danh mục"}
+                        </span>
+                        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+                          {isRent ? "Cho thuê" : "Bán"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Condition */}
+                    <div>
+                      <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Tình trạng sản phẩm</h3>
+                      <p className="text-sm font-semibold text-on-surface">{conditionLabel}</p>
+                    </div>
+
+                    {/* Quantity */}
+                    <div>
+                      <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Số lượng</h3>
+                      <p className="text-sm font-semibold text-on-surface">{post.quantity ?? 1} sản phẩm</p>
+                    </div>
+
+                    {/* Price */}
+                    <div>
+                      <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">
+                        {isRent ? "Giá thuê / ngày" : "Giá bán"}
+                      </h3>
+                      <p className="text-2xl font-black text-primary">
+                        {formatPrice(isRent ? post.rentPricePerDay : post.salePrice)}
+                        {isRent && <span className="text-sm font-semibold text-on-surface-variant ml-1">/ngày</span>}
+                      </p>
+                      {isRent && post.depositAmount > 0 && (
+                        <p className="mt-1 text-sm text-on-surface-variant">
+                          Tiền đặt cọc: <span className="font-semibold text-on-surface">{formatPrice(post.depositAmount)}</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                      <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1.5">Vị trí</h3>
+                      <p className="text-sm text-on-surface flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px] text-on-surface-variant">location_on</span>
+                        {post.location || "Không xác định"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Thông tin người đăng</h3>
-                    <p className="text-base text-on-surface font-semibold">{showDetailModal.ownerId?.fullName || "N/A"}</p>
-                    {showDetailModal.ownerId?.email && <p className="text-sm text-on-surface-variant">{showDetailModal.ownerId.email}</p>}
-                    {showDetailModal.ownerId?.phone && <p className="text-sm text-on-surface-variant">Điện thoại: {showDetailModal.ownerId.phone}</p>}
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Danh mục & loại</h3>
-                    <p className="text-base text-on-surface">{showDetailModal.categoryId?.name || "N/A"} • {showDetailModal.productType === "rent" ? "Cho thuê" : "Bán"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Giá</h3>
-                    <p className="text-2xl font-black text-primary">{formatPrice(showDetailModal.productType === "rent" ? showDetailModal.rentPricePerDay : showDetailModal.salePrice)}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Vị trí</h3>
-                    <p className="text-base text-on-surface">{showDetailModal.location || "Không xác định"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Tình trạng sản phẩm</h3>
-                    <p className="text-base text-on-surface">{showDetailModal.conditionStatus || "N/A"}</p>
+                {/* Description */}
+                <div className="mt-7 border-t border-surface-variant/30 pt-6">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">Mô tả sản phẩm</h3>
+                  <div className="text-sm text-on-surface leading-7 whitespace-pre-line bg-surface-container-low rounded-xl p-4">
+                    {post.description || <span className="text-on-surface-variant italic">Không có mô tả</span>}
                   </div>
                 </div>
+
+                {/* Reject reason if any */}
+                {post.postStatus === "rejected" && post.rejectReason && (
+                  <div className="mt-5 p-4 bg-error-container/30 border border-error/30 rounded-xl">
+                    <h4 className="font-semibold text-error mb-1 text-sm">Lý do từ chối:</h4>
+                    <p className="text-sm text-error">{post.rejectReason}</p>
+                  </div>
+                )}
               </div>
 
-              <div className="mt-8">
-                <h3 className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-2">Mô tả</h3>
-                <p className="text-base text-on-surface leading-relaxed whitespace-pre-line">{showDetailModal.description || "Không có mô tả"}</p>
-              </div>
-
-              {showDetailModal.postStatus === "rejected" && showDetailModal.rejectReason && (
-                <div className="mt-6 p-4 bg-error-container/30 border border-error/30 rounded-xl">
-                  <h4 className="font-semibold text-error mb-1">Lý do từ chối:</h4>
-                  <p className="text-sm text-error">{showDetailModal.rejectReason}</p>
+              {/* Footer actions */}
+              <div className="px-8 pb-7 pt-4 border-t border-surface-variant/20">
+                <div className="flex flex-wrap items-center gap-3 justify-between">
+                  <button
+                    onClick={() => setShowDetailModal(null)}
+                    className="px-5 py-2.5 border border-surface-variant/60 rounded-full text-sm font-semibold text-on-surface-variant hover:bg-surface-container-low transition-all"
+                  >
+                    Đóng
+                  </button>
+                  <div className="flex flex-wrap gap-3">
+                    {post.postStatus === "pending" && (
+                      <>
+                        <button
+                          onClick={() => { setShowDetailModal(null); setShowModal(post); }}
+                          className="px-5 py-2.5 border border-error/40 text-error rounded-full text-sm font-semibold hover:bg-error/5 transition-all"
+                        >
+                          Từ chối
+                        </button>
+                        <button
+                          onClick={() => { handleApprove(post._id); setShowDetailModal(null); }}
+                          className="px-5 py-2.5 bg-primary text-on-primary rounded-full text-sm font-semibold hover:opacity-90 transition-all"
+                        >
+                          ✓ Duyệt bài
+                        </button>
+                      </>
+                    )}
+                    {post.postStatus === "approved" && (
+                      <>
+                        <button
+                          onClick={() => { setShowDetailModal(null); setShowModal(post); }}
+                          className="px-5 py-2.5 border border-error/40 text-error rounded-full text-sm font-semibold hover:bg-error/5 transition-all"
+                        >
+                          Từ chối
+                        </button>
+                        <button
+                          onClick={() => { handleStatusChange(post._id, "closed"); setShowDetailModal(null); }}
+                          className="px-5 py-2.5 border border-surface-variant text-on-surface-variant/80 rounded-full text-sm font-semibold hover:bg-surface-container-low transition-all"
+                        >
+                          Ẩn bài
+                        </button>
+                      </>
+                    )}
+                    {(post.postStatus === "rejected" || post.postStatus === "closed") && (
+                      <button
+                        onClick={() => { handleApprove(post._id); setShowDetailModal(null); }}
+                        className="px-5 py-2.5 bg-primary text-on-primary rounded-full text-sm font-semibold hover:opacity-90 transition-all"
+                      >
+                        ✓ Duyệt & Hiển thị
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-
-            <div className="px-8 pb-8 pt-4 border-t border-surface-variant/20">
-              <div className="flex flex-wrap gap-3 justify-end">
-                <button onClick={() => setShowDetailModal(null)}
-                  className="px-6 py-2.5 border-2 border-surface-variant/30 rounded-full text-base font-bold hover:bg-surface-container transition-all text-on-surface-variant">
-                  Đóng
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
     </div>
   );
 };

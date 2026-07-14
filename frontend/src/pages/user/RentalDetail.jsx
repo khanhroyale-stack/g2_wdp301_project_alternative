@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Sidebar from "../../components/Sidebar";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import rentalService from "../../services/rental.service";
 import toast from "react-hot-toast";
 
@@ -56,12 +56,11 @@ const RentalDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#F5F5F7]">
-        <Sidebar variant="user" />
-        <main className="flex-1 md:ml-64 flex items-center justify-center">
+      <EcoTradeLayout>
+        <div className="flex-1 flex items-center justify-center min-h-[50vh]">
           <span className="material-symbols-outlined text-5xl text-green-400 animate-spin">refresh</span>
-        </main>
-      </div>
+        </div>
+      </EcoTradeLayout>
     );
   }
 
@@ -74,11 +73,8 @@ const RentalDetail = () => {
   const totalDays = Math.max(1, Math.ceil((new Date(data.endDate) - new Date(data.startDate)) / 86400000));
 
   return (
-    <div className="flex min-h-screen bg-[#F5F5F7] font-sans">
-      <Sidebar variant="user" />
-
-      <main className="flex-1 md:ml-64 px-4 md:px-10 py-10">
-        <div className="max-w-3xl mx-auto">
+    <EcoTradeLayout>
+      <div className="px-4 md:px-10">
 
           {/* Back */}
           <button
@@ -170,9 +166,8 @@ const RentalDetail = () => {
               Quay lại danh sách
             </button>
           </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </EcoTradeLayout>
   );
 };
 

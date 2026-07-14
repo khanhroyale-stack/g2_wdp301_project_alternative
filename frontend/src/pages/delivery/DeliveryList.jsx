@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Clock3, MapPin, Package2, Phone, Truck } from "lucide-react";
+import { BellRing, CheckCircle, CircleAlert, Clock3, Copy, MapPin, Navigation, Package2, Phone, Truck, Wallet } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ShipperLayout from "../../components/shipper/ShipperLayout";
 import { Badge } from "../../components/ui/badge";
@@ -94,155 +94,175 @@ export default function DeliveryList() {
 
   return (
     <ShipperLayout>
-      <div className="w-full">
-        <div className="mb-8 rounded-[28px] border border-surface-variant/40 bg-[linear-gradient(135deg,#ffffff_0%,#eef8f1_100%)] p-7 shadow-apple">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <h1 className="page-title">Dashboard shipper</h1>
-              <p className="page-subtitle">
-                Theo dõi đơn mới, đơn đang giao, đơn hoàn thành và sự cố theo đúng luồng giao hàng.
-              </p>
+      <div className="w-full max-w-5xl mx-auto">
+        {/* Header & Flow Summary */}
+        <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4">
+              <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse"></div>
+              <span className="text-[10px] font-black text-primary uppercase tracking-widest">Hệ thống vận hành trực tuyến</span>
             </div>
-            <div className="flex rounded-2xl border border-surface-variant/50 bg-white p-1.5 shadow-sm">
-              {tabs.map((tab) => (
-                <Button key={tab.key} variant={view === tab.key ? undefined : "ghost"} onClick={() => setView(tab.key)}>
-                  {tab.label}
-                </Button>
-              ))}
+            <h1 className="text-4xl font-display font-extrabold text-foreground tracking-tight">Lộ trình hôm nay</h1>
+            <p className="mt-2 text-on-surface-variant font-medium">Theo dõi và quản lý các đơn hàng theo luồng vận chuyển.</p>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-white p-1.5 rounded-pill shadow-sm border border-primary/5">
+            <div className="px-5 py-2 rounded-pill bg-primary/5 text-primary">
+              <p className="text-[9px] font-black uppercase tracking-widest opacity-60">Thu nhập</p>
+              <p className="text-lg font-display font-black leading-none">{formatPrice(summary.income)}</p>
             </div>
-            <Card className="border-success/20 bg-[#f5fdf8]">
-              <CardContent className="flex items-center gap-4 pt-6">
-                <div className="rounded-2xl bg-success-soft p-3 text-success">
-                  <Truck className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-success">Đơn trong tab</div>
-                  <div className="mt-1 text-[2rem] font-extrabold text-on-surface">{deliveries.length}</div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="h-8 w-px bg-primary/10"></div>
+            <div className="px-5 py-2">
+              <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/40">Hoàn thành</p>
+              <p className="text-lg font-display font-bold text-foreground leading-none">{summary.completed}</p>
+            </div>
           </div>
         </div>
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <Card className="panel-surface"><CardContent className="pt-5"><div className="text-sm font-bold text-on-surface-variant">Đơn mới</div><div className="mt-2 text-3xl font-extrabold">{summary.new}</div></CardContent></Card>
-          <Card className="panel-surface"><CardContent className="pt-5"><div className="text-sm font-bold text-on-surface-variant">Đang giao</div><div className="mt-2 text-3xl font-extrabold">{summary.delivering}</div></CardContent></Card>
-          <Card className="panel-surface"><CardContent className="pt-5"><div className="text-sm font-bold text-on-surface-variant">Hoàn thành</div><div className="mt-2 text-3xl font-extrabold">{summary.completed}</div></CardContent></Card>
-          <Card className="panel-surface"><CardContent className="pt-5"><div className="text-sm font-bold text-on-surface-variant">Sự cố</div><div className="mt-2 text-3xl font-extrabold">{summary.issues}</div></CardContent></Card>
-          <Card className="panel-surface"><CardContent className="pt-5"><div className="text-sm font-bold text-on-surface-variant">Thu nhập</div><div className="mt-2 text-2xl font-extrabold text-success">{formatPrice(summary.income)}</div></CardContent></Card>
+        {/* Pill Tabs */}
+        <div className="mb-10 flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setView(tab.key)}
+              className={`px-8 py-3 rounded-pill text-sm font-bold transition-all ${
+                view === tab.key
+                  ? "bg-primary text-white shadow-lg shadow-primary/20"
+                  : "bg-white text-on-surface-variant hover:bg-primary/5 hover:text-primary border border-primary/5"
+              }`}
+            >
+              {tab.label}
+              {summary[tab.key] > 0 && (
+                <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] ${view === tab.key ? "bg-white/20" : "bg-primary/10 text-primary"}`}>
+                  {summary[tab.key]}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         {loading ? (
-          <div className="py-20 text-center text-lg text-muted-foreground">Đang tải danh sách đơn giao...</div>
+          <div className="space-y-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-48 w-full bg-white rounded-organic animate-pulse"></div>
+            ))}
+          </div>
         ) : deliveries.length === 0 ? (
-          <Card className="panel-surface">
-            <CardContent className="py-20 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
-                <Truck className="h-7 w-7" />
-              </div>
-              <h2 className="text-xl font-bold text-on-surface">
-                {view === "new" ? "Hiện chưa có đơn mới" : "Không có đơn trong tab này"}
-              </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
-                {view === "new"
-                  ? "Khi seller xác nhận đơn hàng, delivery sẽ xuất hiện ở đây để shipper nhận và xử lý."
-                  : "Các đơn đã nhận sẽ được tự động phân loại theo trạng thái giao hàng hiện tại."}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="text-center py-32 bg-white rounded-organic border border-primary/5">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/5 text-primary/30">
+              <Truck className="h-10 w-10" />
+            </div>
+            <h2 className="text-2xl font-display font-bold text-foreground">
+              {view === "new" ? "Chưa có lộ trình mới" : "Không có đơn trong danh mục này"}
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-on-surface-variant font-medium">
+              {view === "new"
+                ? "Các đơn hàng mới sẽ xuất hiện tại đây khi có yêu cầu vận chuyển từ hệ thống."
+                : "Danh sách hiện tại đang trống. Hãy kiểm tra lại các mục khác."}
+            </p>
+          </div>
         ) : (
-          <div className="grid gap-5 lg:grid-cols-2">
-            {deliveries.map((delivery) => {
-              const order = delivery.orderId || {};
-              const seller = order.sellerId || {};
-              const buyer = order.buyerId || {};
-              const product = order.postId || {};
-              const isAccepting = acceptingId === delivery._id;
+          <div className="relative">
+            {/* Vertical Timeline Line */}
+            <div className="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-primary/20 via-primary/5 to-transparent hidden md:block"></div>
 
-              return (
-                <Card key={delivery._id} className="panel-surface overflow-hidden">
-                  <CardContent className="pt-6">
-                    <div className="mb-5 flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-sm font-bold uppercase tracking-[0.12em] text-on-surface-variant">Mã vận đơn</div>
-                        <div className="mt-1 text-[1.85rem] font-extrabold text-on-surface">
-                          {String(delivery._id).slice(-8).toUpperCase()}
-                        </div>
-                      </div>
-                      <Badge variant={view === "new" ? "warning" : getDeliveryStatusInfo(delivery.deliveryStatus).variant}>
-                        {view === "new" ? "Đơn mới" : getDeliveryStatusInfo(delivery.deliveryStatus).label}
-                      </Badge>
+            <div className="space-y-8">
+              {deliveries.map((delivery) => {
+                const order = delivery.orderId || {};
+                const seller = order.sellerId || {};
+                const buyer = order.buyerId || {};
+                const product = order.postId || {};
+                const isAccepting = acceptingId === delivery._id;
+                const statusInfo = getDeliveryStatusInfo(delivery.deliveryStatus);
+
+                return (
+                  <div key={delivery._id} className="relative flex flex-col md:flex-row gap-6 md:pl-20">
+                    {/* Timeline Node */}
+                    <div className="absolute left-4 top-8 -translate-x-1/2 w-8 h-8 rounded-full bg-white border-4 border-primary flex items-center justify-center z-10 hidden md:flex shadow-sm">
+                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
                     </div>
 
-                    <div className="space-y-5 border-t border-surface-variant/40 pt-5">
-                      <div>
-                        <div className="text-[1.35rem] font-bold text-on-surface">{product.title || "Đơn giao hàng EcoTrade"}</div>
-                        <div className="mt-2 flex flex-wrap gap-3 text-sm text-on-surface-variant">
-                          <span className="flex items-center gap-2"><Clock3 className="h-4 w-4" />{formatDateTime(delivery.createdAt)}</span>
-                          <span className="flex items-center gap-2"><Package2 className="h-4 w-4" />1 sản phẩm</span>
-                          <span>Giá: {formatPrice(order.totalAmount || product.salePrice)}</span>
-                          <span>Khoảng cách: Chưa cập nhật</span>
+                    <div className="flex-1 bg-white rounded-organic p-8 shadow-sm border border-primary/5 hover:shadow-xl hover:shadow-primary/5 transition-all group">
+                      <div className="flex flex-col lg:flex-row justify-between gap-6 mb-8">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">#{String(delivery._id).slice(-8).toUpperCase()}</span>
+                            <Badge variant={view === "new" ? "warning" : statusInfo.variant} className="rounded-full px-3 text-[10px] uppercase font-bold tracking-wider">
+                              {view === "new" ? "Đơn mới" : statusInfo.label}
+                            </Badge>
+                          </div>
+                          <h3 className="text-2xl font-display font-bold text-foreground leading-tight group-hover:text-primary transition-colors">{product.title || "Vận chuyển EcoTrade"}</h3>
+                        </div>
+
+                        <div className="flex flex-col items-end">
+                          <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Phí giao nhận</p>
+                          <p className="text-3xl font-display font-black text-primary">{formatPrice(delivery.deliveryFee)}</p>
                         </div>
                       </div>
 
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="rounded-2xl bg-surface-container-low p-4">
-                          <div className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">Người bán</div>
-                          <div className="font-semibold text-on-surface">{seller.fullName || "Chưa có dữ liệu"}</div>
-                          <div className="mt-1 flex items-center gap-2 text-sm text-on-surface-variant">
-                            <Phone className="h-4 w-4" />
-                            {seller.phone || "Chưa có số điện thoại"}
+                      {/* Journey Path */}
+                      <div className="relative mb-8 bg-background/50 rounded-2xl p-6">
+                        <div className="flex items-start gap-4 mb-8 relative z-10">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-primary/10">
+                            <MapPin className="h-5 w-5 text-secondary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Điểm lấy hàng</p>
+                            <p className="text-sm font-semibold text-foreground leading-relaxed">{delivery.pickupAddress}</p>
+                            <div className="flex items-center gap-3 mt-2">
+                               <p className="text-xs text-on-surface-variant font-bold">{seller.fullName}</p>
+                               <span className="w-1 h-1 rounded-full bg-on-surface-variant/20"></span>
+                               <p className="text-xs text-on-surface-variant font-medium">{seller.phone}</p>
+                            </div>
                           </div>
                         </div>
-                        <div className="rounded-2xl bg-surface-container-low p-4">
-                          <div className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">Người mua</div>
-                          <div className="font-semibold text-on-surface">{buyer.fullName || "Chưa có dữ liệu"}</div>
-                          <div className="mt-1 flex items-center gap-2 text-sm text-on-surface-variant">
-                            <Phone className="h-4 w-4" />
-                            {buyer.phone || "Chưa có số điện thoại"}
+
+                        <div className="absolute left-[39px] top-[60px] bottom-[60px] w-0.5 border-l-2 border-dashed border-primary/20 z-0"></div>
+
+                        <div className="flex items-start gap-4 relative z-10">
+                          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-md">
+                            <Navigation className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Điểm giao hàng</p>
+                            <p className="text-sm font-semibold text-foreground leading-relaxed">{delivery.deliveryAddress}</p>
+                            <div className="flex items-center gap-3 mt-2">
+                               <p className="text-xs text-on-surface-variant font-bold">{buyer.fullName}</p>
+                               <span className="w-1 h-1 rounded-full bg-on-surface-variant/20"></span>
+                               <p className="text-xs text-on-surface-variant font-medium">{buyer.phone}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-dashed border-surface-variant p-4">
-                        <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                          <MapPin className="h-4 w-4" />
-                          Điểm lấy hàng
+                      <div className="flex items-center justify-between pt-6 border-t border-primary/5">
+                        <div className="flex items-center gap-6 text-on-surface-variant text-xs font-bold uppercase tracking-widest">
+                          <span className="flex items-center gap-1.5"><Clock3 className="h-4 w-4 opacity-40" />{formatDateTime(delivery.createdAt)}</span>
+                          <span className="flex items-center gap-1.5"><Package2 className="h-4 w-4 opacity-40" />1 kiện hàng</span>
                         </div>
-                        <div className="text-sm leading-6 text-on-surface">{delivery.pickupAddress || "Chưa cập nhật địa chỉ lấy hàng"}</div>
-                      </div>
-
-                      <div className="rounded-2xl border border-dashed border-surface-variant p-4">
-                        <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                          <MapPin className="h-4 w-4" />
-                          Điểm giao hàng
+                        
+                        <div className="flex gap-3">
+                          {view !== "new" ? (
+                            <Button asChild variant="outline" className="rounded-pill px-8 font-bold border-primary/20 text-primary hover:bg-primary/5">
+                              <Link to={`/shipper/don/${delivery._id}`}>Lộ trình chi tiết</Link>
+                            </Button>
+                          ) : null}
+                          {view === "new" ? (
+                            <Button 
+                              onClick={() => handleAcceptDelivery(delivery._id)} 
+                              disabled={isAccepting}
+                              className="rounded-pill px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+                            >
+                              {isAccepting ? "Đang xử lý..." : "Nhận đơn hàng"}
+                            </Button>
+                          ) : null}
                         </div>
-                        <div className="text-sm leading-6 text-on-surface">{delivery.deliveryAddress || "Chưa cập nhật địa chỉ giao hàng"}</div>
                       </div>
                     </div>
-
-                    <div className="mt-5 flex items-center justify-between border-t border-surface-variant/40 pt-5">
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">Phí giao</div>
-                        <div className="mt-1 text-[1.4rem] font-extrabold text-success">{formatPrice(delivery.deliveryFee)}</div>
-                      </div>
-                      <div className="flex gap-3">
-                        {view !== "new" ? (
-                          <Button asChild variant="outline">
-                            <Link to={`/shipper/don/${delivery._id}`}>Xem chi tiết</Link>
-                          </Button>
-                        ) : null}
-                        {view === "new" ? (
-                          <Button onClick={() => handleAcceptDelivery(delivery._id)} disabled={isAccepting}>
-                            {isAccepting ? "Đang nhận..." : "Nhận đơn"}
-                          </Button>
-                        ) : null}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

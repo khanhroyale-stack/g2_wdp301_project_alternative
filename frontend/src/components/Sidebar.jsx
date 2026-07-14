@@ -48,40 +48,39 @@ const Sidebar = ({ variant = "user" }) => {
   const displayName = user?.fullName || user?.name || "";
 
   return (
-
-    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 shrink-0 flex-col border-r border-surface-variant/60 bg-[linear-gradient(180deg,#fbfdfb_0%,#f0f6f2_100%)] font-sans md:flex">
-      <div className="flex items-center gap-3 border-b border-surface-variant/40 px-6 py-6">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-sm font-bold text-on-primary shadow-sm">
+    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 shrink-0 flex-col border-r border-primary/5 bg-background font-sans md:flex shadow-apple">
+      <div className="flex items-center gap-4 px-8 py-8">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-lg font-black text-white shadow-lg shadow-primary/20">
           {displayName.charAt(0).toUpperCase() || "U"}
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-base font-extrabold tracking-tight text-primary">EcoTrade</h1>
-          <p className="text-xs font-medium text-on-surface-variant">{titleMap[variant]}</p>
+          <h1 className="truncate text-xl font-display font-black tracking-tight text-primary">EcoTrade</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">{titleMap[variant]}</p>
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-4">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-5 py-2 custom-scrollbar">
         {navItems.map((item) => (
           <NavLink
             key={item.label}
             to={item.to}
             end={item.to.split("/").length <= 2}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-all ${isActive
-                ? "bg-primary font-semibold text-on-primary shadow-sm"
-                : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+              `flex items-center gap-3 rounded-pill px-5 py-3.5 text-sm font-bold transition-all ${isActive
+                ? "bg-primary text-white shadow-lg shadow-primary/20"
+                : "text-on-surface-variant hover:bg-primary/5 hover:text-primary"
               }`
             }
           >
-            <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+            <span className="material-symbols-outlined text-[20px] opacity-40 group-[.active]:opacity-100">{item.icon}</span>
             <span className="flex-1 truncate">{item.label}</span>
             {item.to === "/thong-bao" && unreadCount > 0 ? (
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-error text-[10px] font-bold text-on-error">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-black text-white shadow-sm shadow-secondary/20">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             ) : null}
             {item.to === "/don-ban" && pendingSalesCount > 0 ? (
-              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-warning px-1.5 text-[10px] font-bold text-warning-foreground">
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-secondary px-1.5 text-[10px] font-black text-white shadow-sm shadow-secondary/20">
                 {pendingSalesCount}
               </span>
             ) : null}
@@ -89,14 +88,14 @@ const Sidebar = ({ variant = "user" }) => {
         ))}
       </nav>
 
-      <div className="space-y-1 border-t border-surface-variant/40 px-4 py-4">
-        <div className="mb-1 flex items-center gap-3 rounded-2xl bg-surface-container-lowest/70 px-4 py-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-xs font-bold text-primary">
-            {displayName.charAt(0).toUpperCase() || "?"}
+      <div className="space-y-3 p-6">
+        <div className="flex items-center gap-3 rounded-organic bg-white p-3 shadow-sm border border-primary/5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-black text-primary overflow-hidden">
+             {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" /> : displayName.charAt(0).toUpperCase()}
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-on-surface">{displayName}</p>
-            <p className="text-xs text-on-surface-variant">{titleMap[user?.role] || "Người dùng"}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-black text-foreground">{displayName}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-primary/40 leading-none">{titleMap[user?.role] || "Thành viên"}</p>
           </div>
         </div>
         <button
@@ -104,10 +103,10 @@ const Sidebar = ({ variant = "user" }) => {
             logout();
             navigate("/marketplaces");
           }}
-          className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold text-error transition-all hover:bg-error/5"
+          className="flex w-full items-center gap-3 rounded-pill px-5 py-3.5 text-left text-sm font-bold text-error transition-all hover:bg-error/5 hover:scale-105 active:scale-95"
         >
           <span className="material-symbols-outlined text-[20px]">logout</span>
-          Đăng xuất
+          Thoát hệ thống
         </button>
       </div>
     </aside>

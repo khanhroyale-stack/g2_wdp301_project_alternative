@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock3, MapPin, Package2, ShieldCheck, Truck, User } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import ShipperLayout from "../../components/shipper/ShipperLayout";
 import { Avatar, AvatarFallback } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge";
@@ -45,7 +46,7 @@ export default function DeliveryDetail() {
       const res = await deliveryService.getDeliveryById(id);
       if (res.success) setDelivery(res.data);
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể tải vận đơn.");
+      toast.error(error.response?.data?.message || "Không thể tải vận đơn.");
       navigate(-1);
     } finally {
       setLoading(false);
@@ -64,7 +65,7 @@ export default function DeliveryDetail() {
         await fetchDelivery();
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể cập nhật trạng thái.");
+      toast.error(error.response?.data?.message || "Không thể cập nhật trạng thái.");
     } finally {
       setUpdating(false);
     }
@@ -256,7 +257,7 @@ export default function DeliveryDetail() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
                     {product.images?.[0] ? (
                       <img
@@ -270,21 +271,53 @@ export default function DeliveryDetail() {
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-lg font-bold truncate">
-                      {product.title || "Sản phẩm EcoTrade"}
-                    </h4>
-                    <p className="text-muted-foreground text-sm mt-1">
-                      {product.conditionStatus || "Tình trạng tốt"}
-                    </p>
-                    <p className="text-sm font-semibold text-success mt-1">
-                      Số lượng: 1
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-extrabold text-primary">
-                      {formatPrice(order.totalAmount || order.productPrice)}
-                    </p>
+                  <div className="flex-1 min-w-0 space-y-3">
+                    <div>
+                      <h4 className="text-lg font-bold truncate">
+                        {product.title || "Sản phẩm EcoTrade"}
+                      </h4>
+                      <p className="text-muted-foreground text-sm mt-0.5">
+                        Tình trạng: <span className="font-medium text-on-surface">{product.conditionStatus === "new" ? "Mới 100%" : product.conditionStatus === "good" ? "Đã sử dụng - Còn tốt" : product.conditionStatus || "Tốt"}</span>
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl bg-muted/40 px-3 py-2.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Mã đơn</p>
+                        <p className="text-sm font-bold text-on-surface">#{String(order._id || "").slice(-8).toUpperCase()}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/40 px-3 py-2.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">SKU sản phẩm</p>
+                        <p className="text-sm font-bold text-on-surface">#{String(product._id || "").slice(-8).toUpperCase()}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/40 px-3 py-2.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Số lượng</p>
+                        <p className="text-sm font-bold text-on-surface">{order.quantity || 1} sản phẩm</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/40 px-3 py-2.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Thanh toán</p>
+                        <p className="text-sm font-bold text-on-surface">{order.paymentMethod || "COD"}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/40 px-3 py-2.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Phí giao hàng</p>
+                        <p className="text-sm font-bold text-success">{formatPrice(delivery.deliveryFee || 0)}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/40 px-3 py-2.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Loại giao</p>
+                        <p className="text-sm font-bold text-on-surface capitalize">{delivery.deliveryType || "Standard"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-sm text-muted-foreground">Tổng giá trị đơn</span>
+                      <p className="text-2xl font-extrabold text-primary">
+                        {formatPrice(order.totalAmount || order.productPrice)}
+                      </p>
+                    </div>
+                    {order.buyerNote && (
+                      <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 px-3 py-2.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-primary mb-1">Ghi chú người mua</p>
+                        <p className="text-sm text-on-surface leading-relaxed">{order.buyerNote}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   Archive,
   ArrowRight,
@@ -94,7 +95,7 @@ export default function MySales() {
           return;
         }
         if (!reason.trim()) {
-          alert("Vui lòng nhập lý do từ chối đơn hàng.");
+          toast.error("Vui lòng nhập lý do từ chối đơn hàng.");
           setProcessingId(null);
           return;
         }
@@ -106,7 +107,7 @@ export default function MySales() {
         await fetchOrders();
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể cập nhật trạng thái đơn hàng");
+      toast.error(error.response?.data?.message || "Không thể cập nhật trạng thái đơn hàng");
     } finally {
       setProcessingId(null);
     }
@@ -140,63 +141,63 @@ export default function MySales() {
   return (
     <EcoTradeLayout>
       <div className="w-full">
-        <div className="mb-9 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-9 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1 text-xs font-semibold uppercase tracking-wide text-success">
               <Leaf className="h-3.5 w-3.5" />
               Kênh bán hàng
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-[3rem]">Đơn bán của tôi</h1>
-            <p className="mt-3 text-xl text-muted-foreground">
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Đơn bán của tôi</h1>
+            <p className="mt-2 text-sm text-muted-foreground max-w-lg">
               Seller nhận thông báo khi có đơn mới, bấm vào đơn để xác nhận hoặc từ chối kèm lý do, sau đó theo dõi quá trình giao hàng.
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Card className="min-w-[210px] border-warning/30 bg-[#fffaf1] shadow-sm transition-shadow hover:shadow-md">
-              <CardContent className="flex items-start gap-3 pt-6">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <Card className="border-warning/30 bg-[#fffaf1] shadow-sm transition-shadow hover:shadow-md">
+              <CardContent className="flex items-start gap-3 pt-5">
                 <div className="shrink-0 rounded-2xl bg-warning/15 p-2.5 text-warning">
                   <BellRing className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-warning">Đơn mới</div>
-                  <div className="mt-1 text-[2rem] font-extrabold leading-none">{pendingCount}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">Cần seller xử lý ngay</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-warning min-h-[32px]">Đơn mới</div>
+                  <div className="mt-1 text-[1.75rem] font-extrabold leading-none">{pendingCount}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Cần seller xử lý ngay</div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="min-w-[210px] border-sky/20 bg-[#f4faff] shadow-sm transition-shadow hover:shadow-md">
-              <CardContent className="flex items-start gap-3 pt-6">
+            <Card className="border-sky/20 bg-[#f4faff] shadow-sm transition-shadow hover:shadow-md">
+              <CardContent className="flex items-start gap-3 pt-5">
                 <div className="shrink-0 rounded-2xl bg-sky-soft p-2.5 text-sky">
                   <Clock className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-sky">Đã xác nhận</div>
-                  <div className="mt-1 text-[2rem] font-extrabold leading-none">{confirmedCount}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">Đang chờ shipper nhận đơn</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-sky min-h-[32px]">Đã xác nhận</div>
+                  <div className="mt-1 text-[1.75rem] font-extrabold leading-none">{confirmedCount}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Đang chờ shipper nhận đơn</div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="min-w-[210px] border-success/20 bg-[#f5fdf8] shadow-sm transition-shadow hover:shadow-md">
-              <CardContent className="flex items-start gap-3 pt-6">
+            <Card className="border-success/20 bg-[#f5fdf8] shadow-sm transition-shadow hover:shadow-md">
+              <CardContent className="flex items-start gap-3 pt-5">
                 <div className="shrink-0 rounded-2xl bg-success-soft p-2.5 text-success">
                   <CircleCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-success">Shipper confirm</div>
-                  <div className="mt-1 text-[2rem] font-extrabold leading-none">{shipperConfirmedCount}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">Đã giao, chờ buyer xác nhận</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-success min-h-[32px]">Shipper confirm</div>
+                  <div className="mt-1 text-[1.75rem] font-extrabold leading-none">{shipperConfirmedCount}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Đã giao, chờ buyer xác nhận</div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="min-w-[210px] border-success/20 bg-[#f5fdf8] shadow-sm transition-shadow hover:shadow-md">
-              <CardContent className="flex items-start gap-3 pt-6">
+            <Card className="border-success/20 bg-[#f5fdf8] shadow-sm transition-shadow hover:shadow-md">
+              <CardContent className="flex items-start gap-3 pt-5">
                 <div className="shrink-0 rounded-2xl bg-success-soft p-2.5 text-success">
                   <CircleCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold uppercase tracking-[0.12em] text-success">Buyer confirm</div>
-                  <div className="mt-1 text-[2rem] font-extrabold leading-none">{buyerConfirmedCount}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">Buyer xác nhận hoặc tự hoàn tất</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-success min-h-[32px]">Buyer confirm</div>
+                  <div className="mt-1 text-[1.75rem] font-extrabold leading-none">{buyerConfirmedCount}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Buyer xác nhận hoặc tự hoàn tất</div>
                 </div>
               </CardContent>
             </Card>
@@ -231,9 +232,38 @@ export default function MySales() {
         </Card>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-20 text-muted-foreground">
-            <div className="h-11 w-11 animate-spin rounded-full border-4 border-success/20 border-t-success" />
-            <div className="text-lg font-medium">Đang tải danh sách đơn bán...</div>
+          <div className="space-y-5">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="overflow-hidden">
+                <CardContent className="pt-6">
+                  <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div>
+                      <div className="mb-3 h-6 w-48 animate-pulse rounded-md bg-surface-variant/40" />
+                      <div className="h-4 w-64 animate-pulse rounded-md bg-surface-variant/40" />
+                    </div>
+                    <div className="h-9 w-32 animate-pulse rounded-md bg-surface-variant/40" />
+                  </div>
+                  <div className="flex flex-col gap-5 border-y border-border py-5 lg:flex-row">
+                    <div className="h-24 w-24 shrink-0 animate-pulse rounded-[18px] bg-surface-variant/40" />
+                    <div className="flex-1 space-y-4">
+                      <div className="h-6 w-3/4 animate-pulse rounded-md bg-surface-variant/40" />
+                      <div className="flex gap-4">
+                        <div className="h-4 w-32 animate-pulse rounded-md bg-surface-variant/40" />
+                        <div className="h-4 w-40 animate-pulse rounded-md bg-surface-variant/40" />
+                      </div>
+                      <div className="h-12 w-full animate-pulse rounded-2xl bg-surface-variant/40" />
+                    </div>
+                  </div>
+                  <div className="mt-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="h-4 w-1/2 animate-pulse rounded-md bg-surface-variant/40" />
+                    <div className="flex gap-3">
+                      <div className="h-10 w-32 animate-pulse rounded-md bg-surface-variant/40" />
+                      <div className="h-10 w-32 animate-pulse rounded-md bg-surface-variant/40" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : sortedOrders.length === 0 ? (
           <Card className="border-dashed">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import categoryService from "../../services/category.service";
+import toast from "react-hot-toast";
 
 const CategoryManagement = () => {
   const [cats, setCats] = useState([]);
@@ -32,7 +33,7 @@ const CategoryManagement = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) return alert("Vui lòng nhập tên danh mục");
+    if (!form.name.trim()) return toast.error("Vui lòng nhập tên danh mục");
     try {
       if (editing) {
         await categoryService.updateCategory(editing._id, form);
@@ -42,7 +43,7 @@ const CategoryManagement = () => {
       resetForm();
       fetchCats();
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi lưu danh mục");
+      toast.error(err.response?.data?.message || "Lỗi khi lưu danh mục");
     }
   };
 
@@ -55,7 +56,7 @@ const CategoryManagement = () => {
       }
       fetchCats();
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi cập nhật trạng thái");
+      toast.error(err.response?.data?.message || "Lỗi khi cập nhật trạng thái");
     }
   };
 

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
-import Sidebar from "../../components/Sidebar";
+import { useParams, Link } from "react-router-dom";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import chatService from "../../services/chat.service";
 import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
 import { getSocket, joinChatRoom, leaveChatRoom } from "../../services/socket";
 
 const formatTime = (dateStr) => {
@@ -13,6 +14,7 @@ const formatTime = (dateStr) => {
 const Messages = () => {
   const { roomId } = useParams();
   const { user } = useAuth();
+  const { fetchUnreadChatCount } = useChat() || {};
   const [rooms, setRooms] = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -60,7 +62,10 @@ const Messages = () => {
     setLoadingMsgs(true);
     try {
       const res = await chatService.getMessages(room._id);
-      if (res.success) setMessages(res.data);
+      if (res.success) {
+        setMessages(res.data);
+        if (fetchUnreadChatCount) fetchUnreadChatCount();
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -142,9 +147,8 @@ const Messages = () => {
   });
 
   return (
-    <div className="flex min-h-screen bg-[#F5F5F7]">
-      <Sidebar variant="user" />
-      <main className="flex-1 md:ml-72 flex h-screen overflow-hidden">
+    <EcoTradeLayout>
+      <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden rounded-2xl border border-surface-variant/40 bg-white shadow-sm">
 
         {/* ── Danh sách phòng chat ── */}
         <div className="w-80 flex-shrink-0 bg-white border-r border-surface-variant/30 flex flex-col">
@@ -234,6 +238,36 @@ const Messages = () => {
                 </div>
               </div>
 
+              {/* Thông tin sản phẩm */}
+              {activeRoom.postId && (
+                <div className="bg-surface-container-lowest border-b border-surface-variant/20 px-6 py-3 flex items-center justify-between gap-4 flex-shrink-0 shadow-sm z-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center overflow-hidden flex-shrink-0 border border-surface-variant/30">
+                      {activeRoom.postId.thumbnailUrl || (activeRoom.postId.images && activeRoom.postId.images[0]) ? (
+                        <img src={activeRoom.postId.thumbnailUrl || activeRoom.postId.images[0]} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="material-symbols-outlined text-on-surface-variant opacity-50">image</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-on-surface text-sm truncate">{activeRoom.postId.title}</p>
+                      <p className="text-primary font-bold text-sm mt-0.5">
+                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+                          activeRoom.postId.productType === "rent" ? activeRoom.postId.rentPricePerDay : activeRoom.postId.salePrice
+                        )}
+                        {activeRoom.postId.productType === "rent" && <span className="text-xs text-on-surface-variant font-medium ml-1">/ngày</span>}
+                      </p>
+                    </div>
+                  </div>
+                  <Link 
+                    to={`/marketplaces/${activeRoom.postId._id}`}
+                    className="px-4 py-1.5 rounded-full border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/5 transition-colors flex-shrink-0"
+                  >
+                    Xem sản phẩm
+                  </Link>
+                </div>
+              )}
+
               {/* Khu vực tin nhắn */}
               <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3">
                 {loadingMsgs ? (
@@ -311,8 +345,8 @@ const Messages = () => {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </EcoTradeLayout>
   );
 };
 export default Messages;

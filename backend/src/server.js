@@ -136,3 +136,12 @@ startServer().catch((error) => {
   console.error(`Failed to start server: ${error.message}`);
   process.exit(1);
 });
+
+// Xử lý các lỗi ngoại lệ không mong muốn để server không bị crash ngang
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION! Bỏ qua crash cho mục đích demo:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("UNHANDLED REJECTION! Bỏ qua crash cho mục đích demo:", err);
+});

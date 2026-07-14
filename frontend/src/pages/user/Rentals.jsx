@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import Sidebar from "../../components/Sidebar";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import rentalService from "../../services/rental.service";
 import toast from "react-hot-toast";
 
@@ -442,10 +442,8 @@ const Rentals = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F5F5F7] font-sans">
-      <Sidebar variant="user" />
-
-      <main className="flex-1 md:ml-64 px-4 md:px-8 py-8">
+    <EcoTradeLayout>
+      <div className="px-4 md:px-8">
         <div className="max-w-4xl mx-auto">
 
           {/* Header */}
@@ -534,7 +532,7 @@ const Rentals = () => {
             </div>
           )}
         </div>
-      </main>
+      </div>
 
       {extendTarget && (
         <ExtendModal contract={extendTarget} onClose={() => setExtendTarget(null)} onSuccess={fetchAll} />
@@ -542,7 +540,7 @@ const Rentals = () => {
       {depositTarget && (
         <DepositModal contract={depositTarget} onClose={() => setDepositTarget(null)} onSuccess={fetchAll} />
       )}
-    </div>
+    </EcoTradeLayout>
   );
 };
 

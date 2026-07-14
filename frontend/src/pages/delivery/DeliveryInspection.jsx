@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, CircleAlert, Info, ShieldCheck } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import ShipperLayout from "../../components/shipper/ShipperLayout";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -104,7 +105,7 @@ export default function DeliveryInspection() {
           if (res.success) setDelivery(res.data);
         }
       } catch (error) {
-        alert(error.response?.data?.message || "Không thể tải biên bản kiểm tra.");
+        toast.error(error.response?.data?.message || "Không thể tải biên bản kiểm tra.");
         navigate(-1);
       } finally {
         setLoading(false);
@@ -124,13 +125,13 @@ export default function DeliveryInspection() {
     try {
       const requiredTypes = ["front", "back", "accessories"];
       if (requiredTypes.some((type) => !inspectionFiles[type])) {
-        alert("Vui lòng chụp đủ ảnh mặt trước, mặt sau và phụ kiện.");
+        toast.error("Vui lòng chụp đủ ảnh mặt trước, mặt sau và phụ kiện.");
         return;
       }
 
       const hasFailedCheck = INSPECTION_CHECKS.some((check) => form[check.key] === false);
       if (hasFailedCheck && !form.faultType) {
-        alert("Vui lòng chọn lỗi thuộc về seller hay shipper khi có tiêu chí FAIL.");
+        toast.error("Vui lòng chọn lỗi thuộc về seller hay shipper khi có tiêu chí FAIL.");
         return;
       }
 
@@ -167,7 +168,7 @@ export default function DeliveryInspection() {
       });
       if (res.success) navigate(`/shipper/don/${id}`);
     } catch (error) {
-      alert(error.response?.data?.message || "Không thể lưu biên bản.");
+      toast.error(error.response?.data?.message || "Không thể lưu biên bản.");
     } finally {
       setSubmitting(false);
     }

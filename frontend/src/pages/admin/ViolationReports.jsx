@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import reportService from "../../services/report.service";
+import toast from "react-hot-toast";
 
 const TABS = ["Chờ xử lý", "Đang điều tra", "Đã giải quyết", "Từ chối"];
 // Phải khớp với enum trong Report model: "pending" | "investigating" | "resolved" | "dismissed"
@@ -171,10 +172,10 @@ const ResolveModal = ({ report, onClose, onSuccess }) => {
         onSuccess();
         onClose();
       } else {
-        alert(res.message || "Lỗi xử lý báo cáo");
+        toast.error(res.message || "Lỗi xử lý báo cáo");
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi xử lý báo cáo");
+      toast.error(err.response?.data?.message || "Lỗi xử lý báo cáo");
     } finally {
       setLoading(false);
     }
