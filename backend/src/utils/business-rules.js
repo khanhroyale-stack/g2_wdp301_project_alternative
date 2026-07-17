@@ -44,7 +44,7 @@ const getProductAvailabilityStatus = (quantity, soldIfEmpty = false) => (
 const isDeliveryTransitionAllowed = (currentStatus, nextStatus) => {
   const transitions = {
     accepted: ["picking_up", "failed"],
-    picking_up: ["ready_for_delivery", "picked_up", "failed"],
+    picking_up: ["failed"],
     picked_up: ["received", "in_transit", "failed"],
     ready_for_delivery: ["received", "inspection_failed", "failed"],
     received: ["in_transit", "failed"],

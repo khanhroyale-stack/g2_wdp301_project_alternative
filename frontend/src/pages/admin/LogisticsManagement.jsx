@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -7,6 +7,7 @@ import adminService from "../../services/admin.service";
 import shipperReportService from "../../services/shipper-report.service";
 import { formatDateTime } from "../../lib/utils";
 import { getDeliveryStatusInfo } from "../../lib/orderFlow";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 
 const CONFIG = {
   shippers: { title: "Quản lý shipper", description: "Theo dõi tài khoản và hiệu suất giao hàng." },
@@ -20,7 +21,7 @@ export default function LogisticsManagement({ mode }) {
   const [loading, setLoading] = useState(true);
   const config = CONFIG[mode];
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const response = mode === "shippers"
@@ -34,9 +35,10 @@ export default function LogisticsManagement({ mode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mode]);
 
-  useEffect(() => { load(); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [load]);
+  useRealtimeRefresh(["delivery", "report", "user"], load);
 
   const resolveReport = async (id, status) => {
     await shipperReportService.resolve(id, { status });

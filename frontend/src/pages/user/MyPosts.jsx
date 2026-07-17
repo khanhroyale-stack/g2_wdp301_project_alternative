@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   ChevronRight,
@@ -13,7 +13,7 @@ import {
   Search,
 } from "lucide-react";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
-import { useAuth } from "../../context/AuthContext";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import productService from "../../services/product.service";
 
 const PAGE_SIZE = 5;
@@ -50,7 +50,7 @@ const MyPosts = () => {
   const [page, setPage] = useState(1);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await productService.getMyProducts();
@@ -60,9 +60,10 @@ const MyPosts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+  useRealtimeRefresh("product", fetchPosts);
   useEffect(() => { setPage(1); }, [query, tab, category]);
 
   const handleHidePost = async (postId) => {
@@ -265,7 +266,7 @@ const MyPosts = () => {
                       <CircleHelp size={14} className="mt-0.5 shrink-0" />
                       <div>
                         <p className="font-semibold">Lý do từ chối:</p>
-                        <p className="mt-0.5 italic text-[#6b6870]">"{post.rejectReason}"</p>
+                        <p className="mt-0.5 italic text-[#6b6870]">&quot;{post.rejectReason}&quot;</p>
                       </div>
                     </div>
                   )}

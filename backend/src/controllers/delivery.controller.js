@@ -86,6 +86,7 @@ const acceptDelivery = async (req, res) => {
         ],
       })
       .lean();
+    req.app.get("io")?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
 
     res.json({
       success: true,
@@ -287,6 +288,8 @@ const updateDeliveryStatus = async (req, res) => {
         ],
       })
       .lean();
+    io?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
+    io?.emit("realtime_update", { type: "order", relatedType: "order", relatedId: delivery.orderId });
 
     res.json({
       success: true,

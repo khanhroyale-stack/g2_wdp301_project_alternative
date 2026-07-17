@@ -3,6 +3,7 @@ const RentalContract = require("../models/rental_contract.model");
 const RentalInspection = require("../models/rental_inspection.model");
 const ProductPost = require("../models/product_post.model");
 const { createNotification } = require("./notification.controller");
+const { attachImagesToProducts } = require("../utils/product-images.util");
 
 // ─── Helper: tính tiền thuê theo kỳ hạn ──────────────────────────────────────
 const calcRentalFee = (product, totalDays) => {
@@ -39,6 +40,40 @@ const checkRentalConflict = async (postId, startDate, endDate, excludeContractId
 
   // Nếu tổng số đang thuê >= số lượng → conflict
   return (reqCount + contractCount) >= quantity;
+};
+
+const attachPostImagesToRentals = async (rentals) => {
+  const items = Array.isArray(rentals) ? rentals : [rentals];
+  const postsById = new Map();
+
+  for (const rental of items) {
+    const post = rental?.postId;
+    if (post?._id) {
+      postsById.set(String(post._id), post);
+    }
+  }
+
+  if (!postsById.size) return rentals;
+
+  const hydratedPosts = await attachImagesToProducts([...postsById.values()]);
+  const hydratedById = new Map(hydratedPosts.map((post) => [String(post._id), post]));
+
+  for (const rental of items) {
+    const postId = rental?.postId?._id ? String(rental.postId._id) : null;
+    if (postId && hydratedById.has(postId)) {
+      rental.postId = hydratedById.get(postId);
+    }
+  }
+
+  return rentals;
+};
+
+const emitRentalUpdate = (req, relatedId = null) => {
+  req.app.get("io")?.emit("realtime_update", {
+    type: "rental",
+    relatedType: "rental",
+    relatedId,
+  });
 };
 
 // ─── GET lịch đã đặt (public) ────────────────────────────────────────────────
@@ -135,6 +170,7 @@ const createRentalRequest = async (req, res) => {
       console.warn("[createRentalRequest] notification error:", notiErr.message);
     }
 
+    emitRentalUpdate(req, request._id);
     res.status(201).json({ success: true, data: request });
   } catch (err) {
     console.error("[createRentalRequest] error:", err.message);
@@ -147,13 +183,15 @@ const getRental = async (req, res) => {
     let rental = await RentalContract.findById(req.params.id)
       .populate("postId", "title thumbnailUrl imageUrls rentPricePerDay depositAmount location categoryId")
       .populate("renterId", "fullName avatarUrl phone")
-      .populate("ownerId",  "fullName avatarUrl phone");
+      .populate("ownerId",  "fullName avatarUrl phone")
+      .lean();
 
     if (!rental) {
       rental = await RentalRequest.findById(req.params.id)
         .populate("postId", "title thumbnailUrl imageUrls rentPricePerDay depositAmount location categoryId")
         .populate("renterId", "fullName avatarUrl phone")
-        .populate("ownerId",  "fullName avatarUrl phone");
+        .populate("ownerId",  "fullName avatarUrl phone")
+        .lean();
     }
 
     if (!rental) return res.status(404).json({ success: false, message: "Không tìm thấy" });
@@ -164,6 +202,8 @@ const getRental = async (req, res) => {
     const ownerId  = rental.ownerId?._id?.toString()  || rental.ownerId?.toString();
     if (uid !== renterId && uid !== ownerId && req.user.role !== "admin")
       return res.status(403).json({ success: false, message: "Không có quyền xem" });
+
+    await attachPostImagesToRentals(rental);
 
     res.json({ success: true, data: rental });
   } catch (err) {
@@ -183,6 +223,8 @@ const getMyRentals = async (req, res) => {
       .populate("ownerId", "fullName avatarUrl phone")
       .sort({ createdAt: -1 }).lean();
 
+    await attachPostImagesToRentals([...requests, ...contracts]);
+
     res.json({ success: true, data: { requests, contracts } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -200,6 +242,8 @@ const getMyLendings = async (req, res) => {
       .populate("postId", "title thumbnailUrl rentPricePerDay depositAmount")
       .populate("renterId", "fullName avatarUrl phone")
       .sort({ createdAt: -1 }).lean();
+
+    await attachPostImagesToRentals([...requests, ...contracts]);
 
     res.json({ success: true, data: { requests, contracts } });
   } catch (err) {
@@ -275,6 +319,7 @@ const updateRentalStatus = async (req, res) => {
           });
         } catch (_) {}
 
+        emitRentalUpdate(req, contract._id);
         return res.json({ success: true, data: { request, contract } });
       }
 
@@ -303,6 +348,7 @@ const updateRentalStatus = async (req, res) => {
           });
         } catch (_) {}
 
+        emitRentalUpdate(req, request._id);
         return res.json({ success: true, data: request });
       }
 
@@ -318,6 +364,7 @@ const updateRentalStatus = async (req, res) => {
         if (reason) request.note = reason;
         await request.save();
 
+        emitRentalUpdate(req, request._id);
         return res.json({ success: true, data: request });
       }
     }
@@ -356,6 +403,7 @@ const updateRentalStatus = async (req, res) => {
         });
       } catch (_) {}
 
+      emitRentalUpdate(req, contract._id);
       return res.json({ success: true, data: contract, message: "Đã xác nhận nhận đồ" });
     }
 
@@ -383,6 +431,7 @@ const updateRentalStatus = async (req, res) => {
     }
 
     await contract.save();
+    emitRentalUpdate(req, contract._id);
     res.json({ success: true, data: contract });
   } catch (err) {
     console.error("[updateRentalStatus]", err.message);
@@ -421,6 +470,7 @@ const requestReturn = async (req, res) => {
       });
     } catch (_) {}
 
+    emitRentalUpdate(req, contract._id);
     res.json({ success: true, data: contract, message: "Đã gửi yêu cầu trả đồ" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -472,6 +522,7 @@ const resolveDeposit = async (req, res) => {
       link: "/thue-muon",
     });
 
+    emitRentalUpdate(req, contract._id);
     res.json({ success: true, data: contract, message: "Xử lý cọc thành công" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -525,6 +576,7 @@ const extendRental = async (req, res) => {
       });
     } catch (_) {}
 
+    emitRentalUpdate(req, contract._id);
     res.json({ success: true, data: contract, message: `Đã gửi yêu cầu gia hạn ${extraDays} ngày, đang chờ chủ đồ xác nhận` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -570,6 +622,7 @@ const confirmExtend = async (req, res) => {
         });
       } catch (_) {}
 
+      emitRentalUpdate(req, contract._id);
       return res.json({ success: true, data: contract, message: "Đã chấp nhận gia hạn" });
     }
 
@@ -591,6 +644,7 @@ const confirmExtend = async (req, res) => {
       });
     } catch (_) {}
 
+    emitRentalUpdate(req, contract._id);
     res.json({ success: true, data: contract, message: "Đã từ chối yêu cầu gia hạn" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

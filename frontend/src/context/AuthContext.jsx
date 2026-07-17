@@ -15,10 +15,19 @@ export const AuthProvider = ({ children }) => {
     connectSocket(userData._id || userData.id);
     const socket = getSocket();
 
-    socket.on("new_notification", (data) => {
+    const handleNotification = (data) => {
       setUnreadCount((count) => count + 1);
       setNotifications((prev) => [data, ...prev]);
-    });
+    };
+
+    const handleRealtimeUpdate = (data) => {
+      window.dispatchEvent(new CustomEvent("realtime:update", { detail: data }));
+    };
+
+    socket.off("new_notification");
+    socket.off("realtime_update");
+    socket.on("new_notification", handleNotification);
+    socket.on("realtime_update", handleRealtimeUpdate);
 
   }, []);
 

@@ -160,10 +160,10 @@ const createInspection = async (req, res) => {
       });
     }
 
-    if (!["picked_up", "ready_for_delivery"].includes(delivery.deliveryStatus)) {
+    if (!["picking_up", "picked_up", "ready_for_delivery"].includes(delivery.deliveryStatus)) {
       return res.status(400).json({
         success: false,
-        message: "Chi co the lap bien ban sau khi da lay hang va truoc khi bat dau giao",
+        message: "Chi co the lap bien ban khi shipper dang den diem lay hang va truoc khi bat dau giao",
       });
     }
 
@@ -205,6 +205,7 @@ const createInspection = async (req, res) => {
         timestamp: new Date(),
       });
       await delivery.save();
+      req.app.get("io")?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
     } else {
       const failedChecks = getFailedCheckLabels(checks);
       delivery.deliveryStatus = "inspection_failed";
@@ -216,13 +217,14 @@ const createInspection = async (req, res) => {
         timestamp: new Date(),
       });
       await delivery.save();
+      req.app.get("io")?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
 
       const admins = await User.find({ role: "admin", accountStatus: "active" }).select("_id");
       await Promise.all(admins.map((admin) => createNotification({
         recipientId: admin._id,
         type: "report_update",
-        title: "Bien ban kiem tra that bai",
-        content: `Van don #${String(delivery._id).slice(-8).toUpperCase()} co tieu chi kiem tra khong dat va can Admin xu ly.`,
+        title: "Biên bản kiểm tra thất bại",
+        content: `Vận đơn #${String(delivery._id).slice(-8).toUpperCase()} có tiêu chí kiểm tra không đạt và cần Admin xử lý.`,
         relatedType: "System",
         relatedId: null,
         link: "/admin/kiem-dinh",

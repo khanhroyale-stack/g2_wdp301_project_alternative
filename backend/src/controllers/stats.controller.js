@@ -106,7 +106,14 @@ const getAllRentals = async (req, res) => {
       .populate("ownerId", "fullName email phone")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
+
+    const products = rentals
+      .map((rental) => rental.postId)
+      .filter(Boolean);
+    await attachImagesToProducts(products);
+
     res.json({ success: true, data: rentals, total, page: Number(page), totalPages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

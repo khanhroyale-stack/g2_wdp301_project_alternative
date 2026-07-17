@@ -26,7 +26,6 @@ const isRangeBlocked = (start, end, ranges) => {
   let cur = new Date(start);
   const endD = new Date(end);
   while (cur <= endD) {
-    const ds = cur.toISOString().split("T")[0];
     const blocked = ranges.some(r => {
       const s = new Date(r.start); s.setHours(0, 0, 0, 0);
       const e = new Date(r.end);   e.setHours(23, 59, 59, 999);
@@ -268,7 +267,7 @@ const CreateRentalRequest = () => {
 
   const isOwner = user?._id === (product.ownerId?._id || product.ownerId);
   const imgSrc = product.thumbnailUrl || product.imageUrls?.[0];
-  const getImg = (s) => { if (!s) return "https://placehold.co/200?text=No+Image"; if (s.startsWith("http")) return s; return `http://localhost:5000${s}`; };
+  const getImg = (s) => { if (!s) return "https://placehold.co/200?text=No+Image"; return s; };
 
   // Lấy tên chủ đồ an toàn (ownerId có thể là object hoặc raw ID)
   const ownerName = typeof product.ownerId === "object"
@@ -407,10 +406,11 @@ const CreateRentalRequest = () => {
                     ["Số ngày thuê", totalDays > 0 ? `${totalDays} ngày` : "—"],
                     ["Tiền thuê", totalDays > 0 ? fmt(rentalFee) : "—"],
                     ...(depositAmt > 0 ? [["Tiền cọc", fmt(depositAmt)]] : []),
+                    ...(form.note ? [["Ghi chú", form.note]] : []),
                   ].map(([k, v]) => (
-                    <div key={k} className="flex justify-between py-2.5 gap-2">
-                      <span className="text-gray-500 flex-shrink-0">{k}</span>
-                      <span className="font-semibold text-gray-800 text-right">{v}</span>
+                    <div key={k} className="flex flex-col py-2.5 gap-1 sm:flex-row sm:justify-between sm:gap-4">
+                      <span className="text-gray-500 flex-shrink-0 sm:w-28">{k}</span>
+                      <span className="font-semibold text-gray-800 break-words sm:text-right">{v}</span>
                     </div>
                   ))}
                   {/* Tổng */}

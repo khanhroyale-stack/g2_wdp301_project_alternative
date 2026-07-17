@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { BellRing, CheckCircle, CircleAlert, Clock3, Copy, MapPin, Navigation, Package2, Phone, Truck, Wallet } from "lucide-react";
+import { Clock3, MapPin, Navigation, Package2, Truck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ShipperLayout from "../../components/shipper/ShipperLayout";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { formatDateTime, formatPrice } from "../../lib/utils";
 import deliveryService from "../../services/delivery.service";
 import { getDeliveryStatusInfo } from "../../lib/orderFlow";
@@ -76,6 +76,11 @@ export default function DeliveryList() {
   useEffect(() => {
     fetchSummary();
   }, [fetchSummary]);
+  const refreshRealtime = useCallback(() => {
+    fetchSummary();
+    fetchDeliveries();
+  }, [fetchDeliveries, fetchSummary]);
+  useRealtimeRefresh(["delivery", "order"], refreshRealtime);
 
   const handleAcceptDelivery = async (id) => {
     setAcceptingId(id);

@@ -1,15 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import AccountStatusCard from "../../components/ui/AccountStatusCard";
 import userService from "../../services/user.service";
 import { authService } from "../../services/auth.service";
+import uploadService from "../../services/upload.service";
 
-const VER_BADGE = {
-  unverified: { label: "Chưa xác minh email", cls: "bg-surface-container text-on-surface-variant" },
-  verified: { label: "Đã xác minh", cls: "bg-white text-primary" },
-};
+const AVATAR_SIZE = 512;
+const AVATAR_PREVIEW_SIZE = 192;
 
 const Profile = () => {
   const { user, refreshUser } = useAuth();
@@ -20,6 +18,13 @@ const Profile = () => {
   const [history, setHistory] = useState([]);
   const [histLoading, setHistLoading] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
+  const [avatarEditor, setAvatarEditor] = useState({
+    file: null,
+    previewUrl: "",
+    offsetX: 0,
+    offsetY: 0,
+    scale: 1,
+  });
   const [editForm, setEditForm] = useState({
     fullName: "",
     phone: "",
@@ -42,8 +47,11 @@ const Profile = () => {
     }
   }, [user]);
 
+  useEffect(() => () => {
+    if (avatarEditor.previewUrl) URL.revokeObjectURL(avatarEditor.previewUrl);
+  }, [avatarEditor.previewUrl]);
+
   const displayName = user?.fullName || user?.name || "";
-  const verBadge = VER_BADGE[user?.verificationStatus] || VER_BADGE.unverified;
 
   const fetchHistory = useCallback(async () => {
     setHistLoading(true);
@@ -85,8 +93,17 @@ const Profile = () => {
     e.preventDefault();
     setEditLoading(true);
     try {
-      await userService.updateProfile(editForm);
+      let nextAvatarUrl = editForm.avatarUrl;
+      if (avatarEditor.file) {
+        const croppedBlob = await createCroppedAvatarBlob(avatarEditor);
+        const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+        const uploadRes = await uploadService.uploadImages([croppedFile], "other");
+        nextAvatarUrl = uploadRes.urls?.[0] || nextAvatarUrl;
+      }
+
+      await userService.updateProfile({ ...editForm, avatarUrl: nextAvatarUrl });
       await refreshUser();
+      clearAvatarEditor();
       setActiveTab("overview");
     } catch (err) {
       console.error(err);
@@ -94,6 +111,67 @@ const Profile = () => {
       setEditLoading(false);
     }
   };
+
+  const clearAvatarEditor = () => {
+    setAvatarEditor((prev) => {
+      if (prev.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+      return { file: null, previewUrl: "", offsetX: 0, offsetY: 0, scale: 1 };
+    });
+  };
+
+  const handleAvatarFileChange = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !file.type.startsWith("image/")) return;
+
+    setAvatarEditor((prev) => {
+      if (prev.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+      return {
+        file,
+        previewUrl: URL.createObjectURL(file),
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1,
+      };
+    });
+  };
+
+  const createCroppedAvatarBlob = ({ file, offsetX, offsetY, scale }) =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = AVATAR_SIZE;
+        canvas.height = AVATAR_SIZE;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
+
+        const imageRatio = image.naturalWidth / image.naturalHeight;
+        const baseWidth = imageRatio >= 1 ? AVATAR_SIZE * imageRatio : AVATAR_SIZE;
+        const baseHeight = imageRatio >= 1 ? AVATAR_SIZE : AVATAR_SIZE / imageRatio;
+        const drawWidth = baseWidth * scale;
+        const drawHeight = baseHeight * scale;
+        const previewToCanvas = AVATAR_SIZE / AVATAR_PREVIEW_SIZE;
+        const drawX = (AVATAR_SIZE - drawWidth) / 2 + offsetX * previewToCanvas;
+        const drawY = (AVATAR_SIZE - drawHeight) / 2 + offsetY * previewToCanvas;
+
+        ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+        URL.revokeObjectURL(objectUrl);
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Không thể xử lý ảnh đại diện."));
+        }, "image/jpeg", 0.92);
+      };
+
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Không thể đọc ảnh đại diện."));
+      };
+      image.src = objectUrl;
+    });
 
   const tabs = [
     { key: "overview", label: "Tổng quan", icon: "person" },
@@ -216,12 +294,111 @@ const Profile = () => {
                     </h2>
                   </div>
                   <form onSubmit={handleEditProfile} className="p-10">
+                    <div className="mb-8 rounded-3xl border border-primary/10 bg-white p-6 shadow-sm">
+                      <div className="mb-5 flex items-center justify-between gap-4">
+                        <div>
+                          <label className="block text-xs font-black uppercase tracking-widest text-foreground/40">
+                            Ảnh đại diện
+                          </label>
+                          <p className="mt-1 text-sm font-medium text-on-surface-variant">
+                            Chọn ảnh từ máy và căn chỉnh để khớp với khung tròn.
+                          </p>
+                        </div>
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-5 py-3 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-primary/90">
+                          <span className="material-symbols-outlined text-[18px]">upload</span>
+                          Chọn ảnh
+                          <input type="file" accept="image/*" onChange={handleAvatarFileChange} className="hidden" />
+                        </label>
+                      </div>
+
+                      <div className="grid gap-8 lg:grid-cols-[240px,1fr]">
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="relative h-48 w-48 overflow-hidden rounded-full border-4 border-primary/20 bg-primary/5 shadow-inner">
+                            {avatarEditor.previewUrl || editForm.avatarUrl ? (
+                              <img
+                                src={avatarEditor.previewUrl || editForm.avatarUrl}
+                                alt="Ảnh đại diện"
+                                className="h-full w-full object-cover"
+                                style={avatarEditor.previewUrl ? {
+                                  transform: `translate(${avatarEditor.offsetX}px, ${avatarEditor.offsetY}px) scale(${avatarEditor.scale})`,
+                                } : undefined}
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-5xl font-black text-primary">
+                                {displayName.charAt(0).toUpperCase() || "U"}
+                              </div>
+                            )}
+                            <div className="pointer-events-none absolute inset-0 rounded-full ring-4 ring-white/80" />
+                          </div>
+                          {avatarEditor.previewUrl && (
+                            <button
+                              type="button"
+                              onClick={clearAvatarEditor}
+                              className="text-xs font-black uppercase tracking-widest text-error/70 hover:text-error"
+                            >
+                              Hủy ảnh mới
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col justify-center gap-5">
+                          <div>
+                            <div className="mb-2 flex items-center justify-between text-xs font-black uppercase tracking-widest text-foreground/40">
+                              <span>Phóng to</span>
+                              <span>{avatarEditor.scale.toFixed(1)}x</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="1"
+                              max="3"
+                              step="0.05"
+                              value={avatarEditor.scale}
+                              disabled={!avatarEditor.previewUrl}
+                              onChange={(e) => setAvatarEditor((prev) => ({ ...prev, scale: Number(e.target.value) }))}
+                              className="w-full accent-primary disabled:opacity-40"
+                            />
+                          </div>
+                          <div>
+                            <div className="mb-2 flex items-center justify-between text-xs font-black uppercase tracking-widest text-foreground/40">
+                              <span>Trái / phải</span>
+                              <span>{avatarEditor.offsetX}px</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="-80"
+                              max="80"
+                              step="1"
+                              value={avatarEditor.offsetX}
+                              disabled={!avatarEditor.previewUrl}
+                              onChange={(e) => setAvatarEditor((prev) => ({ ...prev, offsetX: Number(e.target.value) }))}
+                              className="w-full accent-primary disabled:opacity-40"
+                            />
+                          </div>
+                          <div>
+                            <div className="mb-2 flex items-center justify-between text-xs font-black uppercase tracking-widest text-foreground/40">
+                              <span>Trên / dưới</span>
+                              <span>{avatarEditor.offsetY}px</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="-80"
+                              max="80"
+                              step="1"
+                              value={avatarEditor.offsetY}
+                              disabled={!avatarEditor.previewUrl}
+                              onChange={(e) => setAvatarEditor((prev) => ({ ...prev, offsetY: Number(e.target.value) }))}
+                              className="w-full accent-primary disabled:opacity-40"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                       {[
                         { key: "fullName", label: "Họ và tên", ph: "Nguyễn Văn A", required: true },
                         { key: "phone", label: "Số điện thoại", ph: "0901234567" },
                         { key: "address", label: "Địa chỉ hiện tại", ph: "Khu Công nghệ cao Hòa Lạc, Hà Nội", fullWidth: true },
-                        { key: "avatarUrl", label: "Đường dẫn ảnh đại diện", ph: "https://...", fullWidth: true },
                       ].map((f) => (
                         <div key={f.key} className={f.fullWidth ? "md:col-span-2" : ""}>
                           <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 mb-2">

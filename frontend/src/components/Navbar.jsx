@@ -72,6 +72,17 @@ const Navbar = () => {
           ) : null}
 
           {user?.role === "user" ? (
+            <Link
+              to="/gio-hang"
+              className="relative rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"
+              aria-label="Giỏ hàng"
+              title="Giỏ hàng"
+            >
+              <span className="material-symbols-outlined">shopping_cart</span>
+            </Link>
+          ) : null}
+
+          {user?.role === "user" ? (
             <button
               onClick={() => navigate("/tin-nhan")}
               className="relative rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-primary"

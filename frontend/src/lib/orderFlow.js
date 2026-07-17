@@ -10,10 +10,10 @@ export const orderStatusMap = {
 export const deliveryStatusMap = {
   pending: { label: "Chờ shipper nhận", variant: "warning" },
   accepted: { label: "Shipper đã nhận đơn", variant: "sky" },
-  picking_up: { label: "Đang lấy hàng", variant: "sky" },
+  picking_up: { label: "Đang đến lấy hàng và kiểm tra", variant: "sky" },
   picked_up: { label: "Đã lấy hàng, chờ kiểm tra", variant: "warning" },
   ready_for_delivery: { label: "Sẵn sàng kiểm tra trước khi giao", variant: "warning" },
-  received: { label: "Đã kiểm tra và nhận hàng", variant: "success" },
+  received: { label: "Đã kiểm tra và lấy hàng", variant: "success" },
   in_transit: { label: "Đang giao đến người mua", variant: "sky" },
   delivered: { label: "Đã giao thành công", variant: "success" },
   completed: { label: "Hoàn tất delivery", variant: "success" },

@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import supportService from "../../services/support.service";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+
+const getUserId = (value) => value?._id || value?.id || value;
+
+const getUserName = (value) => value?.fullName || value?.name || "Hỗ trợ";
 
 const LiveChatWidget = () => {
   const { user } = useAuth();
@@ -121,20 +125,34 @@ const LiveChatWidget = () => {
               Bắt đầu cuộc trò chuyện
             </div>
             {messagesList.map((msg, idx) => {
-              const isMine = msg.senderId._id === user._id || msg.senderId === user._id;
+              const senderId = getUserId(msg.senderId);
+              const isMine = String(senderId) === String(user._id || user.id);
+              const sender = isMine ? user : (typeof msg.senderId === "object" ? msg.senderId : null);
+              const senderName = getUserName(sender);
+              const avatarUrl = sender?.avatarUrl;
+
               return (
                 <div 
                   key={idx} 
                   className={`flex ${isMine ? "justify-end" : "justify-start"}`}
                 >
-                  <div 
-                    className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                      isMine 
-                        ? "bg-primary text-primary-foreground rounded-br-sm" 
-                        : "bg-white border border-gray-200 text-gray-800 rounded-bl-sm"
-                    }`}
-                  >
-                    {msg.content}
+                  <div className={`flex items-end gap-2 max-w-[80%] ${isMine ? "flex-row-reverse" : ""}`}>
+                    <div className="h-7 w-7 flex-shrink-0 overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary flex items-center justify-center">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt={senderName} className="h-full w-full object-cover" />
+                      ) : (
+                        senderName.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div
+                      className={`rounded-2xl px-4 py-2 text-sm ${
+                        isMine
+                          ? "bg-primary text-primary-foreground rounded-br-sm"
+                          : "bg-white border border-gray-200 text-gray-800 rounded-bl-sm"
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
                   </div>
                 </div>
               );

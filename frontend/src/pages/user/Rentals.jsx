@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import rentalService from "../../services/rental.service";
 import toast from "react-hot-toast";
 
@@ -352,7 +353,7 @@ const Rentals = () => {
   const [extendTarget, setExtendTarget] = useState(null);
   const [depositTarget, setDepositTarget] = useState(null);
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const [r, l] = await Promise.all([
@@ -366,9 +367,10 @@ const Rentals = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useRealtimeRefresh("rental", fetchAll);
 
   // Gộp requests + contracts, sort mới nhất lên đầu
   const allRentals = useMemo(() => {

@@ -1,12 +1,29 @@
 const ProductImage = require("../models/product_image.model");
 
+const normalizeLocalUploadUrl = (url) => {
+  if (!url) {
+    return null;
+  }
+
+  const value = String(url);
+  if (value.startsWith("/uploads/")) {
+    return value;
+  }
+
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/uploads\//.test(value)) {
+    return value.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, "");
+  }
+
+  return value;
+};
+
 const extractMediaUrl = (image) => {
   if (image.imageUrl) {
-    return image.imageUrl;
+    return normalizeLocalUploadUrl(image.imageUrl);
   }
 
   const media = image.mediaId || image.field;
-  return media?.publicUrl || null;
+  return normalizeLocalUploadUrl(media?.publicUrl);
 };
 
 const getImageQuery = (postIds) => ({

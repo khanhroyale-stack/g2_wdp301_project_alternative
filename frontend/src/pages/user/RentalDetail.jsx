@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import rentalService from "../../services/rental.service";
 import toast from "react-hot-toast";
 
@@ -27,11 +28,35 @@ const getImageUrl = (img) => {
 };
 
 const InfoRow = ({ label, value }) => (
-  <div className="flex justify-between py-3 border-b border-gray-100 last:border-0">
-    <span className="text-sm text-gray-500">{label}</span>
-    <span className="text-sm font-semibold text-gray-800 text-right">{value}</span>
+  <div className="flex flex-col gap-1 py-3 border-b border-gray-100 last:border-0 sm:flex-row sm:justify-between sm:gap-6">
+    <span className="text-sm text-gray-500 sm:w-40 sm:flex-shrink-0">{label}</span>
+    <span className="text-sm font-semibold text-gray-800 break-words sm:text-right">{value}</span>
   </div>
 );
+
+const DetailItem = ({ icon, label, value, full = false }) => (
+  <div className={`rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 ${full ? "sm:col-span-2" : ""}`}>
+    <div className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-gray-400">
+      {icon ? <span className="material-symbols-outlined text-[15px]">{icon}</span> : null}
+      {label}
+    </div>
+    <div className="whitespace-pre-wrap break-words text-sm font-semibold leading-6 text-gray-900">
+      {value || "—"}
+    </div>
+  </div>
+);
+
+const parseRentalNote = (note = "") => {
+  const read = (label) => note.match(new RegExp(`\\[${label}: ([^\\]]*)\\]`))?.[1]?.trim() || "";
+  const explicitNote = note.match(/\|\s*Ghi chú:\s*([\s\S]*)$/)?.[1]?.trim() || "";
+
+  return {
+    cccd: read("CCCD"),
+    phone: read("SĐT"),
+    address: read("Địa chỉ"),
+    renterNote: explicitNote || (!note.includes("[CCCD:") ? note : ""),
+  };
+};
 
 const RentalDetail = () => {
   const { id } = useParams();
@@ -39,20 +64,23 @@ const RentalDetail = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await rentalService.getRental(id);
-        if (res.success) setData(res.data);
-        else toast.error("Không tìm thấy");
-      } catch {
-        toast.error("Lỗi tải dữ liệu");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+  const load = useCallback(async () => {
+    try {
+      const res = await rentalService.getRental(id);
+      if (res.success) setData(res.data);
+      else toast.error("Không tìm thấy");
+    } catch {
+      toast.error("Lỗi tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    setLoading(true);
+    load();
+  }, [load]);
+  useRealtimeRefresh("rental", load);
 
   if (loading) {
     return (
@@ -71,6 +99,8 @@ const RentalDetail = () => {
   const isContract = !!data.contractStatus;
   const product = data.postId;
   const totalDays = Math.max(1, Math.ceil((new Date(data.endDate) - new Date(data.startDate)) / 86400000));
+  const rentalNote = parseRentalNote(data.note);
+  const productImage = product?.thumbnailUrl || product?.images?.[0] || product?.imageUrls?.[0];
 
   return (
     <EcoTradeLayout>
@@ -102,7 +132,7 @@ const RentalDetail = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex gap-5">
               <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50">
                 <img
-                  src={getImageUrl(product?.images?.[0])}
+                  src={getImageUrl(productImage)}
                   alt={product?.title}
                   className="w-full h-full object-cover"
                 />
@@ -133,16 +163,30 @@ const RentalDetail = () => {
             {/* Các bên */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-bold text-gray-800 mb-4">Các bên liên quan</h3>
-              <InfoRow label="Người thuê" value={data.renterId?.name || "—"} />
-              <InfoRow label="Chủ đồ" value={data.ownerId?.name || "—"} />
+              <InfoRow label="Người thuê" value={data.renterId?.fullName || data.renterId?.name || "—"} />
+              <InfoRow label="Chủ đồ" value={data.ownerId?.fullName || data.ownerId?.name || "—"} />
               {isContract && data.handoverMethod && (
                 <InfoRow
                   label="Hình thức giao nhận"
                   value={data.handoverMethod === "shipping" ? "Giao qua shipper" : "Gặp trực tiếp"}
                 />
               )}
-              {data.note && <InfoRow label="Ghi chú" value={data.note} />}
             </div>
+
+            {/* Thông tin đăng ký thuê */}
+            {data.note && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 className="font-bold text-gray-800 mb-4">Thông tin đăng ký thuê</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <DetailItem icon="badge" label="CCCD / CMND" value={rentalNote.cccd} />
+                  <DetailItem icon="call" label="Số điện thoại" value={rentalNote.phone} />
+                  <DetailItem icon="location_on" label="Địa chỉ" value={rentalNote.address} full />
+                  {rentalNote.renterNote ? (
+                    <DetailItem icon="notes" label="Ghi chú cho chủ đồ" value={rentalNote.renterNote} full />
+                  ) : null}
+                </div>
+              </div>
+            )}
 
             {/* Kết quả cọc (nếu đã xử lý) */}
             {isContract && (data.compensationAmount > 0 || data.depositRefundAmount > 0) && (

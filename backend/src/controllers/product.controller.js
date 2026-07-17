@@ -300,6 +300,7 @@ const createProduct = async (req, res) => {
 
     createdProduct.images = await getProductImageUrls(product._id);
     createdProduct.thumbnailUrl = createdProduct.images[0] || null;
+    req.app.get("io")?.emit("realtime_update", { type: "product", relatedType: "product", relatedId: product._id });
 
     res.status(201).json({
       success: true,
@@ -364,6 +365,7 @@ const updateProduct = async (req, res) => {
 
     updatedProduct.images = await getProductImageUrls(product._id);
     updatedProduct.thumbnailUrl = updatedProduct.images[0] || null;
+    req.app.get("io")?.emit("realtime_update", { type: "product", relatedType: "product", relatedId: product._id });
 
     res.json({
       success: true,
@@ -390,6 +392,7 @@ const deleteProduct = async (req, res) => {
     product.isFeatured = false;
     product.featuredAt = null;
     await product.save();
+    req.app.get("io")?.emit("realtime_update", { type: "product", relatedType: "product", relatedId: product._id });
 
     res.json({ success: true, message: "Da an bai dang" });
   } catch (error) {
@@ -490,6 +493,7 @@ const setFeaturedProducts = async (req, res) => {
     }
 
     await User.findByIdAndUpdate(req.user._id, { hasSetupFeaturedProducts: true });
+    req.app.get("io")?.emit("realtime_update", { type: "product", relatedType: "product" });
 
     res.json({
       success: true,
@@ -565,6 +569,7 @@ const adminChangeStatus = async (req, res) => {
 
     product.images = await getProductImageUrls(product._id);
     product.thumbnailUrl = product.images[0] || null;
+    req.app.get("io")?.emit("realtime_update", { type: "product", relatedType: "product", relatedId: product._id });
 
     if (status === "approved" && existingProduct.postStatus !== "approved") {
       await createNotification({

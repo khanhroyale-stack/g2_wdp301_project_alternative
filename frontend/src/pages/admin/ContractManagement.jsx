@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "../../components/Sidebar";
 import adminService from "../../services/admin.service";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import toast from "react-hot-toast";
 
 const ContractManagement = () => {
@@ -8,7 +9,7 @@ const ContractManagement = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
 
-  const fetchRentals = async () => {
+  const fetchRentals = useCallback(async () => {
     setLoading(true);
     try {
       const res = await adminService.getRentals(filter ? { status: filter } : {});
@@ -20,12 +21,12 @@ const ContractManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
   useEffect(() => {
     fetchRentals();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+  }, [fetchRentals]);
+  useRealtimeRefresh("rental", fetchRentals);
 
   const STATUS_MAP = {
     pending: { label: "Chờ xác nhận", color: "text-orange-500 bg-orange-50" },
@@ -85,12 +86,15 @@ const ContractManagement = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-variant/20">
-                  {rentals.map((r) => (
+                  {rentals.map((r) => {
+                    const productImage = r.postId?.thumbnailUrl || r.postId?.images?.[0];
+
+                    return (
                     <tr key={r._id} className="hover:bg-surface-container-lowest/50 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          {r.postId?.images?.[0] ? (
-                            <img src={r.postId.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover bg-surface-variant" />
+                          {productImage ? (
+                            <img src={productImage} alt="" className="w-12 h-12 rounded-lg object-cover bg-surface-variant" />
                           ) : (
                             <div className="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center">
                               <span className="material-symbols-outlined text-on-surface-variant">image</span>
@@ -124,7 +128,8 @@ const ContractManagement = () => {
                         </span>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

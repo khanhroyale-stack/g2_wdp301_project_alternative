@@ -11,6 +11,27 @@ const formatTime = (dateStr) => {
   return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
 };
 
+const getUserId = (value) => value?._id || value?.id || value;
+
+const getUserName = (value) => value?.fullName || value?.name || "Người dùng";
+
+const getInitial = (name) => (name || "U").trim().charAt(0).toUpperCase();
+
+const UserAvatar = ({ user: avatarUser, name, className = "w-10 h-10", fallbackClassName = "bg-primary/10 text-primary" }) => {
+  const displayName = name || getUserName(avatarUser);
+  const avatarUrl = avatarUser?.avatarUrl;
+
+  return (
+    <div className={`${className} rounded-full overflow-hidden flex items-center justify-center text-sm font-bold flex-shrink-0 ${avatarUrl ? "bg-surface-container-low" : fallbackClassName}`}>
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+      ) : (
+        getInitial(displayName)
+      )}
+    </div>
+  );
+};
+
 const Messages = () => {
   const { roomId } = useParams();
   const { user } = useAuth();
@@ -135,7 +156,15 @@ const Messages = () => {
     const buyer = room.buyerId;
     const seller = room.sellerId;
     if (!buyer || !seller) return buyer || seller || null;
-    return String(buyer._id || buyer) === String(myId) ? seller : buyer;
+    return String(getUserId(buyer)) === String(myId) ? seller : buyer;
+  };
+
+  const getSender = (message) => {
+    const sender = message?.senderId || message?.sender;
+    if (sender && typeof sender === "object") return sender;
+    const senderId = getUserId(sender);
+    if (String(senderId) === String(user?.id || user?._id)) return user;
+    return getOther(activeRoom);
   };
 
   const filteredRooms = rooms.filter((r) => {
@@ -176,17 +205,19 @@ const Messages = () => {
             ) : filteredRooms.map((room) => {
               const other = getOther(room);
               const isActive = activeRoom?._id === room._id;
-              const name = other?.fullName || other?.name || "Người dùng";
+              const name = getUserName(other);
 
               return (
                 <button key={room._id} onClick={() => handleSelectRoom(room)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all ${isActive ? "bg-primary/5 border-l-2 border-primary" : "hover:bg-surface-container-low"
                     }`}>
                   <div className="relative flex-shrink-0">
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold ${isActive ? "bg-primary text-on-primary" : "bg-primary/10 text-primary"
-                      }`}>
-                      {name.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      user={other}
+                      name={name}
+                      className="w-11 h-11"
+                      fallbackClassName={isActive ? "bg-primary text-on-primary" : "bg-primary/10 text-primary"}
+                    />
                     {room.unreadCount > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-error text-on-error text-[9px] font-bold rounded-full flex items-center justify-center">
                         {room.unreadCount}
@@ -224,12 +255,14 @@ const Messages = () => {
               {/* Header */}
               <div className="px-6 py-4 bg-white border-b border-surface-variant/20 flex items-center justify-between flex-shrink-0 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-sm">
-                    {(getOther(activeRoom)?.fullName || getOther(activeRoom)?.name || "U").charAt(0).toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    user={getOther(activeRoom)}
+                    className="w-10 h-10"
+                    fallbackClassName="bg-primary text-on-primary"
+                  />
                   <div>
                     <p className="font-bold text-on-surface text-sm">
-                      {getOther(activeRoom)?.fullName || getOther(activeRoom)?.name || "Người dùng"}
+                      {getUserName(getOther(activeRoom))}
                     </p>
                     <p className="text-xs text-primary font-medium truncate max-w-[200px]">
                       {activeRoom.postId?.title || activeRoom.product?.title || ""}
@@ -281,20 +314,23 @@ const Messages = () => {
                   </div>
                 ) : messages.map((m, idx) => {
                   const myId = user?.id || user?._id;
-                  const senderId = m.senderId?._id || m.senderId || m.sender?._id || m.sender;
+                  const senderId = getUserId(m.senderId || m.sender);
                   const isMine = String(senderId) === String(myId);
                   const prevSenderId = idx > 0
-                    ? String(messages[idx - 1].senderId?._id || messages[idx - 1].senderId || messages[idx - 1].sender?._id || messages[idx - 1].sender)
+                    ? String(getUserId(messages[idx - 1].senderId || messages[idx - 1].sender))
                     : null;
                   const isConsecutive = prevSenderId && prevSenderId === String(senderId);
+                  const sender = getSender(m);
 
                   return (
                     <div key={m._id} className={`flex ${isMine ? "justify-end" : "justify-start"} ${isConsecutive ? "" : "mt-2"}`}>
                       <div className={`flex items-end gap-2 max-w-[65%] ${isMine ? "flex-row-reverse" : ""}`}>
                         {!isMine && !isConsecutive && (
-                          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0 mb-1">
-                            {(getOther(activeRoom)?.fullName || "U").charAt(0).toUpperCase()}
-                          </div>
+                          <UserAvatar
+                            user={sender}
+                            className="w-7 h-7 mb-1 text-xs"
+                            fallbackClassName="bg-primary/10 text-primary"
+                          />
                         )}
                         {!isMine && isConsecutive && <div className="w-7 flex-shrink-0" />}
 

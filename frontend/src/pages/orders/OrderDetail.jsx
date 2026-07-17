@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -13,6 +13,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import { useAuth } from "../../context/AuthContext";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { getDeliveryStatusInfo, getOrderStatusInfo } from "../../lib/orderFlow";
 import orderService from "../../services/order.service";
 
@@ -165,39 +166,23 @@ export default function OrderDetail() {
   const [order, setOrder] = useState(null);
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchOrder = async () => {
-      setLoading(true);
-      try {
-        const res = await orderService.getOrderById(id);
-        if (mounted && res.success) {
-          setOrder(res.data);
-        }
-      } catch (error) {
-        toast.error(error.response?.data?.message || "Không thể tải chi tiết đơn hàng");
-        navigate("/orders/my-orders");
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchOrder();
-
-    return () => {
-      mounted = false;
-    };
-  }, [id, navigate]);
-
-  const refreshOrder = async () => {
+  const refreshOrder = useCallback(async () => {
     const res = await orderService.getOrderById(id);
     if (res.success) {
       setOrder(res.data);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    setLoading(true);
+    refreshOrder()
+      .catch((error) => {
+        toast.error(error.response?.data?.message || "Không thể tải chi tiết đơn hàng");
+        navigate("/orders/my-orders");
+      })
+      .finally(() => setLoading(false));
+  }, [navigate, refreshOrder]);
+  useRealtimeRefresh("order", refreshOrder);
 
   const handleOrderAction = async (status) => {
     setProcessing(true);
@@ -515,7 +500,9 @@ export default function OrderDetail() {
                             <div className="text-sm font-bold text-on-surface">{step.title}</div>
                             <StatusChip tone={tone}>{dateTimeText(step.timestamp)}</StatusChip>
                           </div>
-                          <p className="mt-1 text-sm leading-6 text-on-surface-variant">{step.description}</p>
+                          <p className={`mt-1 text-sm leading-6 ${step.key === "cancelled" ? "text-black" : "text-on-surface-variant"}`}>
+                            {step.description}
+                          </p>
                         </div>
                       </div>
                     );
@@ -611,9 +598,9 @@ export default function OrderDetail() {
             </div>
 
             {order.cancelReason ? (
-              <div className="rounded-[18px] border border-danger/30 bg-danger-soft/50 p-5 text-sm text-danger shadow-sm">
+              <div className="rounded-[18px] border border-danger/30 bg-danger-soft/50 p-5 text-sm text-black shadow-sm">
                 <div className="font-bold uppercase tracking-[0.12em]">Lý do hủy đơn</div>
-                <div className="mt-2 leading-6 text-danger-foreground">{order.cancelReason}</div>
+                <div className="mt-2 leading-6 text-black">{order.cancelReason}</div>
               </div>
             ) : null}
 

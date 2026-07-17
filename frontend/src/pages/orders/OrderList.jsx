@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock3, PackageCheck, RotateCcw, ShieldCheck, SlidersHorizontal, Truck } from "lucide-react";
 import toast from "react-hot-toast";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import orderService from "../../services/order.service";
 
 const FILTERS = [
@@ -36,13 +37,14 @@ export default function OrderList() {
   const [filter, setFilter] = useState("all");
   const [processing, setProcessing] = useState(null);
 
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     setLoading(true);
     try { const res = await orderService.getMyOrders(); if (res.success) setOrders(res.data); }
     catch { toast.error("Không thể tải danh sách đơn hàng"); }
     finally { setLoading(false); }
-  };
-  useEffect(() => { loadOrders(); }, []);
+  }, []);
+  useEffect(() => { loadOrders(); }, [loadOrders]);
+  useRealtimeRefresh("order", loadOrders);
 
   const visibleOrders = useMemo(() => orders.filter((order) => {
     if (filter === "all") return !["completed", "cancelled"].includes(order.orderStatus);

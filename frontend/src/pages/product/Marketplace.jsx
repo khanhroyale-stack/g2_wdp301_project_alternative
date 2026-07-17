@@ -1,29 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import { useAuth } from "../../context/AuthContext";
 import productService from "../../services/product.service";
 import categoryService from "../../services/category.service";
-import ProBadge from "../../components/ui/ProBadge";
+import chatService from "../../services/chat.service";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 
-const CONDITIONS = ["Tất cả", "Mới", "Như mới", "Đã dùng - Còn tốt", "Đã dùng - Có lỗi nhỏ"];
-
-const mapConditionToStatus = (cond) => {
-  switch (cond) {
-    case "Mới": return "new";
-    case "Như mới": return "like_new";
-    case "Đã dùng - Còn tốt": return "good";
-    case "Đã dùng - Có lỗi nhỏ": return "fair";
-    default: return "";
-  }
-};
+const CONDITION_OPTIONS = [
+  { value: "", label: "Tất cả" },
+  { value: "new", label: "Mới 100%" },
+  { value: "good", label: "Đã sử dụng" },
+];
 
 const mapStatusToCondition = (status) => {
   switch (status) {
-    case "new": return "Mới";
-    case "like_new": return "Như mới";
-    case "good": return "Đã dùng - Còn tốt";
-    case "fair": return "Đã dùng - Có lỗi nhỏ";
+    case "new": return "Mới 100%";
+    case "good": return "Đã sử dụng";
     default: return "";
   }
 };
@@ -32,11 +27,12 @@ const Marketplace = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const isRentPage = location.pathname === "/cho-thue";
 
   const [categories, setCategories] = useState([]);
   const [selectedCat, setSelectedCat] = useState("Tất cả");
-  const [selectedCond, setSelectedCond] = useState("Tất cả");
+  const [selectedCond, setSelectedCond] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -53,48 +49,68 @@ const Marketplace = () => {
     }).catch(err => console.error(err));
   }, []);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      try {
-        const params = {
-          productType: isRentPage ? "rent" : "sale",
-          sort: sortBy
-        };
-        if (keyword) params.keyword = keyword;
-        if (selectedCat !== "Tất cả") params.category = selectedCat;
-        if (selectedCond !== "Tất cả") params.condition = mapConditionToStatus(selectedCond);
-        if (minPrice) params.minPrice = minPrice;
-        if (maxPrice) params.maxPrice = maxPrice;
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {
+        productType: isRentPage ? "rent" : "sale",
+        sort: sortBy
+      };
+      if (keyword) params.keyword = keyword;
+      if (selectedCat !== "Tất cả") params.category = selectedCat;
+      if (selectedCond) params.condition = selectedCond;
+      if (minPrice) params.minPrice = minPrice;
+      if (maxPrice) params.maxPrice = maxPrice;
 
-        const res = await productService.getProducts(params);
-        if (res.success) {
-          if (Array.isArray(res.data)) {
-            setFeaturedProducts([]);
-            setProducts(res.data);
-          } else {
-            setFeaturedProducts(res.data?.featuredProducts || []);
-            setProducts(res.data?.products || []);
-          }
+      const res = await productService.getProducts(params);
+      if (res.success) {
+        if (Array.isArray(res.data)) {
+          setFeaturedProducts([]);
+          setProducts(res.data);
+        } else {
+          setFeaturedProducts(res.data?.featuredProducts || []);
+          setProducts(res.data?.products || []);
         }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchProducts();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [isRentPage, keyword, selectedCat, selectedCond, sortBy, minPrice, maxPrice]);
 
-  const inputCls = "w-full bg-surface-bright border border-surface-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:border-primary outline-none transition-all";
-
-  // Helper to get image URL — thumbnailUrl từ Cloudinary/upload đã là full URL
-  const getImageUrl = (url) => {
-    if (!url) return null; // Dùng null để hiển thị placeholder đẹp
-    return url;
-  };
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+  useRealtimeRefresh("product", fetchProducts);
 
   const formatPrice = (num) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+
+  const handleRentNow = (event, productId) => {
+    event.stopPropagation();
+    navigate(user ? `/thue/${productId}` : "/dang-nhap");
+  };
+
+  const handleContact = async (event, product) => {
+    event.stopPropagation();
+    if (!user) {
+      navigate("/dang-nhap");
+      return;
+    }
+
+    const ownerId = product.ownerId?._id || product.ownerId;
+    if (!ownerId || String(ownerId) === String(user.id || user._id)) {
+      toast.error("Không thể liên hệ với chính bài đăng của bạn.");
+      return;
+    }
+
+    try {
+      const res = await chatService.getOrCreateRoom(ownerId, product._id);
+      if (res.success) navigate(`/tin-nhan/${res.data.room._id}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể mở cuộc trò chuyện.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
@@ -137,17 +153,17 @@ const Marketplace = () => {
             <div>
               <h3 className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-[0.2em] mb-6">Tình trạng đồ</h3>
               <div className="flex flex-wrap gap-2">
-                {CONDITIONS.map((cond) => (
-                  <button key={cond} onClick={() => setSelectedCond(cond)}
-                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${selectedCond === cond ? "bg-secondary border-secondary text-white" : "border-primary/10 text-on-surface-variant hover:border-primary/30 hover:text-primary"}`}>
-                    {cond}
+                {CONDITION_OPTIONS.map((condition) => (
+                  <button key={condition.value || "all"} onClick={() => setSelectedCond(condition.value)}
+                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${selectedCond === condition.value ? "bg-secondary border-secondary text-white" : "border-primary/10 text-on-surface-variant hover:border-primary/30 hover:text-primary"}`}>
+                    {condition.label}
                   </button>
                 ))}
               </div>
             </div>
 
             <button
-              onClick={() => { setSelectedCat("Tất cả"); setSelectedCond("Tất cả"); setMinPrice(""); setMaxPrice(""); }}
+              onClick={() => { setSelectedCat("Tất cả"); setSelectedCond(""); setMinPrice(""); setMaxPrice(""); }}
               className="inline-flex items-center gap-2 text-xs font-bold text-error/60 hover:text-error transition-colors pt-4 border-t border-primary/5"
             >
               <span className="material-symbols-outlined text-[16px]">refresh</span>
@@ -199,11 +215,6 @@ const Marketplace = () => {
                         <div className="absolute top-4 left-4">
                           <span className="bg-secondary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">Nổi bật</span>
                         </div>
-                        {product.ownerIsPro && (
-                          <div className="absolute bottom-4 right-4 bg-white/90 p-1.5 rounded-xl shadow-sm">
-                            <ProBadge />
-                          </div>
-                        )}
                       </div>
                       <div className="p-6 flex flex-col flex-grow">
                         <h3 className="line-clamp-2 font-display font-bold text-lg text-foreground mb-4 group-hover:text-primary transition-colors">{product.title}</h3>
@@ -214,6 +225,24 @@ const Marketplace = () => {
                             {product.location?.split(',')[0] || "Hòa Lạc"}
                           </span>
                         </div>
+                        {product.productType === "rent" && (
+                          <div className="mt-4 grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => handleRentNow(event, product._id)}
+                              className="h-10 rounded-full bg-secondary px-3 text-xs font-black text-white transition-all hover:bg-secondary/90 active:scale-95"
+                            >
+                              Thuê ngay
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => handleContact(event, product)}
+                              className="h-10 rounded-full border border-primary/20 bg-white px-3 text-xs font-black text-primary transition-all hover:bg-primary/5 active:scale-95"
+                            >
+                              Liên hệ
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </article>
                   );
@@ -230,7 +259,7 @@ const Marketplace = () => {
             <div className="text-center py-24 bg-white rounded-organic border border-primary/5">
               <span className="material-symbols-outlined text-6xl text-primary/20 block mb-4">search_off</span>
               <p className="text-on-surface-variant font-medium">Không tìm thấy sản phẩm phù hợp.</p>
-              <button onClick={() => { setSelectedCat("Tất cả"); setSelectedCond("Tất cả"); setMinPrice(""); setMaxPrice(""); }}
+              <button onClick={() => { setSelectedCat("Tất cả"); setSelectedCond(""); setMinPrice(""); setMaxPrice(""); }}
                 className="mt-4 text-primary font-bold hover:underline">Xóa tất cả bộ lọc</button>
             </div>
           ) : (
@@ -281,6 +310,24 @@ const Marketplace = () => {
                           <span className="text-[11px] font-medium truncate max-w-[70px]">{product.location?.split(',')[0] || "Hòa Lạc"}</span>
                         </div>
                       </div>
+                      {product.productType === "rent" && (
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={(event) => handleRentNow(event, product._id)}
+                            className="h-10 rounded-full bg-secondary px-3 text-xs font-black text-white transition-all hover:bg-secondary/90 active:scale-95"
+                          >
+                            Thuê ngay
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => handleContact(event, product)}
+                            className="h-10 rounded-full border border-primary/20 bg-white px-3 text-xs font-black text-primary transition-all hover:bg-primary/5 active:scale-95"
+                          >
+                            Liên hệ
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </article>
                 );

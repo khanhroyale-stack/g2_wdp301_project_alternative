@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "../../components/Sidebar";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import productService from "../../services/product.service";
 import toast from "react-hot-toast";
 
@@ -19,7 +20,7 @@ const PostApprovals = () => {
   const [showDetailModal, setShowDetailModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await productService.adminGetProducts(STATUS_FILTER[tab]);
@@ -29,12 +30,12 @@ const PostApprovals = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tab]);
 
   useEffect(() => {
     fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [fetchPosts]);
+  useRealtimeRefresh("product", fetchPosts);
 
   const handleApprove = async (id) => {
     try {

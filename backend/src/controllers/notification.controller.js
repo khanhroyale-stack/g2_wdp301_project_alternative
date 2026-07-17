@@ -1,12 +1,36 @@
 const Notification = require("../models/notification.model");
 
+const normalizeNotificationText = (value = "") => {
+  if (!value) return value;
+
+  return String(value)
+    .replaceAll("Bien ban kiem tra that bai", "Biên bản kiểm tra thất bại")
+    .replaceAll("Van don", "Vận đơn")
+    .replaceAll("co tieu chi kiem tra khong dat va can Admin xu ly", "có tiêu chí kiểm tra không đạt và cần Admin xử lý")
+    .replaceAll("Da danh dau doc tat ca", "Đã đánh dấu đọc tất cả")
+    .replaceAll("Don hang", "Đơn hàng")
+    .replaceAll("Nguoi mua", "Người mua")
+    .replaceAll("Nguoi ban", "Người bán")
+    .replaceAll("Ly do", "Lý do")
+    .replaceAll("tu choi", "từ chối")
+    .replaceAll("huy", "hủy");
+};
+
+const normalizeNotification = (notification) => {
+  const item = notification.toObject ? notification.toObject() : { ...notification };
+  item.title = normalizeNotificationText(item.title);
+  item.content = normalizeNotificationText(item.content);
+  return item;
+};
+
 // GET /api/notifications — lấy thông báo của tôi
 const getMyNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ userId: req.user._id })
       .sort({ createdAt: -1 })
-      .limit(50);
-    res.json({ success: true, data: notifications });
+      .limit(50)
+      .lean();
+    res.json({ success: true, data: notifications.map(normalizeNotification) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -62,13 +86,19 @@ const createNotification = async ({ recipientId, type, title, content, relatedTy
     const noti = await Notification.create({
       userId: recipientId,
       notificationType: type,
-      title,
-      content,
+      title: normalizeNotificationText(title),
+      content: normalizeNotificationText(content),
       relatedType: relatedType || null,
       relatedId: relatedId || null,
       link: link || null,
     });
-    io?.to(`user_${recipientId}`).emit("new_notification", noti);
+    io?.to(`user_${recipientId}`).emit("new_notification", normalizeNotification(noti));
+    io?.emit("realtime_update", {
+      type: relatedType || "notification",
+      relatedType: relatedType || null,
+      relatedId: relatedId || null,
+      notificationId: noti._id,
+    });
     return noti;
   } catch (err) {
     console.error("[createNotification] error:", err.message);

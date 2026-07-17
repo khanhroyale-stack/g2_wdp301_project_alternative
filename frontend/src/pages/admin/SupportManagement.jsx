@@ -1,9 +1,15 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "../../components/Sidebar";
 import supportService from "../../services/support.service";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import toast from "react-hot-toast";
+
+const getUserId = (value) => value?._id || value?.id || value;
+
+const getUserName = (value) => value?.fullName || value?.name || "Người dùng";
+
+const getAvatarUrl = (value) => value?.avatarUrl;
 
 const SupportManagement = () => {
   const { user } = useAuth();
@@ -39,7 +45,7 @@ const SupportManagement = () => {
             scrollToBottom();
           }
         })
-        .catch(err => {
+        .catch(() => {
           toast.error("Lỗi lấy tin nhắn");
         });
       
@@ -174,15 +180,29 @@ const SupportManagement = () => {
                 
                 <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-slate-50/50">
                   {messages.map((msg, idx) => {
-                    const isAdmin = msg.senderId.role === "admin" || msg.senderId === user._id;
+                    const senderId = getUserId(msg.senderId);
+                    const isAdmin = msg.senderId?.role === "admin" || String(senderId) === String(user._id || user.id);
+                    const sender = isAdmin ? user : (typeof msg.senderId === "object" ? msg.senderId : selectedCustomer);
+                    const senderName = getUserName(sender);
+                    const avatarUrl = getAvatarUrl(sender);
+
                     return (
                       <div key={idx} className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[70%] rounded-2xl px-5 py-2.5 text-sm ${
-                          isAdmin 
-                            ? "bg-primary text-white rounded-tr-sm" 
-                            : "bg-white border border-gray-200 text-gray-800 rounded-tl-sm shadow-sm"
-                        }`}>
-                          {msg.content}
+                        <div className={`flex items-end gap-2 max-w-[70%] ${isAdmin ? "flex-row-reverse" : ""}`}>
+                          <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary flex items-center justify-center">
+                            {avatarUrl ? (
+                              <img src={avatarUrl} alt={senderName} className="h-full w-full object-cover" />
+                            ) : (
+                              senderName.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          <div className={`rounded-2xl px-5 py-2.5 text-sm ${
+                            isAdmin
+                              ? "bg-primary text-white rounded-tr-sm"
+                              : "bg-white border border-gray-200 text-gray-800 rounded-tl-sm shadow-sm"
+                          }`}>
+                            {msg.content}
+                          </div>
                         </div>
                       </div>
                     );

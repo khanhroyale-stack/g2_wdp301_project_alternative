@@ -202,7 +202,7 @@ export default function DeliveryInspection() {
               <div className="mt-2 flex flex-wrap items-center gap-3 text-lg text-muted-foreground">
                 <Badge variant="outline">#{String(id).slice(-6).toUpperCase()}</Badge>
                 <span>•</span>
-                <span>Kiểm tra sản phẩm sau khi đã lấy hàng từ seller</span>
+                <span>Kiểm tra sản phẩm tại điểm lấy hàng trước khi nhận hàng từ seller</span>
               </div>
             </div>
           </div>
@@ -230,7 +230,7 @@ export default function DeliveryInspection() {
         <Card>
           <CardHeader>
             <CardTitle className="text-[2rem]">Chi tiết kiểm định</CardTitle>
-            <p className="text-lg text-muted-foreground">Shipper cần xác nhận đúng sản phẩm, đúng hình ảnh, đúng model, đúng tình trạng và đủ phụ kiện.</p>
+            <p className="text-lg text-muted-foreground">Shipper cần xác nhận đúng sản phẩm, đúng hình ảnh, đúng model, đúng tình trạng và đủ phụ kiện trước khi bấm đã lấy hàng.</p>
           </CardHeader>
           <CardContent className="space-y-7">
             {INSPECTION_CHECKS.map((check) => (
@@ -315,10 +315,12 @@ export default function DeliveryInspection() {
             <div className="border-t border-border pt-6">
               <div className="mb-5 flex items-start justify-center gap-3 text-sm text-muted-foreground">
                 <CircleAlert className="mt-0.5 h-4 w-4" />
-                Bằng việc lưu biên bản, shipper xác nhận kết quả kiểm tra và chấp nhận tiếp tục hoặc dừng luồng giao.
+                {hasFailedCheck
+                  ? "Biên bản có tiêu chí không đạt sẽ dừng luồng giao để Admin xử lý."
+                  : "Bằng việc bấm đã lấy hàng, shipper xác nhận toàn bộ kết quả kiểm tra và nhận hàng từ seller để tiếp tục giao."}
               </div>
               <Button size="lg" className="w-full text-[1.25rem]" onClick={handleSubmit} disabled={submitting}>
-                {inspection ? "Quay lại vận đơn" : submitting ? "Đang lưu..." : "Lưu biên bản kiểm tra"}
+                {inspection ? "Quay lại vận đơn" : submitting ? "Đang xác nhận..." : hasFailedCheck ? "Lưu biên bản lỗi" : "Đã lấy hàng"}
               </Button>
             </div>
           </CardContent>
@@ -330,7 +332,7 @@ export default function DeliveryInspection() {
               <div className="rounded-full bg-success-soft p-3 text-success"><ShieldCheck className="h-5 w-5" /></div>
               <div>
                 <div className="text-[1.35rem] font-bold">Khi kiểm tra đạt</div>
-                <div className="mt-1 text-base leading-7 text-muted-foreground">Shipper sẽ được phép quay lại vận đơn và chuyển tiếp sang bước bắt đầu giao hàng.</div>
+                <div className="mt-1 text-base leading-7 text-muted-foreground">Hệ thống xác nhận shipper đã lấy hàng và cho phép chuyển tiếp sang bước bắt đầu giao hàng.</div>
               </div>
             </CardContent>
           </Card>

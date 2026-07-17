@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "../../components/Sidebar";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import adminService from "../../services/admin.service";
 import toast from "react-hot-toast";
 
@@ -27,7 +28,7 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res = await adminService.getOrders(filter ? { orderStatus: filter } : {});
@@ -37,9 +38,10 @@ const OrderManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
-  useEffect(() => { fetchOrders(); }, [filter]); // eslint-disable-line
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useRealtimeRefresh("order", fetchOrders);
 
   const fmt = (n) => (n || 0).toLocaleString("vi-VN") + "₫";
 

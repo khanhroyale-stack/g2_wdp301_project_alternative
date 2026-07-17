@@ -45,8 +45,8 @@ test("reserved inventory is inactive until the order is completed", () => {
 
 test("delivery transitions must follow the required sequence", () => {
   assert.equal(isDeliveryTransitionAllowed("accepted", "picking_up"), true);
-  assert.equal(isDeliveryTransitionAllowed("picking_up", "ready_for_delivery"), true);
-  assert.equal(isDeliveryTransitionAllowed("ready_for_delivery", "received"), true);
+  assert.equal(isDeliveryTransitionAllowed("picking_up", "ready_for_delivery"), false);
+  assert.equal(isDeliveryTransitionAllowed("picking_up", "received"), false);
   assert.equal(isDeliveryTransitionAllowed("received", "in_transit"), true);
   assert.equal(isDeliveryTransitionAllowed("in_transit", "delivered"), true);
   assert.equal(isDeliveryTransitionAllowed("accepted", "delivered"), false);

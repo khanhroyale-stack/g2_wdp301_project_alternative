@@ -324,7 +324,7 @@ const updateOrderStatus = async (req, res) => {
       }
 
       if (!delivery) {
-        await Delivery.create({
+        delivery = await Delivery.create({
           orderId: order._id,
           shipperId: null,
           pickupAddress: seller.address || "Dia chi nguoi ban chua cap nhat",
@@ -340,6 +340,7 @@ const updateOrderStatus = async (req, res) => {
             },
           ],
         });
+        io?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
       }
 
       await sendOrderNotification(

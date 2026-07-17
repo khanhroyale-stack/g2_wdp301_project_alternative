@@ -10,7 +10,6 @@ import {
   Info,
   Leaf,
   List,
-  Plus,
   Save,
   Send,
   Upload,
@@ -45,7 +44,7 @@ const labelCls = "mb-2 block text-sm font-bold text-[#444b57]";
 const getImageSource = (src) => {
   if (!src) return "";
   if (src.startsWith("blob:") || src.startsWith("http")) return src;
-  return `http://localhost:5000${src}`;
+  return src;
 };
 
 const CreatePost = () => {

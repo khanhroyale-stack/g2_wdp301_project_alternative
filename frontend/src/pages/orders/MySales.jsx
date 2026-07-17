@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -22,6 +22,7 @@ import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { getDeliveryStatusInfo, getOrderStatusInfo } from "../../lib/orderFlow";
 import { formatDateTime, formatPrice } from "../../lib/utils";
 import orderService from "../../services/order.service";
@@ -67,7 +68,7 @@ export default function MySales() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res = await orderService.getMySales();
@@ -77,11 +78,12 @@ export default function MySales() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
+  useRealtimeRefresh("order", fetchOrders);
 
   const handleStatusUpdate = async (orderId, status) => {
     setProcessingId(orderId);
@@ -352,7 +354,11 @@ export default function MySales() {
                             Shipper: {order.delivery?.shipperId?.fullName || "Chưa có shipper nhận đơn"}
                           </span>
                         </div>
-                        <div className="mt-4 flex items-start gap-2 rounded-2xl bg-muted px-4 py-3 text-sm leading-6 text-muted-foreground">
+                        <div
+                          className={`mt-4 flex items-start gap-2 rounded-2xl bg-muted px-4 py-3 text-sm leading-6 ${
+                            order.orderStatus === "cancelled" ? "text-black" : "text-muted-foreground"
+                          }`}
+                        >
                           <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
                           <span>{getSellerActionHint(order)}</span>
                         </div>

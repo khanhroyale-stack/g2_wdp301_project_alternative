@@ -7,8 +7,6 @@ const uploadImages = async (req, res) => {
       return res.status(400).json({ success: false, message: "No files uploaded" });
     }
 
-    const PORT = process.env.PORT || 5000;
-    const BASE_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
     const db = mongoose.connection.db;
 
     // Insert raw vào media_files để tuân thủ Atlas JSON Schema validator
@@ -29,14 +27,14 @@ const uploadImages = async (req, res) => {
           fileSize: new Int32(file.size),
           storageType: "local",
           localPath: `/uploads/products/${file.filename}`,
-          publicUrl: `${BASE_URL}/uploads/products/${file.filename}`,
+          publicUrl: `/uploads/products/${file.filename}`,
           fileType: requestedFileType,
           createdAt: new Date(),
         })
       )
     );
 
-    const urls = insertResults.map((r, i) => `${BASE_URL}/uploads/products/${req.files[i].filename}`);
+    const urls = insertResults.map((r, i) => `/uploads/products/${req.files[i].filename}`);
     const mediaIds = insertResults.map((r) => r.insertedId);
 
     res.status(200).json({ success: true, urls, mediaIds });

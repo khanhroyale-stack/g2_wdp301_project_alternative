@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock3, MapPin, Package2, ShieldCheck, Truck, User } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, MapPin, Package2, ShieldCheck, Truck } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import ShipperLayout from "../../components/shipper/ShipperLayout";
@@ -7,13 +7,13 @@ import { Avatar, AvatarFallback } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { getDeliveryStatusInfo } from "../../lib/orderFlow";
 import { formatDateTime, formatPrice } from "../../lib/utils";
 import deliveryService from "../../services/delivery.service";
 
 const nextActionMap = {
-  accepted: { label: "Đang đến lấy hàng", nextStatus: "picking_up", variant: "sky" },
-  picking_up: { label: "Đã lấy hàng", nextStatus: "ready_for_delivery", variant: "default" },
+  accepted: { label: "Đang đến lấy hàng", nextStatus: "picking_up", variant: "sky", opensInspection: true },
   picked_up: { label: "Bắt đầu giao hàng", nextStatus: "in_transit", variant: "sky" },
   received: { label: "Bắt đầu giao hàng", nextStatus: "in_transit", variant: "sky" },
   in_transit: { label: "Đã giao thành công", nextStatus: "delivered", variant: "success" },
@@ -56,11 +56,18 @@ export default function DeliveryDetail() {
   useEffect(() => {
     fetchDelivery();
   }, [fetchDelivery]);
+  useRealtimeRefresh("delivery", fetchDelivery);
 
-  const updateStatus = async (status, extra = {}) => {
+  const handleNextAction = async () => {
+    if (!nextAction) return;
+
     setUpdating(true);
     try {
-      const res = await deliveryService.updateDeliveryStatus(id, status, extra);
+      const res = await deliveryService.updateDeliveryStatus(id, nextAction.nextStatus);
+      if (res.success && nextAction.opensInspection) {
+        navigate(`/shipper/don/${id}/inspection`);
+        return;
+      }
       if (res.success) {
         await fetchDelivery();
       }
@@ -90,7 +97,7 @@ export default function DeliveryDetail() {
   const statusInfo = getDeliveryStatusInfo(delivery.deliveryStatus);
   const nextAction = nextActionMap[delivery.deliveryStatus];
   const pickupInspection = delivery.inspections?.find((item) => item.inspectionType === "pickup");
-  const mustInspect = ["picked_up", "ready_for_delivery", "inspection_failed"].includes(delivery.deliveryStatus);
+  const mustInspect = ["picking_up", "picked_up", "ready_for_delivery", "inspection_failed"].includes(delivery.deliveryStatus);
 
   return (
     <ShipperLayout>
@@ -130,11 +137,11 @@ export default function DeliveryDetail() {
                 </Link>
               </Button>
             )}
-            {nextAction && (!mustInspect || pickupInspection?.result === "passed") && (
+            {nextAction && (!mustInspect || pickupInspection?.result === "passed" || nextAction.opensInspection) && (
               <Button
                 variant={nextAction.variant === "default" ? undefined : nextAction.variant}
                 size="lg"
-                onClick={() => updateStatus(nextAction.nextStatus)}
+                onClick={handleNextAction}
                 disabled={updating}
                 className="min-w-[180px]"
               >
@@ -235,7 +242,7 @@ export default function DeliveryDetail() {
                       Kiểm tra trước khi giao
                     </h3>
                     <p className="text-muted-foreground mt-1 max-w-2xl">
-                      Sau khi đã lấy hàng, shipper phải lập biên bản kiểm tra. Chỉ khi kiểm tra đạt, hệ thống mới cho phép bắt đầu giao hàng.
+                      Khi đến điểm lấy hàng, shipper phải lập biên bản kiểm tra trước khi nhận hàng từ seller. Chỉ khi kiểm tra đạt, hệ thống mới xác nhận đã lấy hàng và cho phép bắt đầu giao.
                     </p>
                   </div>
                 </div>
