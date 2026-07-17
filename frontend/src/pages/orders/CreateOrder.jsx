@@ -4,10 +4,12 @@ import {
   ChevronLeft,
   CircleUser,
   CreditCard,
+  Pencil,
+  Plus,
   MapPin,
-  Package,
   Phone,
   Store,
+  Trash2,
   Truck,
   X,
 } from "lucide-react";
@@ -22,7 +24,7 @@ import { Textarea } from "../../components/ui/textarea";
 import { useAuth } from "../../context/AuthContext";
 import orderService from "../../services/order.service";
 import userService from "../../services/user.service";
-import { formatDateOnly, formatPrice } from "../../lib/utils";
+import { formatPrice } from "../../lib/utils";
 
 const blankAddress = (index, fallback = {}) => ({
   label: index === 0 ? "Địa chỉ mặc định" : "Địa chỉ 2",
@@ -63,56 +65,46 @@ const normalizeAddressBook = (user, fallback = {}) => {
   let defaultIndex = cleaned.findIndex((item) => item.isDefault);
   if (defaultIndex < 0) defaultIndex = 0;
 
-  return cleaned.slice(0, 2).map((item, index) => ({
+  return cleaned.map((item, index) => ({
     ...item,
     isDefault: index === defaultIndex,
   }));
 };
 
-const emptyAddressDraft = (existing = []) => [
-  existing[0] || blankAddress(0),
-  existing[1] || blankAddress(1, existing[0] || {}),
-];
+const createAddressDraft = (fallback = {}, index = 0) => ({
+  label: fallback.label || (index === 0 ? "Địa chỉ mặc định" : `Địa chỉ ${index + 1}`),
+  recipientName: fallback.recipientName || "",
+  phone: fallback.phone || "",
+  address: fallback.address || "",
+  isDefault: Boolean(fallback.isDefault) || index === 0,
+});
 
-function AddressEditorModal({ open, onClose, addresses, onSave, saving }) {
-  const [draft, setDraft] = useState(() => emptyAddressDraft(addresses));
+function AddressEditorModal({ open, onClose, initialAddress, addressIndex, onSave, saving }) {
+  const [draft, setDraft] = useState(() => createAddressDraft(initialAddress, addressIndex));
 
   useEffect(() => {
     if (open) {
-      setDraft(emptyAddressDraft(addresses));
+      setDraft(createAddressDraft(initialAddress, addressIndex));
     }
-  }, [addresses, open]);
+  }, [addressIndex, initialAddress, open]);
 
   if (!open) return null;
 
-  const updateAddress = (index, field, value) => {
-    setDraft((prev) => prev.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)));
-  };
-
   const handleSave = () => {
-    const cleaned = draft
-      .map((item, index) => ({
-        label: (item.label || "").trim() || `Địa chỉ ${index + 1}`,
-        recipientName: (item.recipientName || "").trim(),
-        phone: (item.phone || "").trim(),
-        address: (item.address || "").trim(),
-        isDefault: Boolean(item.isDefault),
-      }))
-      .filter((item) => item.recipientName || item.phone || item.address);
+    const cleaned = {
+      label: (draft.label || "").trim() || `Địa chỉ ${addressIndex + 1}`,
+      recipientName: (draft.recipientName || "").trim(),
+      phone: (draft.phone || "").trim(),
+      address: (draft.address || "").trim(),
+      isDefault: Boolean(draft.isDefault),
+    };
 
-    if (!cleaned.length) {
-      toast.error("Vui lòng nhập ít nhất một địa chỉ.");
+    if (!cleaned.recipientName || !cleaned.phone || !cleaned.address) {
+      toast.error("Vui lòng nhập đầy đủ tên người nhận, số điện thoại và địa chỉ.");
       return;
     }
 
-    const defaultIndex = cleaned.findIndex((item) => item.isDefault);
-    const resolvedDefaultIndex = defaultIndex >= 0 ? defaultIndex : 0;
-    const normalized = cleaned.slice(0, 2).map((item, index) => ({
-      ...item,
-      isDefault: index === resolvedDefaultIndex,
-    }));
-
-    onSave(normalized);
+    onSave(cleaned);
   };
 
   return (
@@ -120,42 +112,34 @@ function AddressEditorModal({ open, onClose, addresses, onSave, saving }) {
       <div className="w-full max-w-3xl rounded-[28px] bg-white shadow-[0_30px_100px_rgba(0,0,0,.18)]">
         <div className="flex items-center justify-between border-b border-[#eef1f4] px-6 py-5">
           <div>
-            <div className="text-[1.1rem] font-bold text-[#202124]">Cập nhật địa chỉ nhận hàng</div>
-            <div className="mt-1 text-sm text-[#667085]">Lưu tối đa 2 địa chỉ để chọn nhanh khi đặt đơn.</div>
+            <div className="text-[1.1rem] font-bold text-[#202124]">
+              {initialAddress ? "Sửa địa chỉ nhận hàng" : "Thêm địa chỉ mới"}
+            </div>
+            <div className="mt-1 text-sm text-[#667085]">Địa chỉ sẽ được lưu trong hồ sơ của bạn để dùng cho các đơn sau.</div>
           </div>
           <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe3e8]">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="grid gap-5 p-6 md:grid-cols-2">
-          {draft.map((item, index) => (
-            <div key={index} className="rounded-[20px] border border-[#e6eaee] bg-[#fbfcfd] p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="text-sm font-bold uppercase tracking-[0.12em] text-[#18c76b]">{index === 0 ? "Địa chỉ 1" : "Địa chỉ 2"}</div>
-                <label className="flex items-center gap-2 text-sm text-[#667085]">
-                  <input
-                    type="radio"
-                    name="defaultAddress"
-                    checked={item.isDefault}
-                    onChange={() => setDraft((prev) => prev.map((entry, idx) => ({ ...entry, isDefault: idx === index })))}
-                  />
-                  Mặc định
-                </label>
-              </div>
-
-              <div className="space-y-3">
-                <Input placeholder="Tên người nhận" value={item.recipientName} onChange={(e) => updateAddress(index, "recipientName", e.target.value)} />
-                <Input placeholder="Số điện thoại" value={item.phone} onChange={(e) => updateAddress(index, "phone", e.target.value)} />
-                <Textarea
-                  placeholder="Địa chỉ giao hàng"
-                  value={item.address}
-                  onChange={(e) => updateAddress(index, "address", e.target.value)}
-                  className="min-h-[110px]"
-                />
-              </div>
-            </div>
-          ))}
+        <div className="space-y-4 p-6">
+          <Input placeholder="Nhãn địa chỉ, ví dụ: Nhà riêng, Công ty" value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} />
+          <Input placeholder="Tên người nhận" value={draft.recipientName} onChange={(e) => setDraft({ ...draft, recipientName: e.target.value })} />
+          <Input placeholder="Số điện thoại" value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} />
+          <Textarea
+            placeholder="Địa chỉ giao hàng"
+            value={draft.address}
+            onChange={(e) => setDraft({ ...draft, address: e.target.value })}
+            className="min-h-[110px]"
+          />
+          <label className="flex items-center gap-2 text-sm font-medium text-[#667085]">
+            <input
+              type="checkbox"
+              checked={draft.isDefault}
+              onChange={(e) => setDraft({ ...draft, isDefault: e.target.checked })}
+            />
+            Đặt làm địa chỉ mặc định
+          </label>
         </div>
 
         <div className="flex flex-col gap-3 border-t border-[#eef1f4] px-6 py-5 sm:flex-row sm:justify-end">
@@ -182,7 +166,7 @@ export default function CreateOrder() {
   const [savingAddress, setSavingAddress] = useState(false);
   const [preview, setPreview] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [showAddressEditor, setShowAddressEditor] = useState(false);
+  const [addressEditor, setAddressEditor] = useState({ open: false, index: null });
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(0);
   const [form, setForm] = useState({
     recipientName: "",
@@ -245,9 +229,9 @@ export default function CreateOrder() {
     if (!selectedAddress) return;
     setForm((prev) => ({
       ...prev,
-      recipientName: selectedAddress.recipientName || prev.recipientName,
-      buyerPhone: selectedAddress.phone || prev.buyerPhone,
-      buyerAddress: selectedAddress.address || prev.buyerAddress,
+      recipientName: selectedAddress.recipientName || "",
+      buyerPhone: selectedAddress.phone || "",
+      buyerAddress: selectedAddress.address || "",
     }));
   }, [selectedAddress]);
 
@@ -257,32 +241,68 @@ export default function CreateOrder() {
     if (!address) return;
     setForm((prev) => ({
       ...prev,
-      recipientName: address.recipientName || prev.recipientName,
-      buyerPhone: address.phone || prev.buyerPhone,
-      buyerAddress: address.address || prev.buyerAddress,
+      recipientName: address.recipientName || "",
+      buyerPhone: address.phone || "",
+      buyerAddress: address.address || "",
     }));
   };
 
-  const handleSaveAddresses = async (nextAddresses) => {
+  const persistAddresses = async (nextAddresses, successMessage = "Đã lưu địa chỉ nhận hàng") => {
     setSavingAddress(true);
     try {
+      const defaultAddress = nextAddresses.find((item) => item.isDefault) || nextAddresses[0] || null;
       const payload = {
-        fullName: profile?.user?.fullName || user?.fullName || nextAddresses[0].recipientName,
-        phone: profile?.user?.phone || user?.phone || nextAddresses[0].phone,
-        address: nextAddresses.find((item) => item.isDefault)?.address || nextAddresses[0].address,
+        fullName: profile?.user?.fullName || user?.fullName || defaultAddress?.recipientName || "",
+        phone: profile?.user?.phone || user?.phone || defaultAddress?.phone || "",
+        address: defaultAddress?.address || "",
         addresses: nextAddresses,
       };
       const res = await userService.updateMyProfile(payload);
       if (res.success) {
         setProfile({ user: res.user });
-        setShowAddressEditor(false);
-        toast.success("Đã lưu địa chỉ nhận hàng");
+        setAddressEditor({ open: false, index: null });
+        toast.success(successMessage);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Không thể lưu địa chỉ");
     } finally {
       setSavingAddress(false);
     }
+  };
+
+  const handleSaveAddress = async (address) => {
+    const editingIndex = addressEditor.index;
+    const source = addressBook.filter((item) => item.recipientName || item.phone || item.address);
+    const nextAddresses = editingIndex === null ? [...source, address] : source.map((item, index) => (index === editingIndex ? address : item));
+    const defaultIndex = address.isDefault
+      ? (editingIndex === null ? nextAddresses.length - 1 : editingIndex)
+      : nextAddresses.findIndex((item) => item.isDefault);
+    const resolvedDefaultIndex = defaultIndex >= 0 ? defaultIndex : 0;
+    const normalized = nextAddresses.map((item, index) => ({
+      label: item.label,
+      recipientName: item.recipientName,
+      phone: item.phone,
+      address: item.address,
+      isDefault: index === resolvedDefaultIndex,
+    }));
+
+    await persistAddresses(normalized, editingIndex === null ? "Đã thêm địa chỉ mới" : "Đã cập nhật địa chỉ");
+  };
+
+  const handleDeleteAddress = async (index) => {
+    const nextAddresses = addressBook
+      .filter((_, itemIndex) => itemIndex !== index)
+      .filter((item) => item.recipientName || item.phone || item.address)
+      .map(({ label, recipientName, phone, address, isDefault }) => ({ label, recipientName, phone, address, isDefault }));
+
+    const hasDefault = nextAddresses.some((item) => item.isDefault);
+    const normalized = nextAddresses.map((item, itemIndex) => ({
+      ...item,
+      isDefault: hasDefault ? item.isDefault : itemIndex === 0,
+    }));
+
+    await persistAddresses(normalized, "Đã xóa địa chỉ");
+    setSelectedAddressIndex((prev) => Math.max(0, Math.min(prev, normalized.length - 1)));
   };
 
   const handleSubmit = async (event) => {
@@ -353,18 +373,23 @@ export default function CreateOrder() {
                     <MapPin className="h-5 w-5 text-[#18c76b]" />
                     Địa chỉ nhận hàng
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowAddressEditor(true)}>
-                    Thay đổi địa chỉ
+                  <Button type="button" variant="outline" size="sm" onClick={() => setAddressEditor({ open: true, index: null })}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Thêm địa chỉ mới
                   </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5 p-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   {addressBook.map((address, index) => (
-                    <button
+                    <div
                       key={address._id || index}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleSelectAddress(index)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") handleSelectAddress(index);
+                      }}
                       className={`rounded-[18px] border p-4 text-left transition-all ${
                         selectedAddressIndex === index
                           ? "border-[#18c76b] bg-[#f0fff5] shadow-[0_0_0_1px_rgba(24,199,107,.08)]"
@@ -384,7 +409,31 @@ export default function CreateOrder() {
                         <span>{address.phone || "Chưa cập nhật"}</span>
                       </div>
                       <div className="mt-2 text-sm leading-6 text-[#596576]">{address.address || "Chưa cập nhật"}</div>
-                    </button>
+                      <div className="mt-4 flex gap-2 border-t border-[#eef1f4] pt-3">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setAddressEditor({ open: true, index });
+                          }}
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-full border border-[#dfe3e8] px-3 py-2 text-xs font-bold text-[#596576] hover:bg-[#f7f8f9]"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Sửa
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteAddress(index);
+                          }}
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-full border border-red-100 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
 
@@ -531,10 +580,11 @@ export default function CreateOrder() {
       </div>
 
       <AddressEditorModal
-        open={showAddressEditor}
-        onClose={() => setShowAddressEditor(false)}
-        addresses={addressBook}
-        onSave={handleSaveAddresses}
+        open={addressEditor.open}
+        onClose={() => setAddressEditor({ open: false, index: null })}
+        initialAddress={addressEditor.index === null ? null : addressBook[addressEditor.index]}
+        addressIndex={addressEditor.index === null ? addressBook.length : addressEditor.index}
+        onSave={handleSaveAddress}
         saving={savingAddress}
       />
     </EcoTradeLayout>

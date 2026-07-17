@@ -32,7 +32,7 @@ const normalizeAddresses = (addresses, fallback = {}) => {
   const defaultIndex = cleaned.findIndex((item) => item.isDefault);
   const resolvedDefaultIndex = defaultIndex >= 0 ? defaultIndex : 0;
 
-  return cleaned.slice(0, 2).map((item, index) => ({
+  return cleaned.map((item, index) => ({
     ...item,
     isDefault: index === resolvedDefaultIndex,
   }));

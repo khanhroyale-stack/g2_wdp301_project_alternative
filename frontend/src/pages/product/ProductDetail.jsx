@@ -8,7 +8,50 @@ import { useAuth } from "../../context/AuthContext";
 import cartService from "../../services/cart.service";
 import chatService from "../../services/chat.service";
 import productService from "../../services/product.service";
-import rentalService from "../../services/rental.service";
+
+const getProductCategoryId = (product) => product?.categoryId?._id || product?.categoryId;
+
+const flattenProductResponse = (data) => {
+  if (Array.isArray(data)) return data;
+  return [...(data?.featuredProducts || []), ...(data?.products || [])];
+};
+
+const ProductSuggestionCard = ({ product, onOpen, formatPrice }) => {
+  const price =
+    product.productType === "rent"
+      ? `${formatPrice(product.rentPricePerDay)}/ngày`
+      : formatPrice(product.salePrice);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(product._id)}
+      className="group overflow-hidden rounded-2xl border border-primary/5 bg-white text-left shadow-sm transition-all hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5"
+    >
+      <div className="aspect-square overflow-hidden bg-background">
+        <img
+          src={product.thumbnailUrl || product.images?.[0] || "https://placehold.co/480x480?text=EcoTrade"}
+          alt={product.title}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      </div>
+      <div className="p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${product.productType === "rent" ? "bg-secondary text-white" : "bg-primary text-white"}`}>
+            {product.productType === "rent" ? "Thuê" : "Bán"}
+          </span>
+          <span className="truncate text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50">
+            {product.location?.split(",")[0] || "Hòa Lạc"}
+          </span>
+        </div>
+        <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-5 text-foreground group-hover:text-primary">
+          {product.title}
+        </h3>
+        <p className="mt-3 text-lg font-black text-primary">{price}</p>
+      </div>
+    </button>
+  );
+};
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -20,8 +63,8 @@ const ProductDetail = () => {
   const [error, setError] = useState("");
   const [activeImg, setActiveImg] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
+  const [relatedProducts, setRelatedProducts] = useState([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -44,7 +87,33 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
+  useEffect(() => {
+    const categoryId = getProductCategoryId(product);
+    if (!categoryId) {
+      setRelatedProducts([]);
+      return;
+    }
 
+    const fetchRelatedProducts = async () => {
+      try {
+        const res = await productService.getProducts({
+          category: categoryId,
+          sort: "newest",
+          limit: 8,
+        });
+        if (res.success) {
+          const items = flattenProductResponse(res.data)
+            .filter((item) => String(item._id) !== String(product._id))
+            .slice(0, 4);
+          setRelatedProducts(items);
+        }
+      } catch {
+        setRelatedProducts([]);
+      }
+    };
+
+    fetchRelatedProducts();
+  }, [product]);
 
   const getImageUrl = (img) => {
     if (!img) return "https://placehold.co/800x600?text=No+Image";
@@ -120,9 +189,9 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/20">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 md:px-10 pt-28 pb-24 w-full flex-grow">
+      <main className="max-w-7xl mx-auto px-4 md:px-10 pt-24 pb-24 w-full flex-grow">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40 mb-10 bg-white/40 backdrop-blur-md px-6 py-3 rounded-full w-fit border border-primary/5 shadow-sm">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40 mb-8 bg-white/40 backdrop-blur-md px-6 py-3 rounded-full w-fit border border-primary/5 shadow-sm">
           <Link to="/" className="hover:text-primary transition-colors flex items-center">
             <span className="material-symbols-outlined text-[14px] mr-1.5">home</span>
             Trang chủ
@@ -135,10 +204,10 @@ const ProductDetail = () => {
           <span className="text-primary truncate max-w-[200px]">{product.title}</span>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-12 items-start">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:items-start">
           {/* Image Gallery */}
-          <div className="w-full lg:w-[55%] flex flex-col gap-6">
-            <div className="w-full bg-white rounded-organic overflow-hidden aspect-[4/3] flex items-center justify-center p-4 shadow-2xl shadow-primary/5 border border-primary/5 group relative">
+          <div className="flex flex-col gap-5">
+            <div className="w-full bg-white rounded-[28px] overflow-hidden aspect-[4/3] flex items-center justify-center p-4 shadow-xl shadow-primary/5 border border-primary/5 group relative">
               {images.length > 0 && images[activeImg] ? (
                 <img alt={product.title} className="w-full h-full object-contain rounded-organic group-hover:scale-105 transition-transform duration-700" src={getImageUrl(images[activeImg])} />
               ) : (
@@ -201,9 +270,9 @@ const ProductDetail = () => {
           </div>
 
           {/* Product Info Panel */}
-          <div className="w-full lg:w-[45%] sticky top-28 flex flex-col gap-8 bg-white p-10 rounded-organic shadow-2xl shadow-primary/5 border border-primary/5">
+          <div className="w-full lg:sticky lg:top-24 flex flex-col gap-6 bg-white p-6 lg:p-8 rounded-[28px] shadow-xl shadow-primary/5 border border-primary/5">
             <div>
-              <div className="flex items-center gap-3 mb-6 flex-wrap">
+              <div className="flex items-center gap-3 mb-5 flex-wrap">
                 <span className="px-4 py-1.5 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.2em] border border-primary/10">
                   {product.categoryId?.name || "Sản phẩm"}
                 </span>
@@ -211,9 +280,9 @@ const ProductDetail = () => {
                   {product.conditionStatus === "new" ? "Mới 100%" : "Đã qua sử dụng"}
                 </span>
               </div>
-              <h1 className="text-4xl font-display font-bold text-foreground leading-[1.2] mb-6">{product.title}</h1>
+              <h1 className="text-3xl lg:text-4xl font-display font-bold text-foreground leading-[1.2] mb-5">{product.title}</h1>
               
-              <div className="flex flex-col gap-1 p-6 bg-background rounded-2xl border border-primary/5 mb-8">
+              <div className="flex flex-col gap-1 p-5 bg-background rounded-2xl border border-primary/5">
                 <p className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest">{product.productType === "rent" ? "Giá thuê mỗi ngày" : "Giá niêm yết"}</p>
                 <p className="text-4xl font-display font-black text-primary">{displayPrice}</p>
                 {product.productType === "rent" && product.depositAmount > 0 && (
@@ -225,7 +294,7 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6 py-6 border-y border-primary/5">
+            <div className="grid grid-cols-2 gap-4 rounded-2xl border border-primary/5 bg-white p-4">
               <div className="flex flex-col gap-1">
                 <p className="text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">Khu vực</p>
                 <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
@@ -263,8 +332,8 @@ const ProductDetail = () => {
                 </button>
               ) : product.productType === "sale" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <button onClick={handleBuy} disabled={isSubmitting} className="w-full py-5 rounded-pill bg-primary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95">
-                    {isSubmitting ? "Đang xử lý..." : "Mua ngay"}
+                  <button onClick={handleBuy} className="w-full py-5 rounded-pill bg-primary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95">
+                    Mua ngay
                   </button>
                   <button onClick={handleAddToCart} className="w-full py-5 rounded-pill bg-white text-primary border-2 border-primary/20 font-black uppercase tracking-widest hover:bg-primary/5 transition-all">
                     Giỏ hàng
@@ -330,14 +399,14 @@ const ProductDetail = () => {
         </div>
 
         {/* Detailed Description */}
-        <div className="mt-20 flex flex-col lg:flex-row gap-12">
-          <div className="w-full lg:w-[55%] flex flex-col gap-10">
-            <section>
-              <h2 className="text-3xl font-display font-bold text-foreground mb-8 flex items-center gap-4">
+        <div className="mt-14 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+          <div className="flex flex-col gap-8">
+            <section className="rounded-[28px] border border-primary/5 bg-white p-6 lg:p-8 shadow-sm">
+              <h2 className="text-2xl font-display font-bold text-foreground mb-6 flex items-center gap-4">
                 <div className="w-1.5 h-8 bg-primary rounded-full"></div>
                 Mô tả sản phẩm
               </h2>
-              <div className="text-on-surface-variant leading-relaxed space-y-6 text-lg font-medium opacity-90">
+              <div className="text-on-surface-variant leading-relaxed space-y-5 text-base lg:text-lg font-medium opacity-90">
                 {String(product.description || "").split("\n").map((para, index) => (
                   <p key={index}>{para}</p>
                 ))}
@@ -345,9 +414,9 @@ const ProductDetail = () => {
             </section>
           </div>
 
-          <div className="w-full lg:w-[45%] flex flex-col gap-10">
-            <section className="bg-white p-10 rounded-organic shadow-sm border border-primary/5">
-              <h2 className="text-2xl font-display font-bold text-foreground mb-8 flex items-center justify-between">
+          <div className="flex flex-col gap-8">
+            <section className="bg-white p-6 lg:p-8 rounded-[28px] shadow-sm border border-primary/5">
+              <h2 className="text-2xl font-display font-bold text-foreground mb-6 flex items-center justify-between">
                 Đánh giá ({product.reviewCount || 0})
                 <span className="text-sm font-bold text-primary hover:underline cursor-pointer">Xem tất cả</span>
               </h2>
@@ -383,6 +452,36 @@ const ProductDetail = () => {
             </section>
           </div>
         </div>
+
+        {relatedProducts.length > 0 && (
+          <section className="mt-14">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-2xl lg:text-3xl font-display font-bold text-foreground">Sản phẩm gợi ý</h2>
+                <p className="mt-1 text-sm font-medium text-on-surface-variant">
+                  Các sản phẩm khác trong danh mục {product.categoryId?.name || "này"}.
+                </p>
+              </div>
+              <Link
+                to={product.productType === "rent" ? "/cho-thue" : "/marketplaces"}
+                className="inline-flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+              >
+                Xem thêm
+                <span className="material-symbols-outlined text-[16px]">east</span>
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {relatedProducts.map((item) => (
+                <ProductSuggestionCard
+                  key={item._id}
+                  product={item}
+                  formatPrice={formatPrice}
+                  onOpen={(productId) => navigate(`/marketplaces/${productId}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       <Footer />

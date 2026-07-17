@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import productService from "../../services/product.service";
 import categoryService from "../../services/category.service";
 import chatService from "../../services/chat.service";
+import cartService from "../../services/cart.service";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 
 const CONDITION_OPTIONS = [
@@ -89,6 +90,32 @@ const Marketplace = () => {
   const handleRentNow = (event, productId) => {
     event.stopPropagation();
     navigate(user ? `/thue/${productId}` : "/dang-nhap");
+  };
+
+  const handleBuyNow = (event, productId) => {
+    event.stopPropagation();
+    navigate(user ? `/dat-hang/${productId}?quantity=1` : "/dang-nhap");
+  };
+
+  const handleAddToCart = async (event, product) => {
+    event.stopPropagation();
+    if (!user) {
+      navigate("/dang-nhap");
+      return;
+    }
+
+    const ownerId = product.ownerId?._id || product.ownerId;
+    if (ownerId && String(ownerId) === String(user.id || user._id)) {
+      toast.error("Không thể thêm sản phẩm của chính bạn vào giỏ hàng.");
+      return;
+    }
+
+    try {
+      const res = await cartService.addCartItem(product._id, 1);
+      if (res.success) toast.success("Đã thêm sản phẩm vào giỏ hàng.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể thêm vào giỏ hàng.");
+    }
   };
 
   const handleContact = async (event, product) => {
@@ -243,6 +270,24 @@ const Marketplace = () => {
                             </button>
                           </div>
                         )}
+                        {product.productType === "sale" && (
+                          <div className="mt-4 grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => handleBuyNow(event, product._id)}
+                              className="h-10 rounded-full bg-primary px-3 text-xs font-black text-white transition-all hover:bg-primary/90 active:scale-95"
+                            >
+                              Mua ngay
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => handleAddToCart(event, product)}
+                              className="h-10 rounded-full border border-primary/20 bg-white px-3 text-xs font-black text-primary transition-all hover:bg-primary/5 active:scale-95"
+                            >
+                              Thêm vào giỏ
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </article>
                   );
@@ -325,6 +370,24 @@ const Marketplace = () => {
                             className="h-10 rounded-full border border-primary/20 bg-white px-3 text-xs font-black text-primary transition-all hover:bg-primary/5 active:scale-95"
                           >
                             Liên hệ
+                          </button>
+                        </div>
+                      )}
+                      {product.productType === "sale" && (
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={(event) => handleBuyNow(event, product._id)}
+                            className="h-10 rounded-full bg-primary px-3 text-xs font-black text-white transition-all hover:bg-primary/90 active:scale-95"
+                          >
+                            Mua ngay
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => handleAddToCart(event, product)}
+                            className="h-10 rounded-full border border-primary/20 bg-white px-3 text-xs font-black text-primary transition-all hover:bg-primary/5 active:scale-95"
+                          >
+                            Thêm vào giỏ
                           </button>
                         </div>
                       )}

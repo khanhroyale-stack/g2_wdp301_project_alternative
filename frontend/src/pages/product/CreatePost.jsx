@@ -6,11 +6,9 @@ import {
   ChevronDown,
   ChevronLeft,
   CircleHelp,
-  Eye,
   Info,
   Leaf,
   List,
-  Save,
   Send,
   Upload,
   X,
@@ -560,23 +558,7 @@ const CreatePost = () => {
 
           {/* Actions */}
           <div className="border-t border-[#e3e7ec] pt-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  className="flex h-10 items-center gap-2 rounded-md border border-[#dbe1e8] bg-white px-5 text-sm font-bold text-[#444b57] hover:bg-[#f7f8f9]"
-                >
-                  <Eye size={16} />
-                  Xem trước
-                </button>
-                <button
-                  type="button"
-                  className="flex h-10 items-center gap-2 rounded-md border border-[#18c94f] bg-white px-5 text-sm font-bold text-[#18c94f] hover:bg-[#f0fff4]"
-                >
-                  <Save size={16} />
-                  Lưu nháp
-                </button>
-              </div>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-end">
               <button
                 type="submit"
                 disabled={loading}

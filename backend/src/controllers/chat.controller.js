@@ -156,6 +156,10 @@ const sendMessage = async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       io.to(`chat_${room._id}`).emit("new_message", message);
+      io.to(`user_${room.buyerId}`).to(`user_${room.sellerId}`).emit("chat_room_updated", {
+        roomId: room._id,
+        message,
+      });
     }
 
     // Tạo notification cho người nhận nếu họ không đang mở phòng chat này

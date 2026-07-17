@@ -327,8 +327,10 @@ export default function OrderDetail() {
     },
     {
       label: "Vận chuyển bởi",
-      value: shippingMethod,
-      sub: delivery?.shipperId?.fullName ? `Vận đơn: ${String(delivery?._id || "").slice(-6).toUpperCase()}` : "Chưa phân công shipper",
+      value: delivery?.shipperId?.fullName || "Chưa có shipper nhận đơn",
+      sub: delivery?.shipperId?.fullName
+        ? `${shippingMethod} · Vận đơn: ${String(delivery?._id || "").slice(-6).toUpperCase()}`
+        : shippingMethod,
       icon: Package,
       accent: "sky",
     },

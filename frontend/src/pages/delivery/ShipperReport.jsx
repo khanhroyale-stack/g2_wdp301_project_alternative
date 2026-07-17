@@ -62,7 +62,7 @@ export default function ShipperReport() {
           <CardHeader className="pb-6">
             <CardTitle className="text-2xl font-extrabold">
               {["pending", "accepted", "picking_up"].includes(delivery?.deliveryStatus)
-                ? "Báo cáo sự cố nhận hàng"
+                ? "Báo cáo sự cố lấy hàng"
                 : "Báo cáo sự cố giao hàng"}
             </CardTitle>
             <p className="text-muted-foreground">

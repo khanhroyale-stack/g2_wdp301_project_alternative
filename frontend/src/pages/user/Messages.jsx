@@ -17,6 +17,23 @@ const getUserName = (value) => value?.fullName || value?.name || "Người dùng
 
 const getInitial = (name) => (name || "U").trim().charAt(0).toUpperCase();
 
+const getMessageRoomId = (message) => String(message?.chatRoomId?._id || message?.chatRoomId || message?.roomId || "");
+
+const getMessageTime = (message) => new Date(message?.createdAt || message?.updatedAt || 0).getTime();
+
+const sortMessagesByTime = (items) =>
+  [...items].sort((a, b) => getMessageTime(a) - getMessageTime(b));
+
+const upsertMessageByTime = (items, message) => {
+  if (!message?._id || items.some((item) => String(item._id) === String(message._id))) {
+    return sortMessagesByTime(items);
+  }
+  return sortMessagesByTime([...items, message]);
+};
+
+const sortRoomsByLastMessage = (items) =>
+  [...items].sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
+
 const UserAvatar = ({ user: avatarUser, name, className = "w-10 h-10", fallbackClassName = "bg-primary/10 text-primary" }) => {
   const displayName = name || getUserName(avatarUser);
   const avatarUrl = avatarUser?.avatarUrl;
@@ -45,6 +62,7 @@ const Messages = () => {
   const [search, setSearch] = useState("");
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const activeRoomIdRef = useRef("");
 
   // Lấy danh sách phòng chat
   const fetchRooms = useCallback(async () => {
@@ -52,7 +70,7 @@ const Messages = () => {
     try {
       const res = await chatService.getMyRooms();
       if (res.success) {
-        setRooms(res.data);
+        setRooms(sortRoomsByLastMessage(res.data || []));
         if (res.data.length > 0) {
           const targetRoom = roomId
             ? res.data.find((r) => String(r._id) === String(roomId))
@@ -80,11 +98,12 @@ const Messages = () => {
   const handleSelectRoom = async (room) => {
     if (activeRoom?._id) leaveChatRoom(activeRoom._id);
     setActiveRoom(room);
+    activeRoomIdRef.current = String(room._id);
     setLoadingMsgs(true);
     try {
       const res = await chatService.getMessages(room._id);
       if (res.success) {
-        setMessages(res.data);
+        setMessages(sortMessagesByTime(res.data || []));
         if (fetchUnreadChatCount) fetchUnreadChatCount();
       }
     } catch (err) {
@@ -99,24 +118,35 @@ const Messages = () => {
   // Socket: lắng nghe tin nhắn mới realtime
   useEffect(() => {
     const socket = getSocket();
-    const handler = (newMsg) => {
-      // Chỉ thêm nếu đang xem đúng phòng đó
-      setMessages((prev) => {
-        if (prev.some((m) => m._id === newMsg._id)) return prev;
-        return [...prev, newMsg];
-      });
-      // Cập nhật lastMessage trong danh sách rooms
+    const applyIncomingMessage = (newMsg) => {
+      const incomingRoomId = getMessageRoomId(newMsg);
+      if (incomingRoomId && incomingRoomId === activeRoomIdRef.current) {
+        setMessages((prev) => upsertMessageByTime(prev, newMsg));
+        if (fetchUnreadChatCount) fetchUnreadChatCount();
+      }
+
       setRooms((prev) =>
-        prev.map((r) =>
-          r._id === newMsg.chatRoomId
-            ? { ...r, lastMessage: newMsg.messageContent, lastMessageAt: newMsg.createdAt }
-            : r
+        sortRoomsByLastMessage(
+          prev.map((r) =>
+            String(r._id) === incomingRoomId
+              ? { ...r, lastMessage: newMsg.messageContent || newMsg.content, lastMessageAt: newMsg.createdAt }
+              : r
+          )
         )
       );
     };
-    socket.on("new_message", handler);
-    return () => socket.off("new_message", handler);
-  }, []);
+
+    const handleRoomUpdated = (payload) => {
+      applyIncomingMessage(payload?.message || payload);
+    };
+
+    socket.on("new_message", applyIncomingMessage);
+    socket.on("chat_room_updated", handleRoomUpdated);
+    return () => {
+      socket.off("new_message", applyIncomingMessage);
+      socket.off("chat_room_updated", handleRoomUpdated);
+    };
+  }, [fetchUnreadChatCount]);
 
   // Auto scroll xuống cuối
   useEffect(() => {
@@ -131,15 +161,14 @@ const Messages = () => {
     try {
       const res = await chatService.sendMessage(activeRoom._id, content);
       if (res.success) {
-        setMessages((prev) => {
-          if (prev.some((m) => m._id === res.data._id)) return prev;
-          return [...prev, res.data];
-        });
+        setMessages((prev) => upsertMessageByTime(prev, res.data));
         setRooms((prev) =>
-          prev.map((r) =>
-            r._id === activeRoom._id
-              ? { ...r, lastMessage: content, lastMessageAt: new Date().toISOString() }
-              : r
+          sortRoomsByLastMessage(
+            prev.map((r) =>
+              r._id === activeRoom._id
+                ? { ...r, lastMessage: content, lastMessageAt: res.data.createdAt || new Date().toISOString() }
+                : r
+            )
           )
         );
       }
@@ -179,7 +208,7 @@ const Messages = () => {
     <EcoTradeLayout>
       <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden rounded-2xl border border-surface-variant/40 bg-white shadow-sm">
 
-        {/* ── Danh sách phòng chat ── */}
+        {/* Danh sách phòng chat */}
         <div className="w-80 flex-shrink-0 bg-white border-r border-surface-variant/30 flex flex-col">
           <div className="p-5 border-b border-surface-variant/20">
             <h2 className="font-bold text-on-surface text-lg mb-4 flex items-center gap-2">
@@ -248,7 +277,7 @@ const Messages = () => {
           </div>
         </div>
 
-        {/* ── Cửa sổ chat ── */}
+        {/* Cửa sổ chat */}
         <div className="flex-1 flex flex-col bg-[#F5F5F7] overflow-hidden">
           {activeRoom ? (
             <>

@@ -5,6 +5,7 @@ const SOCKET_URL = import.meta.env.VITE_API_URL
   : "http://localhost:5000";
 
 let socket = null;
+let currentUserId = null;
 
 export const getSocket = () => {
   if (!socket) {
@@ -19,14 +20,21 @@ export const getSocket = () => {
 };
 
 export const connectSocket = (userId) => {
+  currentUserId = userId;
   const s = getSocket();
+  s.off("connect");
+  s.on("connect", () => {
+    if (currentUserId) s.emit("join_user", currentUserId);
+  });
   if (!s.connected) {
     s.connect();
+  } else {
     s.emit("join_user", userId);
   }
 };
 
 export const disconnectSocket = () => {
+  currentUserId = null;
   if (socket?.connected) {
     socket.disconnect();
   }
