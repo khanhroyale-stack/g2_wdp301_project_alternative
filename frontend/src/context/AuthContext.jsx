@@ -81,6 +81,14 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const loginWithGoogle = async (credential) => {
+    const data = await authService.googleLogin(credential);
+    localStorage.setItem("token", data.token);
+    setUser(data.user);
+    setupSocket(data.user);
+    return data;
+  };
+
   const register = async (credentials) => {
     const data = await authService.register(credentials);
     // Register doesn't return token yet, user needs to verify OTP first
@@ -118,6 +126,7 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         login,
+        loginWithGoogle,
         register,
         verifyEmail,
         logout,

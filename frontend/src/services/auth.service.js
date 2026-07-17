@@ -25,6 +25,12 @@ export const authService = {
     return res.data;
   },
 
+  // Đăng nhập/đăng ký bằng Google — gửi id_token (credential) lên backend
+  googleLogin: async (credential) => {
+    const res = await api.post("/auth/google", { credential });
+    return res.data;
+  },
+
   // Lấy thông tin user hiện tại
   getMe: async () => {
     const res = await api.get("/auth/me");
