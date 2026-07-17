@@ -71,13 +71,18 @@ const normalizeAddressBook = (user, fallback = {}) => {
   }));
 };
 
-const createAddressDraft = (fallback = {}, index = 0) => ({
-  label: fallback.label || (index === 0 ? "Địa chỉ mặc định" : `Địa chỉ ${index + 1}`),
-  recipientName: fallback.recipientName || "",
-  phone: fallback.phone || "",
-  address: fallback.address || "",
-  isDefault: Boolean(fallback.isDefault) || index === 0,
-});
+const createAddressDraft = (fallback, index = 0) => {
+  // fallback có thể là null (khi thêm địa chỉ mới) — default {} chỉ chặn undefined,
+  // nên phải tự chuẩn hóa null về {} để tránh crash.
+  const source = fallback || {};
+  return {
+    label: source.label || (index === 0 ? "Địa chỉ mặc định" : `Địa chỉ ${index + 1}`),
+    recipientName: source.recipientName || "",
+    phone: source.phone || "",
+    address: source.address || "",
+    isDefault: Boolean(source.isDefault) || index === 0,
+  };
+};
 
 function AddressEditorModal({ open, onClose, initialAddress, addressIndex, onSave, saving }) {
   const [draft, setDraft] = useState(() => createAddressDraft(initialAddress, addressIndex));
