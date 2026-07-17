@@ -3,6 +3,7 @@ const User = require("../models/user.model");
 const { generateOTP, saveOTP, verifyOTP, getResendCooldown } = require("../utils/otp");
 const { sendOTPEmail } = require("../config/email");
 const { isUserPro } = require("../utils/business-rules");
+const { verifyGoogleIdToken } = require("../utils/google.util");
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -209,6 +210,74 @@ const login = async (req, res) => {
   }
 };
 
+const googleAuth = async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ success: false, message: "Thieu Google credential" });
+    }
+
+    let payload;
+    try {
+      payload = await verifyGoogleIdToken(credential);
+    } catch (err) {
+      return res.status(401).json({ success: false, message: "Google token khong hop le" });
+    }
+
+    if (!payload?.email || !payload.email_verified) {
+      return res.status(401).json({ success: false, message: "Email Google chua duoc xac thuc" });
+    }
+
+    const email = normalizeEmail(payload.email);
+    const googleId = payload.sub;
+
+    // Tim theo googleId truoc, roi den email (de tu dong link tai khoan cu cung email)
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (user) {
+      let changed = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        changed = true;
+      }
+      if (!user.avatarUrl && payload.picture) {
+        user.avatarUrl = payload.picture;
+        changed = true;
+      }
+      if (user.verificationStatus !== "verified") {
+        user.verificationStatus = "verified";
+        changed = true;
+      }
+      if (changed) await user.save();
+    } else {
+      user = await User.create({
+        fullName: payload.name || email.split("@")[0],
+        email,
+        googleId,
+        avatarUrl: payload.picture || null,
+        verificationStatus: "verified",
+      });
+    }
+
+    if (user.accountStatus === "banned") {
+      return res.status(403).json({ success: false, message: "Tai khoan da bi khoa do vi pham" });
+    }
+
+    const token = generateToken(user._id);
+    const formattedUser = formatUser(user);
+    res.json({
+      success: true,
+      token,
+      user: formattedUser,
+      featuredReminder: {
+        shouldShow: formattedUser.isPro && !formattedUser.hasSetupFeaturedProducts,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 const resendOTP = async (req, res) => {
   try {
     const { email } = req.body;
@@ -359,6 +428,7 @@ module.exports = {
   register,
   verifyEmail,
   login,
+  googleAuth,
   forgotPassword,
   resetPassword,
   changePassword,

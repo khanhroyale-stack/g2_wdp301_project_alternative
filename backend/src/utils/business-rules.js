@@ -65,9 +65,9 @@ const buildAvailableDeliveryClaimFilter = (deliveryId) => ({
 });
 
 const PRO_PLANS = {
-  "1m": { durationDays: 30, amount: 50000 },
-  "3m": { durationDays: 90, amount: 120000 },
-  "12m": { durationDays: 365, amount: 400000 },
+  "1m": { durationMonths: 1, durationDays: 30, amount: 50000 },
+  "3m": { durationMonths: 3, durationDays: 90, amount: 120000 },
+  "12m": { durationMonths: 12, durationDays: 365, amount: 400000 },
 };
 
 const FREE_POST_LIMIT = 5;
@@ -78,11 +78,21 @@ const isUserPro = (user) => {
   return !!(expiry && new Date(expiry).getTime() > Date.now());
 };
 
-const computeProExpiry = (currentExpiry, durationDays, now = new Date()) => {
+const addMonthsClamped = (date, months) => {
+  const result = new Date(date);
+  const originalDate = result.getDate();
+  result.setDate(1);
+  result.setMonth(result.getMonth() + months);
+  const daysInTargetMonth = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(originalDate, daysInTargetMonth));
+  return result;
+};
+
+const computeProExpiry = (currentExpiry, durationMonths, now = new Date()) => {
   const nowMs = now.getTime();
   const currentMs = currentExpiry ? new Date(currentExpiry).getTime() : 0;
-  const base = Math.max(nowMs, currentMs);
-  return new Date(base + durationDays * 24 * 60 * 60 * 1000);
+  const base = new Date(Math.max(nowMs, currentMs));
+  return addMonthsClamped(base, durationMonths);
 };
 
 module.exports = {

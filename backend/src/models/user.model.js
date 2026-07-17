@@ -47,9 +47,19 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, "Password is required"],
+      // Bắt buộc khi KHÔNG đăng nhập bằng Google (không có googleId)
+      required: [
+        function () {
+          return !this.googleId;
+        },
+        "Password is required",
+      ],
       minlength: [6, "Password must be at least 6 characters"],
       select: false,
+    },
+    googleId: {
+      type: String,
+      default: null,
     },
     phone: {
       type: String,
@@ -120,6 +130,7 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ proExpiresAt: 1, hasSetupFeaturedProducts: 1 });
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("passwordHash")) return next();

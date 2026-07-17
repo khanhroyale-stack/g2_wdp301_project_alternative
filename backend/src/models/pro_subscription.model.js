@@ -16,6 +16,11 @@ const proSubscriptionSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    durationMonths: {
+      type: Number,
+      enum: [1, 3, 12],
+      default: null,
+    },
     amount: {
       type: Number,
       required: true,

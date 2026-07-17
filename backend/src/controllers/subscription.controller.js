@@ -10,6 +10,7 @@ const getPlans = async (req, res) => {
   try {
     const plans = Object.entries(PRO_PLANS).map(([plan, info]) => ({
       plan,
+      durationMonths: info.durationMonths,
       durationDays: info.durationDays,
       amount: info.amount,
     }));
@@ -31,6 +32,7 @@ const createPayment = async (req, res) => {
     await ProSubscription.create({
       userId: req.user._id,
       plan,
+      durationMonths: planInfo.durationMonths,
       durationDays: planInfo.durationDays,
       amount: planInfo.amount,
       vnpTxnRef: txnRef,
@@ -92,7 +94,8 @@ const vnpayReturn = async (req, res) => {
     }
 
     const now = new Date();
-    const newExpiry = computeProExpiry(user.proExpiresAt, sub.durationDays, now);
+    const durationMonths = sub.durationMonths || Math.max(1, Math.round(sub.durationDays / 30));
+    const newExpiry = computeProExpiry(user.proExpiresAt, durationMonths, now);
 
     sub.status = "paid";
     sub.vnpTransactionNo = data.vnp_TransactionNo || null;

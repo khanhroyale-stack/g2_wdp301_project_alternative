@@ -5,7 +5,6 @@ import {
   Crown,
   Infinity as InfinityIcon,
   TrendingUp,
-  BadgeCheck,
   Check,
   ShieldCheck,
   ArrowLeft,
@@ -18,7 +17,6 @@ import { useAuth } from "../../context/AuthContext";
 const PLAN_LABELS = { "1m": "1 tháng", "3m": "3 tháng", "12m": "12 tháng" };
 const formatVnd = (n) => n.toLocaleString("vi-VN") + "đ";
 
-// Quyền lợi khi nâng cấp Pro
 const BENEFITS = [
   {
     icon: InfinityIcon,
@@ -30,14 +28,8 @@ const BENEFITS = [
     title: "Ưu tiên hiển thị",
     desc: "Tin của bạn được xếp trước trong kết quả Chợ, tiếp cận nhiều người mua/thuê hơn.",
   },
-  {
-    icon: BadgeCheck,
-    title: "Huy hiệu Pro uy tín",
-    desc: "Hiển thị huy hiệu Pro cạnh tên, tăng độ tin cậy khi giao dịch.",
-  },
 ];
 
-// Card gói được đánh dấu nổi bật / tiết kiệm
 const PLAN_TAGS = {
   "3m": { label: "Phổ biến nhất", featured: true },
   "12m": { label: "Tiết kiệm nhất", featured: false },
@@ -50,7 +42,7 @@ const FAQS = [
   },
   {
     q: "Gia hạn gói như thế nào?",
-    a: "Mua thêm bất kỳ gói nào — thời hạn sẽ được cộng dồn vào ngày hết hạn hiện tại của bạn.",
+    a: "Mua thêm bất kỳ gói nào, thời hạn sẽ được cộng dồn vào ngày hết hạn hiện tại của bạn.",
   },
   {
     q: "Hết hạn Pro thì sao?",
@@ -62,7 +54,8 @@ const FAQS = [
   },
 ];
 
-const monthlyEquivalent = (amount, durationDays) => Math.round(amount / (durationDays / 30));
+const monthlyEquivalent = (amount, durationMonths, durationDays) =>
+  Math.round(amount / (durationMonths || durationDays / 30 || 1));
 
 export default function ProPlans() {
   const { user } = useAuth();
@@ -88,26 +81,23 @@ export default function ProPlans() {
   };
 
   const isPro = user?.isPro;
-  const baseMonthly = 50000; // giá gói 1 tháng, dùng để tính % tiết kiệm
+  const baseMonthly = 50000;
 
   return (
     <div className="min-h-screen bg-surface pb-16">
-      {/* Hero */}
       <div className="bg-gradient-to-br from-primary to-primary-container px-4 pb-14 pt-12 text-center text-on-primary">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
           <Crown size={32} />
         </div>
         <h1 className="mt-4 text-3xl font-black">Nâng cấp tài khoản Pro</h1>
         <p className="mx-auto mt-2 max-w-xl text-sm text-on-primary/85">
-          Đăng bài không giới hạn, ưu tiên hiển thị và huy hiệu Pro giúp bạn bán & cho thuê hiệu quả hơn.
+          Đăng bài không giới hạn và ưu tiên hiển thị giúp bạn bán & cho thuê hiệu quả hơn.
         </p>
       </div>
 
       <div className="mx-auto -mt-8 max-w-5xl px-4">
-        {/* Trạng thái tài khoản hiện tại */}
         <AccountStatusCard className="shadow-card" />
 
-        {/* Quyền lợi */}
         <section className="mt-10">
           <h2 className="mb-5 text-center text-xl font-bold text-on-surface">Quyền lợi khi lên Pro</h2>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -126,7 +116,6 @@ export default function ProPlans() {
           </div>
         </section>
 
-        {/* Bảng giá */}
         <section className="mt-12">
           <h2 className="mb-6 text-center text-xl font-bold text-on-surface">Chọn gói phù hợp</h2>
           {isPro && (
@@ -140,7 +129,7 @@ export default function ProPlans() {
           <div className="grid items-start gap-5 sm:grid-cols-3">
             {plans.map((p) => {
               const tag = PLAN_TAGS[p.plan];
-              const monthly = monthlyEquivalent(p.amount, p.durationDays);
+              const monthly = monthlyEquivalent(p.amount, p.durationMonths, p.durationDays);
               const savePct = Math.round((1 - monthly / baseMonthly) * 100);
               return (
                 <div
@@ -172,7 +161,9 @@ export default function ProPlans() {
                       <span className="ml-1.5 font-semibold text-primary">tiết kiệm {savePct}%</span>
                     )}
                   </div>
-                  <div className="mt-1 text-xs text-on-surface-variant">{p.durationDays} ngày sử dụng</div>
+                  <div className="mt-1 text-xs text-on-surface-variant">
+                    {p.durationMonths ? `${p.durationMonths} tháng sử dụng` : `${p.durationDays} ngày sử dụng`}
+                  </div>
 
                   <ul className="mt-4 flex flex-col gap-2 border-t border-surface-variant/40 pt-4 text-sm text-on-surface">
                     {BENEFITS.map((b) => (
@@ -204,7 +195,6 @@ export default function ProPlans() {
           </p>
         </section>
 
-        {/* So sánh Free vs Pro */}
         <section className="mt-12">
           <h2 className="mb-5 text-center text-xl font-bold text-on-surface">So sánh thường & Pro</h2>
           <div className="overflow-hidden rounded-2xl border border-surface-variant/40">
@@ -220,7 +210,6 @@ export default function ProPlans() {
                 {[
                   { label: "Số bài đăng hoạt động", free: "Tối đa 5", pro: "Không giới hạn" },
                   { label: "Ưu tiên hiển thị trên Chợ", free: false, pro: true },
-                  { label: "Huy hiệu Pro cạnh tên", free: false, pro: true },
                 ].map((row) => (
                   <tr key={row.label}>
                     <td className="px-4 py-3 text-on-surface">{row.label}</td>
@@ -228,14 +217,14 @@ export default function ProPlans() {
                       {typeof row.free === "boolean"
                         ? row.free
                           ? <Check size={16} className="mx-auto text-primary" />
-                          : <span className="text-on-surface-variant/50">—</span>
+                          : <span className="text-on-surface-variant/50">-</span>
                         : row.free}
                     </td>
                     <td className="px-4 py-3 text-center font-medium text-on-surface">
                       {typeof row.pro === "boolean"
                         ? row.pro
                           ? <Check size={16} className="mx-auto text-primary" />
-                          : <span className="text-on-surface-variant/50">—</span>
+                          : <span className="text-on-surface-variant/50">-</span>
                         : row.pro}
                     </td>
                   </tr>
@@ -245,7 +234,6 @@ export default function ProPlans() {
           </div>
         </section>
 
-        {/* FAQ */}
         <section className="mt-12">
           <h2 className="mb-5 text-center text-xl font-bold text-on-surface">Câu hỏi thường gặp</h2>
           <div className="flex flex-col gap-3">
@@ -263,7 +251,6 @@ export default function ProPlans() {
           </div>
         </section>
 
-        {/* Footer điều hướng */}
         <div className="mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             to="/marketplaces"

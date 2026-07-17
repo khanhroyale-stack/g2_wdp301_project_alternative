@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import GoogleAuthButton from "../../components/auth/GoogleAuthButton";
 
 const LoginPage = () => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -87,6 +88,14 @@ const LoginPage = () => {
               ) : "Đăng nhập"}
             </button>
           </form>
+
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-surface-variant" />
+            <span className="text-xs text-on-surface-variant">hoặc</span>
+            <div className="flex-1 h-px bg-surface-variant" />
+          </div>
+
+          <GoogleAuthButton onError={setError} />
         </div>
 
         <p className="text-center mt-5 text-sm text-on-surface-variant">

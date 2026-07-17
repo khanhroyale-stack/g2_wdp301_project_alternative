@@ -4,6 +4,7 @@ const {
   register,
   verifyEmail,
   login,
+  googleAuth,
   forgotPassword,
   resetPassword,
   changePassword,
@@ -18,6 +19,7 @@ router.post("/register", register);
 router.post("/verify-email", verifyEmail);
 router.post("/resend-otp", resendOTP);
 router.post("/login", login);
+router.post("/google", googleAuth);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.put("/change-password", protect, changePassword);
