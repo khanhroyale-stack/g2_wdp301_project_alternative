@@ -10,6 +10,20 @@ export default defineConfig({
         target: "http://localhost:5000",
         changeOrigin: true,
       },
+      "/uploads": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+      },
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          ui: ["@radix-ui/react-avatar", "@radix-ui/react-slot", "@radix-ui/react-switch", "@radix-ui/react-tabs", "lucide-react"],
+        },
+      },
     },
   },
 });

@@ -33,7 +33,7 @@ const ForgotPasswordPage = () => {
     setLoading(true);
     try {
       await authService.forgotPassword({ email });
-      navigate("/reset-password", { state: { email } });
+      navigate("/dat-lai-mat-khau", { state: { email } });
     } catch (err) {
       setError(err.response?.data?.message || "Gửi OTP thất bại. Vui lòng thử lại.");
     } finally {
@@ -73,7 +73,7 @@ const ForgotPasswordPage = () => {
         </form>
 
         <p style={{ marginTop: "1.5rem", textAlign: "center", color: "var(--color-text-muted)", fontSize: "0.875rem" }}>
-          <Link to="/login" style={{ color: "var(--color-primary)", fontWeight: 600 }}>Quay lại đăng nhập</Link>
+          <Link to="/dang-nhap" style={{ color: "var(--color-primary)", fontWeight: 600 }}>Quay lại đăng nhập</Link>
         </p>
       </div>
     </div>

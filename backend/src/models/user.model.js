@@ -1,6 +1,36 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+const addressSchema = new mongoose.Schema(
+  {
+    label: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    recipientName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: true, timestamps: true }
+);
+
 const userSchema = new mongoose.Schema(
   {
     fullName: {
@@ -17,9 +47,19 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, "Password is required"],
+      // Bắt buộc khi KHÔNG đăng nhập bằng Google (không có googleId)
+      required: [
+        function () {
+          return !this.googleId;
+        },
+        "Password is required",
+      ],
       minlength: [6, "Password must be at least 6 characters"],
       select: false,
+    },
+    googleId: {
+      type: String,
+      default: null,
     },
     phone: {
       type: String,
@@ -35,22 +75,27 @@ const userSchema = new mongoose.Schema(
       default: null,
       trim: true,
     },
+    addresses: {
+      type: [addressSchema],
+      default: [],
+    },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other"],
+      default: null,
+    },
     role: {
       type: String,
       enum: ["user", "shipper", "admin"],
       default: "user",
     },
-    studentCardUrl: {
-      type: String,
-      default: null,
-    },
-    citizenIdUrl: {
-      type: String,
-      default: null,
-    },
     verificationStatus: {
       type: String,
-      enum: ["unverified", "pending", "verified", "rejected"],
+      enum: ["unverified", "verified"],
       default: "unverified",
     },
     reputationScore: {
@@ -58,10 +103,24 @@ const userSchema = new mongoose.Schema(
       default: 100,
       min: 0,
     },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
     accountStatus: {
       type: String,
       enum: ["active", "inactive", "banned"],
       default: "active",
+    },
+    proExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    hasSetupFeaturedProducts: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -70,6 +129,9 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+userSchema.index({ proExpiresAt: 1, hasSetupFeaturedProducts: 1 });
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+
 userSchema.pre("save", async function (next) {
   if (!this.isModified("passwordHash")) return next();
   this.passwordHash = await bcrypt.hash(this.passwordHash, 12);
@@ -77,6 +139,10 @@ userSchema.pre("save", async function (next) {
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!candidatePassword || !this.passwordHash) {
+    return false;
+  }
+
   return await bcrypt.compare(candidatePassword, this.passwordHash);
 };
 

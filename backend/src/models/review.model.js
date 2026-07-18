@@ -42,11 +42,18 @@ const reviewSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    isHidden: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
     collection: "reviews",
   }
 );
+
+reviewSchema.index({ reviewerId: 1, orderId: 1 }, { unique: true, sparse: true });
+reviewSchema.index({ reviewerId: 1, rentalContractId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model("Review", reviewSchema);

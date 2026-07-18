@@ -9,16 +9,6 @@ const notificationSchema = new mongoose.Schema(
     },
     notificationType: {
       type: String,
-      enum: [
-        "order_update",
-        "rental_update",
-        "payment",
-        "report_update",
-        "verification_update",
-        "review",
-        "chat",
-        "system",
-      ],
       required: true,
     },
     title: {
@@ -33,11 +23,26 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    relatedType: {
+      type: String,
+      default: null,
+    },
+    relatedId: {
+      type: mongoose.Schema.Types.ObjectId,
+      refPath: "relatedType",
+      default: null,
+    },
+    link: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
     collection: "notifications",
   }
 );
+
+notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Notification", notificationSchema);

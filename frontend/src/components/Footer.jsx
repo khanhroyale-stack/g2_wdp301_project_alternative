@@ -1,21 +1,28 @@
 import { Link } from "react-router-dom";
 
 const Footer = () => (
-  <footer className="w-full border-t border-surface-variant bg-surface-container-lowest">
-    <div className="max-w-[1400px] mx-auto px-6 md:px-10 py-10 flex flex-col md:flex-row justify-between items-center gap-6">
-      <div>
-        <Link to="/" className="text-xl font-bold text-primary tracking-tight">EcoTrade</Link>
-        <p className="text-xs text-on-surface-variant mt-1">Nền tảng mua bán & cho thuê đồ cũ khu vực Hòa Lạc</p>
+  <footer className="w-full border-t border-primary/5 bg-background relative overflow-hidden">
+    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20"></div>
+    <div className="max-w-7xl mx-auto flex flex-col items-center justify-between gap-10 px-6 py-20 md:flex-row md:px-10">
+      <div className="text-center md:text-left">
+        <Link to="/" className="text-2xl font-display font-black text-primary tracking-tight">EcoTrade</Link>
+        <p className="mt-4 text-sm font-medium text-on-surface-variant max-w-xs">Nền tảng mua bán và cho thuê bền vững dành cho cộng đồng sinh viên.</p>
       </div>
-      <div className="flex gap-6">
-        {[["Về chúng tôi", "#"], ["Điều khoản", "#"], ["Bảo mật", "#"], ["Hỗ trợ", "#"], ["Tuyển dụng", "#"]].map(([label, href]) => (
-          <a key={label} href={href}
-            className="text-xs font-medium text-on-surface-variant/60 hover:text-on-surface transition-colors uppercase tracking-wider">
+      <div className="flex flex-wrap justify-center gap-8">
+        {[["Trang chủ", "/"], ["Sản phẩm", "/marketplaces"], ["Cho thuê", "/cho-thue"], ["Hỗ trợ", "#"]].map(([label, href]) => (
+          <Link
+            key={label}
+            to={href}
+            className="text-xs font-bold uppercase tracking-widest text-primary/60 transition-colors hover:text-primary"
+          >
             {label}
-          </a>
+          </Link>
         ))}
       </div>
-      <p className="text-xs text-on-surface-variant">© 2024 EcoTrade. Khu vực Hòa Lạc.</p>
+      <div className="text-center md:text-right">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 mb-2">© 2024 EcoTrade</p>
+        <p className="text-xs font-bold text-on-surface-variant">Khu vực Hòa Lạc</p>
+      </div>
     </div>
   </footer>
 );

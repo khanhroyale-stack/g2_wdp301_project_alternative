@@ -5,8 +5,16 @@ const productService = {
     const response = await api.get("/products", { params });
     return response.data;
   },
+  getProductById: async (id) => {
+    const response = await api.get(`/products/${id}`);
+    return response.data;
+  },
   getProduct: async (id) => {
     const response = await api.get(`/products/${id}`);
+    return response.data;
+  },
+  getCategories: async () => {
+    const response = await api.get("/products/categories");
     return response.data;
   },
   createProduct: async (data) => {
@@ -25,6 +33,14 @@ const productService = {
     const response = await api.get("/products/my");
     return response.data;
   },
+  getFeaturedProducts: async () => {
+    const response = await api.get("/products/my/featured");
+    return response.data;
+  },
+  setFeaturedProducts: async (productIds) => {
+    const response = await api.post("/products/my/featured", { productIds });
+    return response.data;
+  },
   adminGetProducts: async (status) => {
     const response = await api.get("/products/admin/all", { params: { status } });
     return response.data;
@@ -36,7 +52,11 @@ const productService = {
   adminRejectProduct: async (id, reason) => {
     const response = await api.patch(`/products/${id}/reject`, { reason });
     return response.data;
-  }
+  },
+  adminChangeStatus: async (id, status, reason) => {
+    const response = await api.patch(`/products/${id}/status`, { status, reason });
+    return response.data;
+  },
 };
 
 export default productService;

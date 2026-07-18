@@ -1,22 +1,26 @@
 import api from "./api";
 
 const userService = {
-  changePassword: async (id, data) => {
-    const res = await api.patch(`/users/${id}/change-password`, data);
-    return res.data;
-  },
-  getReputationHistory: async (id) => {
-    const res = await api.get(`/users/${id}/reputation-history`);
-    return res.data;
-  },
-  updateProfile: async (id, data) => {
-    const res = await api.put(`/users/${id}`, data);
-    return res.data;
-  },
-  uploadCccd: async (id, data) => {
-    const res = await api.patch(`/users/${id}/upload-cccd`, data);
-    return res.data;
-  }
+
+  // Lấy hồ sơ cá nhân hiện tại
+  getMyProfile: () => api.get("/users/me").then((r) => r.data),
+
+  // Cập nhật hồ sơ cá nhân hiện tại
+  updateProfile: (data) => api.put("/users/me", data).then((r) => r.data),
+
+  updateMyProfile: (data) => api.put("/users/me", data).then((r) => r.data),
+
+  getReputationHistory: (userId) =>
+    api.get(`/reputation/${userId}`).then((r) => r.data),
+
+  getAdminReputationHistory: (userId) =>
+    api.get(`/reputation/admin/${userId}/history`).then((r) => r.data),
+
+  getUsers: (params) =>
+    api.get("/users/admin", { params }).then((r) => r.data),
+
+  getUserById: (id) =>
+    api.get(`/users/admin/${id}`).then((r) => r.data),
 };
 
 export default userService;

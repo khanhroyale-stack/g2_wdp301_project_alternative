@@ -1,0 +1,417 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, Link } from "react-router-dom";
+import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
+import chatService from "../../services/chat.service";
+import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
+import { getSocket, joinChatRoom, leaveChatRoom } from "../../services/socket";
+
+const formatTime = (dateStr) => {
+  const d = new Date(dateStr);
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+};
+
+const getUserId = (value) => value?._id || value?.id || value;
+
+const getUserName = (value) => value?.fullName || value?.name || "Người dùng";
+
+const getInitial = (name) => (name || "U").trim().charAt(0).toUpperCase();
+
+const getMessageRoomId = (message) => String(message?.chatRoomId?._id || message?.chatRoomId || message?.roomId || "");
+
+const getMessageTime = (message) => new Date(message?.createdAt || message?.updatedAt || 0).getTime();
+
+const sortMessagesByTime = (items) =>
+  [...items].sort((a, b) => getMessageTime(a) - getMessageTime(b));
+
+const upsertMessageByTime = (items, message) => {
+  if (!message?._id || items.some((item) => String(item._id) === String(message._id))) {
+    return sortMessagesByTime(items);
+  }
+  return sortMessagesByTime([...items, message]);
+};
+
+const sortRoomsByLastMessage = (items) =>
+  [...items].sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
+
+const UserAvatar = ({ user: avatarUser, name, className = "w-10 h-10", fallbackClassName = "bg-primary/10 text-primary" }) => {
+  const displayName = name || getUserName(avatarUser);
+  const avatarUrl = avatarUser?.avatarUrl;
+
+  return (
+    <div className={`${className} rounded-full overflow-hidden flex items-center justify-center text-sm font-bold flex-shrink-0 ${avatarUrl ? "bg-surface-container-low" : fallbackClassName}`}>
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+      ) : (
+        getInitial(displayName)
+      )}
+    </div>
+  );
+};
+
+const Messages = () => {
+  const { roomId } = useParams();
+  const { user } = useAuth();
+  const { fetchUnreadChatCount } = useChat() || {};
+  const [rooms, setRooms] = useState([]);
+  const [activeRoom, setActiveRoom] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [msg, setMsg] = useState("");
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [search, setSearch] = useState("");
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const activeRoomIdRef = useRef("");
+
+  // Lấy danh sách phòng chat
+  const fetchRooms = useCallback(async () => {
+    setLoadingRooms(true);
+    try {
+      const res = await chatService.getMyRooms();
+      if (res.success) {
+        setRooms(sortRoomsByLastMessage(res.data || []));
+        if (res.data.length > 0) {
+          const targetRoom = roomId
+            ? res.data.find((r) => String(r._id) === String(roomId))
+            : null;
+          if (targetRoom) {
+            handleSelectRoom(targetRoom);
+          } else if (!roomId) {
+            handleSelectRoom(res.data[0]);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Lỗi tải danh sách chat:", err);
+    } finally {
+      setLoadingRooms(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
+
+  useEffect(() => {
+    fetchRooms();
+  }, [fetchRooms]);
+
+  // Lấy tin nhắn khi chọn phòng
+  const handleSelectRoom = async (room) => {
+    if (activeRoom?._id) leaveChatRoom(activeRoom._id);
+    setActiveRoom(room);
+    activeRoomIdRef.current = String(room._id);
+    setLoadingMsgs(true);
+    try {
+      const res = await chatService.getMessages(room._id);
+      if (res.success) {
+        setMessages(sortMessagesByTime(res.data || []));
+        if (fetchUnreadChatCount) fetchUnreadChatCount();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMsgs(false);
+    }
+    joinChatRoom(room._id);
+    inputRef.current?.focus();
+  };
+
+  // Socket: lắng nghe tin nhắn mới realtime
+  useEffect(() => {
+    const socket = getSocket();
+    const applyIncomingMessage = (newMsg) => {
+      const incomingRoomId = getMessageRoomId(newMsg);
+      if (incomingRoomId && incomingRoomId === activeRoomIdRef.current) {
+        setMessages((prev) => upsertMessageByTime(prev, newMsg));
+        if (fetchUnreadChatCount) fetchUnreadChatCount();
+      }
+
+      setRooms((prev) =>
+        sortRoomsByLastMessage(
+          prev.map((r) =>
+            String(r._id) === incomingRoomId
+              ? { ...r, lastMessage: newMsg.messageContent || newMsg.content, lastMessageAt: newMsg.createdAt }
+              : r
+          )
+        )
+      );
+    };
+
+    const handleRoomUpdated = (payload) => {
+      applyIncomingMessage(payload?.message || payload);
+    };
+
+    socket.on("new_message", applyIncomingMessage);
+    socket.on("chat_room_updated", handleRoomUpdated);
+    return () => {
+      socket.off("new_message", applyIncomingMessage);
+      socket.off("chat_room_updated", handleRoomUpdated);
+    };
+  }, [fetchUnreadChatCount]);
+
+  // Auto scroll xuống cuối
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Gửi tin nhắn
+  const handleSend = async () => {
+    if (!msg.trim() || !activeRoom) return;
+    const content = msg.trim();
+    setMsg("");
+    try {
+      const res = await chatService.sendMessage(activeRoom._id, content);
+      if (res.success) {
+        setMessages((prev) => upsertMessageByTime(prev, res.data));
+        setRooms((prev) =>
+          sortRoomsByLastMessage(
+            prev.map((r) =>
+              r._id === activeRoom._id
+                ? { ...r, lastMessage: content, lastMessageAt: res.data.createdAt || new Date().toISOString() }
+                : r
+            )
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Lỗi gửi tin nhắn:", err);
+      setMsg(content); // Khôi phục lại nếu lỗi
+    }
+  };
+
+  // Lấy thông tin người còn lại trong phòng
+  const getOther = (room) => {
+    if (!room) return null;
+    const myId = user?.id || user?._id;
+    const buyer = room.buyerId;
+    const seller = room.sellerId;
+    if (!buyer || !seller) return buyer || seller || null;
+    return String(getUserId(buyer)) === String(myId) ? seller : buyer;
+  };
+
+  const getSender = (message) => {
+    const sender = message?.senderId || message?.sender;
+    if (sender && typeof sender === "object") return sender;
+    const senderId = getUserId(sender);
+    if (String(senderId) === String(user?.id || user?._id)) return user;
+    return getOther(activeRoom);
+  };
+
+  const filteredRooms = rooms.filter((r) => {
+    const other = getOther(r);
+    const name = other?.fullName || other?.name || "";
+    const title = r.postId?.title || r.product?.title || "";
+    const q = search.toLowerCase();
+    return name.toLowerCase().includes(q) || title.toLowerCase().includes(q);
+  });
+
+  return (
+    <EcoTradeLayout>
+      <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden rounded-2xl border border-surface-variant/40 bg-white shadow-sm">
+
+        {/* Danh sách phòng chat */}
+        <div className="w-80 flex-shrink-0 bg-white border-r border-surface-variant/30 flex flex-col">
+          <div className="p-5 border-b border-surface-variant/20">
+            <h2 className="font-bold text-on-surface text-lg mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">forum</span>Tin nhắn
+            </h2>
+            <div className="flex items-center bg-surface-container-low border border-surface-variant/40 rounded-xl px-4 py-2.5 gap-2 focus-within:border-primary transition-all">
+              <span className="material-symbols-outlined text-on-surface-variant text-[17px]">search</span>
+              <input className="bg-transparent outline-none text-sm flex-1 placeholder:text-on-surface-variant"
+                placeholder="Tìm kiếm..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto divide-y divide-surface-variant/20">
+            {loadingRooms ? (
+              <div className="p-10 flex justify-center">
+                <span className="material-symbols-outlined animate-spin text-2xl text-primary">refresh</span>
+              </div>
+            ) : filteredRooms.length === 0 ? (
+              <div className="p-10 text-center text-on-surface-variant flex flex-col items-center gap-2">
+                <span className="material-symbols-outlined text-4xl opacity-30">chat_bubble_outline</span>
+                <p className="text-sm">Chưa có tin nhắn nào.</p>
+              </div>
+            ) : filteredRooms.map((room) => {
+              const other = getOther(room);
+              const isActive = activeRoom?._id === room._id;
+              const name = getUserName(other);
+
+              return (
+                <button key={room._id} onClick={() => handleSelectRoom(room)}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all ${isActive ? "bg-primary/5 border-l-2 border-primary" : "hover:bg-surface-container-low"
+                    }`}>
+                  <div className="relative flex-shrink-0">
+                    <UserAvatar
+                      user={other}
+                      name={name}
+                      className="w-11 h-11"
+                      fallbackClassName={isActive ? "bg-primary text-on-primary" : "bg-primary/10 text-primary"}
+                    />
+                    {room.unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-error text-on-error text-[9px] font-bold rounded-full flex items-center justify-center">
+                        {room.unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center">
+                      <p className={`text-sm truncate ${isActive ? "font-bold text-primary" : "font-semibold text-on-surface"}`}>
+                        {name}
+                      </p>
+                      {room.lastMessageAt && (
+                        <span className="text-[10px] text-on-surface-variant flex-shrink-0 ml-2">
+                          {formatTime(room.lastMessageAt)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-medium text-primary truncate mt-0.5">
+                      {room.postId?.title || room.product?.title || ""}
+                    </p>
+                    <p className="text-xs text-on-surface-variant truncate mt-0.5">
+                      {room.lastMessage || "Bắt đầu cuộc trò chuyện"}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Cửa sổ chat */}
+        <div className="flex-1 flex flex-col bg-[#F5F5F7] overflow-hidden">
+          {activeRoom ? (
+            <>
+              {/* Header */}
+              <div className="px-6 py-4 bg-white border-b border-surface-variant/20 flex items-center justify-between flex-shrink-0 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <UserAvatar
+                    user={getOther(activeRoom)}
+                    className="w-10 h-10"
+                    fallbackClassName="bg-primary text-on-primary"
+                  />
+                  <div>
+                    <p className="font-bold text-on-surface text-sm">
+                      {getUserName(getOther(activeRoom))}
+                    </p>
+                    <p className="text-xs text-primary font-medium truncate max-w-[200px]">
+                      {activeRoom.postId?.title || activeRoom.product?.title || ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thông tin sản phẩm */}
+              {activeRoom.postId && (
+                <div className="bg-surface-container-lowest border-b border-surface-variant/20 px-6 py-3 flex items-center justify-between gap-4 flex-shrink-0 shadow-sm z-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 rounded-lg bg-surface-container-low flex items-center justify-center overflow-hidden flex-shrink-0 border border-surface-variant/30">
+                      {activeRoom.postId.thumbnailUrl || (activeRoom.postId.images && activeRoom.postId.images[0]) ? (
+                        <img src={activeRoom.postId.thumbnailUrl || activeRoom.postId.images[0]} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="material-symbols-outlined text-on-surface-variant opacity-50">image</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-on-surface text-sm truncate">{activeRoom.postId.title}</p>
+                      <p className="text-primary font-bold text-sm mt-0.5">
+                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+                          activeRoom.postId.productType === "rent" ? activeRoom.postId.rentPricePerDay : activeRoom.postId.salePrice
+                        )}
+                        {activeRoom.postId.productType === "rent" && <span className="text-xs text-on-surface-variant font-medium ml-1">/ngày</span>}
+                      </p>
+                    </div>
+                  </div>
+                  <Link 
+                    to={`/marketplaces/${activeRoom.postId._id}`}
+                    className="px-4 py-1.5 rounded-full border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/5 transition-colors flex-shrink-0"
+                  >
+                    Xem sản phẩm
+                  </Link>
+                </div>
+              )}
+
+              {/* Khu vực tin nhắn */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3">
+                {loadingMsgs ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <span className="material-symbols-outlined animate-spin text-2xl text-primary">refresh</span>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant gap-2 py-16">
+                    <span className="material-symbols-outlined text-4xl opacity-30">chat</span>
+                    <p className="text-sm">Hãy gửi tin nhắn đầu tiên!</p>
+                  </div>
+                ) : messages.map((m, idx) => {
+                  const myId = user?.id || user?._id;
+                  const senderId = getUserId(m.senderId || m.sender);
+                  const isMine = String(senderId) === String(myId);
+                  const prevSenderId = idx > 0
+                    ? String(getUserId(messages[idx - 1].senderId || messages[idx - 1].sender))
+                    : null;
+                  const isConsecutive = prevSenderId && prevSenderId === String(senderId);
+                  const sender = getSender(m);
+
+                  return (
+                    <div key={m._id} className={`flex ${isMine ? "justify-end" : "justify-start"} ${isConsecutive ? "" : "mt-2"}`}>
+                      <div className={`flex items-end gap-2 max-w-[65%] ${isMine ? "flex-row-reverse" : ""}`}>
+                        {!isMine && !isConsecutive && (
+                          <UserAvatar
+                            user={sender}
+                            className="w-7 h-7 mb-1 text-xs"
+                            fallbackClassName="bg-primary/10 text-primary"
+                          />
+                        )}
+                        {!isMine && isConsecutive && <div className="w-7 flex-shrink-0" />}
+
+                        <div className={`px-4 py-2.5 rounded-2xl text-sm shadow-sm ${isMine
+                            ? `bg-primary text-on-primary ${isConsecutive ? "rounded-tr-md" : "rounded-br-sm"}`
+                            : `bg-white text-on-surface border border-surface-variant/20 ${isConsecutive ? "rounded-tl-md" : "rounded-bl-sm"}`
+                          }`}>
+                          <p className="leading-relaxed">{m.messageContent || m.content}</p>
+                          <p className={`text-[10px] mt-1 ${isMine ? "text-on-primary/60 text-right" : "text-on-surface-variant"}`}>
+                            {formatTime(m.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input */}
+              <div className="px-5 py-4 bg-white border-t border-surface-variant/20 flex items-center gap-3 flex-shrink-0">
+                <div className="flex-1 relative">
+                  <input
+                    ref={inputRef}
+                    className="w-full bg-surface-container-low border border-surface-variant/40 rounded-full pl-5 pr-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    placeholder="Nhập tin nhắn..."
+                    value={msg}
+                    onChange={(e) => setMsg(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                  />
+                </div>
+                <button onClick={handleSend} disabled={!msg.trim()}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${msg.trim()
+                      ? "bg-primary text-on-primary hover:opacity-90 active:scale-95 shadow-sm"
+                      : "bg-surface-container text-on-surface-variant opacity-50 cursor-not-allowed"
+                    }`}>
+                  <span className="material-symbols-outlined text-[20px]" style={{ marginLeft: "2px" }}>send</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant gap-4">
+              <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-5xl text-primary/30">forum</span>
+              </div>
+              <p className="font-semibold text-on-surface">Chọn cuộc trò chuyện</p>
+              <p className="text-sm">để bắt đầu nhắn tin</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </EcoTradeLayout>
+  );
+};
+export default Messages;

@@ -1,0 +1,352 @@
+import { useEffect, useState } from "react";
+import { ArrowLeft, CircleAlert, Info, ShieldCheck } from "lucide-react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
+import ShipperLayout from "../../components/shipper/ShipperLayout";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Switch } from "../../components/ui/switch";
+import { Textarea } from "../../components/ui/textarea";
+import deliveryService from "../../services/delivery.service";
+import inspectionService from "../../services/inspection.service";
+import uploadService from "../../services/upload.service";
+import { formatPrice } from "../../lib/utils";
+
+function CheckRow({ label, checked, onChange, disabled }) {
+  return (
+    <div className="rounded-[24px] bg-muted p-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-[1.15rem] font-bold">{label}</div>
+        <div className="flex items-center gap-4">
+          <span className="text-lg font-extrabold">{checked ? "ĐẠT" : "KHÔNG ĐẠT"}</span>
+          <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const INSPECTION_CHECKS = [
+  { key: "isCorrectProduct", label: "Đúng sản phẩm theo đơn đăng bán" },
+  { key: "isCorrectCategoryBrandModel", label: "Đúng danh mục/thương hiệu/model" },
+  { key: "isCorrectCondition", label: "Đúng tình trạng như người bán mô tả" },
+  { key: "isCorrectQuantity", label: "Đúng số lượng" },
+  { key: "isCorrectColorSizeVersion", label: "Đúng màu sắc/kích thước/phiên bản" },
+  { key: "isAccessoriesEnough", label: "Đúng phụ kiện đã cam kết" },
+  { key: "hasNoNewDamage", label: "Không phát sinh hư hỏng mới" },
+  { key: "hasNoCounterfeitSigns", label: "Không có dấu hiệu hàng giả/hàng nhái" },
+  { key: "isSerialMatched", label: "IMEI/Serial khớp thông tin đăng bán" },
+  { key: "isCorrectImage", label: "Hình thức bên ngoài phù hợp với ảnh đăng bán" },
+  { key: "isBasicFunctionWorking", label: "Sản phẩm vẫn hoạt động cơ bản" },
+];
+
+export default function DeliveryInspection() {
+  const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [delivery, setDelivery] = useState(null);
+  const [inspection, setInspection] = useState(null);
+  const [inspectionFiles, setInspectionFiles] = useState({ front: null, back: null, accessories: null });
+  const [form, setForm] = useState({
+    isCorrectProduct: true,
+    isCorrectCategoryBrandModel: true,
+    isCorrectImage: true,
+    isCorrectModel: true,
+    isCorrectCondition: true,
+    isCorrectQuantity: true,
+    isCorrectColorSizeVersion: true,
+    isAccessoriesEnough: true,
+    hasNoNewDamage: true,
+    hasNoCounterfeitSigns: true,
+    isSerialMatched: true,
+    isBasicFunctionWorking: true,
+    conditionNote: "",
+    result: "passed",
+    faultType: null,
+  });
+
+  useEffect(() => {
+    const fetchSource = async () => {
+      setLoading(true);
+      try {
+        if (location.pathname.startsWith("/shipper/inspection/")) {
+          const inspectionRes = await inspectionService.getInspectionById(id);
+          if (inspectionRes.success) {
+            setInspection(inspectionRes.data);
+            setForm({
+              isCorrectProduct: inspectionRes.data.isCorrectProduct !== false,
+              isCorrectCategoryBrandModel: inspectionRes.data.isCorrectCategoryBrandModel ?? inspectionRes.data.isCorrectModel ?? true,
+              isCorrectImage: inspectionRes.data.isCorrectImage !== false,
+              isCorrectModel: inspectionRes.data.isCorrectModel !== false,
+              isCorrectCondition: inspectionRes.data.isCorrectCondition !== false,
+              isCorrectQuantity: inspectionRes.data.isCorrectQuantity !== false,
+              isCorrectColorSizeVersion: inspectionRes.data.isCorrectColorSizeVersion !== false,
+              isAccessoriesEnough: inspectionRes.data.isAccessoriesEnough !== false,
+              hasNoNewDamage: inspectionRes.data.hasNoNewDamage !== false,
+              hasNoCounterfeitSigns: inspectionRes.data.hasNoCounterfeitSigns !== false,
+              isSerialMatched: inspectionRes.data.isSerialMatched !== false,
+              isBasicFunctionWorking: inspectionRes.data.isBasicFunctionWorking !== false,
+              conditionNote: inspectionRes.data.conditionNote || "",
+              result: inspectionRes.data.result?.startsWith("failed") ? "failed" : inspectionRes.data.result || "passed",
+              faultType: inspectionRes.data.faultType || (inspectionRes.data.result === "failed_seller_fault" ? "seller" : inspectionRes.data.result === "failed_shipper_fault" ? "shipper" : null),
+            });
+
+            const deliveryId = inspectionRes.data.deliveryId?._id || inspectionRes.data.deliveryId;
+            if (deliveryId) {
+              const deliveryRes = await deliveryService.getDeliveryById(deliveryId);
+              if (deliveryRes.success) setDelivery(deliveryRes.data);
+            }
+          }
+        } else {
+          const res = await deliveryService.getDeliveryById(id);
+          if (res.success) setDelivery(res.data);
+        }
+      } catch (error) {
+        toast.error(error.response?.data?.message || "Không thể tải biên bản kiểm tra.");
+        navigate(-1);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSource();
+  }, [id, location.pathname, navigate]);
+
+  const handleSubmit = async () => {
+    if (inspection) {
+      navigate(`/shipper/don/${delivery?._id || delivery?.id}`);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const requiredTypes = ["front", "back", "accessories"];
+      if (requiredTypes.some((type) => !inspectionFiles[type])) {
+        toast.error("Vui lòng chụp đủ ảnh mặt trước, mặt sau và phụ kiện.");
+        return;
+      }
+
+      const hasFailedCheck = INSPECTION_CHECKS.some((check) => form[check.key] === false);
+      if (hasFailedCheck && !form.faultType) {
+        toast.error("Vui lòng chọn lỗi thuộc về seller hay shipper khi có tiêu chí FAIL.");
+        return;
+      }
+
+      const uploadRes = await uploadService.uploadImages(
+        requiredTypes.map((type) => inspectionFiles[type]),
+        "inspection"
+      );
+      const inspectionImages = requiredTypes.map((imageType, index) => ({
+        imageType,
+        mediaId: uploadRes.mediaIds[index],
+      }));
+
+      const res = await inspectionService.createInspection({
+        deliveryId: id,
+        inspectionType: "pickup",
+        conditionNote: form.conditionNote,
+        isMatchDescription: form.isCorrectCondition,
+        isDamagedByShipper: hasFailedCheck && form.faultType === "shipper" && form.hasNoNewDamage === false,
+        isCorrectProduct: form.isCorrectProduct,
+        isCorrectCategoryBrandModel: form.isCorrectCategoryBrandModel,
+        isCorrectImage: form.isCorrectImage,
+        isCorrectModel: form.isCorrectCategoryBrandModel,
+        isCorrectCondition: form.isCorrectCondition,
+        isCorrectQuantity: form.isCorrectQuantity,
+        isCorrectColorSizeVersion: form.isCorrectColorSizeVersion,
+        isAccessoriesEnough: form.isAccessoriesEnough,
+        hasNoNewDamage: form.hasNoNewDamage,
+        hasNoCounterfeitSigns: form.hasNoCounterfeitSigns,
+        isSerialMatched: form.isSerialMatched,
+        isBasicFunctionWorking: form.isBasicFunctionWorking,
+        result: hasFailedCheck ? "failed" : "passed",
+        faultType: hasFailedCheck ? form.faultType : null,
+        inspectionImages,
+      });
+      if (res.success) navigate(`/shipper/don/${id}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể lưu biên bản.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <ShipperLayout>
+        <div className="flex min-h-[70vh] items-center justify-center text-lg font-medium text-muted-foreground">Đang tải biên bản kiểm tra...</div>
+      </ShipperLayout>
+    );
+  }
+
+  if (!delivery) return null;
+
+  const order = delivery.orderId || {};
+  const product = order.postId || {};
+  const readOnly = Boolean(inspection);
+  const hasFailedCheck = INSPECTION_CHECKS.some((check) => form[check.key] === false);
+
+  return (
+    <ShipperLayout>
+      <div className="w-full">
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-4">
+            <Link to={`/shipper/don/${delivery._id}`} className="mt-2 rounded-full border border-border p-2 text-muted-foreground transition hover:bg-muted">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div>
+              <h1 className="text-4xl font-extrabold tracking-tight sm:text-[2.9rem]">Biên bản kiểm tra</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-lg text-muted-foreground">
+                <Badge variant="outline">#{String(id).slice(-6).toUpperCase()}</Badge>
+                <span>•</span>
+                <span>Kiểm tra sản phẩm tại điểm lấy hàng trước khi nhận hàng từ seller</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-lg">
+            <Info className="h-5 w-5" />
+            Đây là bước bắt buộc trước khi giao
+          </div>
+        </div>
+
+        <Card className="mb-6 border-success/20 bg-[#f3fcf7]">
+          <CardContent className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-center">
+            <div className="h-20 w-20 overflow-hidden rounded-[18px] bg-muted">
+              {product.images?.[0] ? <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" /> : null}
+            </div>
+            <div className="flex-1">
+              <div className="text-[1.55rem] font-extrabold text-success">{product.title || "Sản phẩm EcoTrade"}</div>
+              <div className="mt-1 flex flex-wrap gap-5 text-base text-muted-foreground">
+                <span>Người bán: {order.sellerId?.fullName || "Seller"}</span>
+                <span>Phí vận chuyển: {formatPrice(delivery.deliveryFee)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[2rem]">Chi tiết kiểm định</CardTitle>
+            <p className="text-lg text-muted-foreground">Shipper cần xác nhận đúng sản phẩm, đúng hình ảnh, đúng model, đúng tình trạng và đủ phụ kiện trước khi bấm đã lấy hàng.</p>
+          </CardHeader>
+          <CardContent className="space-y-7">
+            {INSPECTION_CHECKS.map((check) => (
+              <CheckRow
+                key={check.key}
+                label={check.label}
+                checked={form[check.key]}
+                onChange={(value) => setForm((prev) => ({ ...prev, [check.key]: value }))}
+                disabled={readOnly}
+              />
+            ))}
+
+            <div className="space-y-3">
+              <label className="text-[1.1rem] font-semibold">Kết luận kiểm tra</label>
+              <div className={`rounded-2xl border p-4 text-sm font-semibold ${hasFailedCheck ? "border-danger/30 bg-danger-soft text-danger" : "border-success/30 bg-success-soft text-success"}`}>
+                {hasFailedCheck
+                  ? "Có tiêu chí FAIL: biên bản sẽ được đánh giá FAIL và dừng giao để Admin xử lý."
+                  : "Tất cả tiêu chí PASS: biên bản sẽ được đánh giá PASS."}
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {[
+                  { result: "failed", faultType: "seller", label: "Lỗi từ seller", variant: "warning" },
+                  { result: "failed", faultType: "shipper", label: "Lỗi từ shipper", variant: "danger" },
+                ].map((option) => (
+                  <button
+                    key={`${option.result}-${option.faultType || "none"}`}
+                    type="button"
+                    disabled={readOnly || !hasFailedCheck}
+                    onClick={() => setForm((prev) => ({ ...prev, result: option.result, faultType: option.faultType }))}
+                    className={`rounded-[20px] border px-4 py-4 text-left transition ${
+                      hasFailedCheck && form.result === option.result && form.faultType === option.faultType ? "border-success bg-success-soft" : "border-border bg-white"
+                    } ${readOnly || !hasFailedCheck ? "cursor-default opacity-60" : "cursor-pointer"}`}
+                  >
+                    <Badge variant={option.variant}>{option.label}</Badge>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[1.1rem] font-semibold">Ảnh kiểm định bắt buộc</label>
+              <div className="grid gap-4 md:grid-cols-3">
+                {[
+                  { type: "front", label: "Mặt trước" },
+                  { type: "back", label: "Mặt sau" },
+                  { type: "accessories", label: "Phụ kiện" },
+                ].map((item) => {
+                  const existingImage = inspection?.images?.find((image) => image.imageType === item.type);
+                  return (
+                    <label key={item.type} className="rounded-[20px] border border-dashed border-border bg-muted/40 p-4">
+                      <span className="mb-3 block font-semibold">{item.label}</span>
+                      {existingImage?.imageUrl ? (
+                        <img src={existingImage.imageUrl} alt={item.label} className="h-36 w-full rounded-xl object-cover" />
+                      ) : (
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          required
+                          disabled={readOnly}
+                          onChange={(event) => setInspectionFiles((prev) => ({ ...prev, [item.type]: event.target.files?.[0] || null }))}
+                          className="block w-full text-sm"
+                        />
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[1.1rem] font-semibold">Ghi chú tình trạng sản phẩm</label>
+              <Textarea
+                value={form.conditionNote}
+                onChange={(e) => setForm({ ...form, conditionNote: e.target.value })}
+                placeholder="Mô tả tình trạng thực tế, lỗi nếu có, các điểm cần lưu ý khi giao."
+                className="min-h-[120px]"
+                disabled={readOnly}
+              />
+            </div>
+
+            <div className="border-t border-border pt-6">
+              <div className="mb-5 flex items-start justify-center gap-3 text-sm text-muted-foreground">
+                <CircleAlert className="mt-0.5 h-4 w-4" />
+                {hasFailedCheck
+                  ? "Biên bản có tiêu chí không đạt sẽ dừng luồng giao để Admin xử lý."
+                  : "Bằng việc bấm đã lấy hàng, shipper xác nhận toàn bộ kết quả kiểm tra và nhận hàng từ seller để tiếp tục giao."}
+              </div>
+              <Button size="lg" className="w-full text-[1.25rem]" onClick={handleSubmit} disabled={submitting}>
+                {inspection ? "Quay lại vận đơn" : submitting ? "Đang xác nhận..." : hasFailedCheck ? "Lưu biên bản lỗi" : "Đã lấy hàng"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          <Card>
+            <CardContent className="flex items-start gap-4 pt-6">
+              <div className="rounded-full bg-success-soft p-3 text-success"><ShieldCheck className="h-5 w-5" /></div>
+              <div>
+                <div className="text-[1.35rem] font-bold">Khi kiểm tra đạt</div>
+                <div className="mt-1 text-base leading-7 text-muted-foreground">Hệ thống xác nhận shipper đã lấy hàng và cho phép chuyển tiếp sang bước bắt đầu giao hàng.</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-start gap-4 pt-6">
+              <div className="rounded-full bg-sky-soft p-3 text-sky"><Info className="h-5 w-5" /></div>
+              <div>
+                <div className="text-[1.35rem] font-bold">Khi kiểm tra thất bại</div>
+                <div className="mt-1 text-base leading-7 text-muted-foreground">Hệ thống sẽ dừng delivery và đồng bộ trạng thái order để buyer hoặc seller nhìn thấy ngay trên màn chi tiết.</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </ShipperLayout>
+  );
+}

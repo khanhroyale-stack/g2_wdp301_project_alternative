@@ -64,7 +64,7 @@ const productPostSchema = new mongoose.Schema(
     quantity: {
       type: Number,
       default: 1,
-      min: 1,
+      min: 0,
     },
     invoiceField: {
       type: mongoose.Schema.Types.ObjectId,
@@ -83,7 +83,7 @@ const productPostSchema = new mongoose.Schema(
     },
     postStatus: {
       type: String,
-      enum: ["pending", "approved", "rejected", "closed"],
+      enum: ["pending", "approved", "available", "rejected", "sold", "rented", "inactive", "closed"],
       default: "pending",
     },
     approvedBy: {
@@ -99,11 +99,23 @@ const productPostSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    featuredAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
     collection: "product_posts",
   }
 );
+
+productPostSchema.index({ ownerId: 1, postStatus: 1, createdAt: -1 });
+productPostSchema.index({ ownerId: 1, isFeatured: 1, featuredAt: -1 });
+productPostSchema.index({ postStatus: 1, isFeatured: -1, featuredAt: -1 });
 
 module.exports = mongoose.model("ProductPost", productPostSchema);

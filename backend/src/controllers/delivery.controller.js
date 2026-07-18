@@ -1,0 +1,310 @@
+const Delivery = require("../models/delivery.model");
+const Order = require("../models/order.model");
+const DeliveryInspection = require("../models/delivery_inspection.model");
+const { createNotification } = require("./notification.controller");
+const {
+  getProductImageUrls,
+  getProductThumbnailUrl,
+} = require("../utils/product-images.util");
+const { buildAvailableDeliveryClaimFilter, isDeliveryTransitionAllowed } = require("../utils/business-rules");
+const { releaseOrderInventory } = require("../services/order-inventory.service");
+
+const appendDeliveryHistory = (delivery, status, note) => {
+  delivery.history.push({
+    status,
+    note,
+    timestamp: new Date(),
+  });
+};
+
+const hydrateProductImage = async (delivery) => {
+  if (delivery.orderId?.postId?._id) {
+    delivery.orderId.productImage = await getProductThumbnailUrl(delivery.orderId.postId._id);
+  }
+};
+
+const getAvailableDeliveries = async (req, res) => {
+  try {
+    const deliveries = await Delivery.find({
+      shipperId: null,
+      deliveryStatus: "pending",
+    })
+      .populate({
+        path: "orderId",
+        populate: [
+          { path: "buyerId", select: "fullName phone" },
+          { path: "sellerId", select: "fullName phone address" },
+          { path: "postId", select: "title salePrice" },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    for (const delivery of deliveries) {
+      await hydrateProductImage(delivery);
+    }
+
+    res.json({ success: true, data: deliveries });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const acceptDelivery = async (req, res) => {
+  try {
+    const delivery = await Delivery.findOneAndUpdate(
+      buildAvailableDeliveryClaimFilter(req.params.id),
+      {
+        $set: { shipperId: req.user._id, deliveryStatus: "accepted" },
+        $push: {
+          history: {
+            status: "accepted",
+            note: "Shipper da nhan don giao hang.",
+            timestamp: new Date(),
+          },
+        },
+      },
+      { new: true }
+    );
+
+    if (!delivery) {
+      const exists = await Delivery.exists({ _id: req.params.id });
+      return res.status(400).json({
+        success: false,
+        message: exists ? "Don nay da co shipper nhan" : "Khong tim thay don giao hang",
+      });
+    }
+
+    const updatedDelivery = await Delivery.findById(delivery._id)
+      .populate("shipperId", "fullName phone")
+      .populate({
+        path: "orderId",
+        populate: [
+          { path: "buyerId", select: "fullName phone" },
+          { path: "sellerId", select: "fullName phone address" },
+          { path: "postId", select: "title salePrice" },
+        ],
+      })
+      .lean();
+    req.app.get("io")?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
+
+    res.json({
+      success: true,
+      message: "Da nhan don giao hang",
+      data: updatedDelivery,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getMyDeliveries = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = { shipperId: req.user._id };
+    if (status) {
+      filter.deliveryStatus = status;
+    }
+
+    const deliveries = await Delivery.find(filter)
+      .populate({
+        path: "orderId",
+        populate: [
+          { path: "buyerId", select: "fullName phone address" },
+          { path: "sellerId", select: "fullName phone address" },
+          { path: "postId", select: "title salePrice" },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    for (const delivery of deliveries) {
+      await hydrateProductImage(delivery);
+    }
+
+    res.json({ success: true, data: deliveries });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getDeliveryById = async (req, res) => {
+  try {
+    const delivery = await Delivery.findById(req.params.id)
+      .populate("shipperId", "fullName phone email")
+      .populate({
+        path: "orderId",
+        populate: [
+          { path: "buyerId", select: "fullName phone address email" },
+          { path: "sellerId", select: "fullName phone address email" },
+          { path: "postId" },
+        ],
+      })
+      .lean();
+
+    if (!delivery) {
+      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
+    }
+
+    const isShipper = String(delivery.shipperId?._id) === String(req.user._id);
+    const isBuyer = delivery.orderId && String(delivery.orderId.buyerId._id) === String(req.user._id);
+    const isSeller = delivery.orderId && String(delivery.orderId.sellerId._id) === String(req.user._id);
+    if (!isShipper && !isBuyer && !isSeller && req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Ban khong co quyen xem don giao hang nay",
+      });
+    }
+
+    if (delivery.orderId?.postId?._id) {
+      delivery.orderId.postId.images = await getProductImageUrls(delivery.orderId.postId._id);
+    }
+
+    const inspections = await DeliveryInspection.find({ deliveryId: delivery._id })
+      .populate("shipperId", "fullName phone")
+      .sort({ createdAt: -1 })
+      .lean();
+    delivery.inspections = inspections;
+
+    res.json({ success: true, data: delivery });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const updateDeliveryStatus = async (req, res) => {
+  try {
+    const { status, note, failureReason } = req.body;
+    const io = req.app.get("io");
+    const delivery = await Delivery.findById(req.params.id);
+
+    if (!delivery) {
+      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
+    }
+
+    if (String(delivery.shipperId) !== String(req.user._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Ban khong co quyen cap nhat don nay",
+      });
+    }
+
+    const currentStatus = delivery.deliveryStatus;
+    if (!isDeliveryTransitionAllowed(currentStatus, status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Khong the chuyen sang trang thai nay",
+      });
+    }
+
+    if (status === "in_transit") {
+      const latestInspection = await DeliveryInspection.findOne({ deliveryId: delivery._id }).sort({ createdAt: -1 }).lean();
+      if (!latestInspection || latestInspection.result !== "passed") {
+        return res.status(400).json({
+          success: false,
+          message: "Can co bien ban kiem tra hop le truoc khi bat dau giao hang",
+        });
+      }
+    }
+
+    delivery.deliveryStatus = status;
+    if (status === "failed") {
+      delivery.failureReason = (failureReason || note || "").trim() || "Shipper bao cao giao hang that bai.";
+    }
+    appendDeliveryHistory(
+      delivery,
+      status,
+      status === "picking_up"
+        ? note || "Shipper dang di den diem lay hang."
+        : status === "ready_for_delivery" || status === "picked_up"
+          ? note || "Shipper da lay hang tu seller va can lap bien ban kiem tra."
+          : status === "received"
+            ? note || "San pham da kiem tra dat va shipper da nhan hang hop le."
+          : status === "in_transit"
+            ? note || "Shipper bat dau giao hang den buyer."
+            : status === "delivered"
+              ? note || "Shipper xac nhan da giao hang thanh cong."
+              : status === "inspection_failed"
+                ? note || "Bien ban kiem tra that bai. Delivery dung de Admin xu ly."
+                : delivery.failureReason || note || "Delivery gap su co va duoc danh dau that bai."
+    );
+    await delivery.save();
+
+    if (status === "in_transit") {
+      await Order.findByIdAndUpdate(delivery.orderId, {
+        orderStatus: "shipping",
+      });
+    } else if (status === "delivered") {
+      const order = await Order.findByIdAndUpdate(delivery.orderId, {
+        orderStatus: "delivered",
+      }, { new: true })
+        .populate("buyerId", "fullName")
+        .populate("sellerId", "fullName")
+        .populate("postId", "title")
+        .lean();
+
+      if (order) {
+        const productTitle = order.postId?.title || "sản phẩm";
+        await Promise.all([
+          createNotification({
+            recipientId: order.buyerId?._id || order.buyerId,
+            type: "order_update",
+            title: "Đơn hàng đã được giao",
+            content: `Shipper đã xác nhận giao thành công "${productTitle}". Vui lòng kiểm tra hàng và xác nhận hoàn tất đơn.`,
+            relatedType: "order",
+            relatedId: order._id,
+            link: `/orders/${order._id}`,
+          }, io),
+          createNotification({
+            recipientId: order.sellerId?._id || order.sellerId,
+            type: "order_update",
+            title: "Đơn bán đã giao thành công",
+            content: `Shipper đã xác nhận giao thành công "${productTitle}". Hệ thống đang chờ người mua xác nhận hoàn tất.`,
+            relatedType: "order",
+            relatedId: order._id,
+            link: `/orders/${order._id}`,
+          }, io),
+        ]);
+      }
+    } else if (status === "failed") {
+      const order = await Order.findByIdAndUpdate(delivery.orderId, {
+        orderStatus: "cancelled",
+        cancelReason: delivery.failureReason,
+      }, { new: true }).lean();
+
+      if (order?.postId) {
+        await releaseOrderInventory(delivery.orderId);
+      }
+    }
+
+    const updatedDelivery = await Delivery.findById(delivery._id)
+      .populate("shipperId", "fullName phone")
+      .populate({
+        path: "orderId",
+        populate: [
+          { path: "buyerId", select: "fullName phone" },
+          { path: "sellerId", select: "fullName phone" },
+          { path: "postId", select: "title" },
+        ],
+      })
+      .lean();
+    io?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
+    io?.emit("realtime_update", { type: "order", relatedType: "order", relatedId: delivery.orderId });
+
+    res.json({
+      success: true,
+      message: "Cap nhat trang thai thanh cong",
+      data: updatedDelivery,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = {
+  getAvailableDeliveries,
+  acceptDelivery,
+  getMyDeliveries,
+  getDeliveryById,
+  updateDeliveryStatus,
+};
