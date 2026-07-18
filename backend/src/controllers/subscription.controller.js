@@ -94,8 +94,8 @@ const vnpayReturn = async (req, res) => {
     }
 
     const now = new Date();
-    const durationMonths = sub.durationMonths || Math.max(1, Math.round(sub.durationDays / 30));
-    const newExpiry = computeProExpiry(user.proExpiresAt, durationMonths, now);
+    const durationDays = sub.durationDays || PRO_PLANS[sub.plan]?.durationDays;
+    const newExpiry = computeProExpiry(user.proExpiresAt, durationDays, now);
 
     sub.status = "paid";
     sub.vnpTransactionNo = data.vnp_TransactionNo || null;

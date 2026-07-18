@@ -78,21 +78,12 @@ const isUserPro = (user) => {
   return !!(expiry && new Date(expiry).getTime() > Date.now());
 };
 
-const addMonthsClamped = (date, months) => {
-  const result = new Date(date);
-  const originalDate = result.getDate();
-  result.setDate(1);
-  result.setMonth(result.getMonth() + months);
-  const daysInTargetMonth = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
-  result.setDate(Math.min(originalDate, daysInTargetMonth));
-  return result;
-};
-
-const computeProExpiry = (currentExpiry, durationMonths, now = new Date()) => {
+const computeProExpiry = (currentExpiry, durationDays, now = new Date()) => {
   const nowMs = now.getTime();
   const currentMs = currentExpiry ? new Date(currentExpiry).getTime() : 0;
   const base = new Date(Math.max(nowMs, currentMs));
-  return addMonthsClamped(base, durationMonths);
+  const days = Math.max(Number(durationDays) || 0, 0);
+  return new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
 };
 
 module.exports = {
