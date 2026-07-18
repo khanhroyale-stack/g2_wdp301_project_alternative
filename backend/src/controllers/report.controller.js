@@ -3,9 +3,17 @@ const ReportEvidence = require("../models/report_evidence.model");
 const ReputationLog = require("../models/reputation_log.model");
 const User = require("../models/user.model");
 const MediaFile = require("../models/media_file.model");
+const ProductPost = require("../models/product_post.model");
+const { attachImagesToProducts } = require("../utils/product-images.util");
 const { createNotification } = require("./notification.controller");
 
 const VIOLATION_POINTS = { warning: 10, minor: 20, major: 50 };
+const ObjectId = MediaFile.db.base.Types.ObjectId;
+
+const normalizeIdList = (ids) => {
+  if (!Array.isArray(ids)) return [];
+  return ids.map((id) => String(id || "").trim()).filter(Boolean);
+};
 
 // POST /api/reports — người dùng gửi báo cáo
 const createReport = async (req, res) => {
@@ -14,6 +22,45 @@ const createReport = async (req, res) => {
 
     if (!reportedUserId || !reportType || !description) {
       return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
+    }
+
+    if (!ObjectId.isValid(reportedUserId)) {
+      return res.status(400).json({ success: false, message: "Nguoi bi bao cao khong hop le" });
+    }
+
+    if (String(reportedUserId) === String(req.user._id)) {
+      return res.status(400).json({ success: false, message: "Khong the bao cao san pham cua chinh minh" });
+    }
+
+    if (postId) {
+      if (!ObjectId.isValid(postId)) {
+        return res.status(400).json({ success: false, message: "San pham khong hop le" });
+      }
+      const product = await ProductPost.findById(postId).select("ownerId");
+      if (!product) {
+        return res.status(404).json({ success: false, message: "Khong tim thay san pham" });
+      }
+      if (String(product.ownerId) === String(req.user._id)) {
+        return res.status(400).json({ success: false, message: "Khong the bao cao san pham cua chinh minh" });
+      }
+      if (String(product.ownerId) !== String(reportedUserId)) {
+        return res.status(400).json({ success: false, message: "Thong tin nguoi bi bao cao khong khop san pham" });
+      }
+    }
+
+    const mediaIds = normalizeIdList(evidenceMediaIds);
+    if (mediaIds.some((mediaId) => !ObjectId.isValid(mediaId))) {
+      return res.status(400).json({ success: false, message: "Bang chung khong hop le" });
+    }
+
+    if (mediaIds.length > 0) {
+      const validMediaCount = await MediaFile.countDocuments({
+        _id: { $in: mediaIds },
+        uploadedBy: req.user._id,
+      });
+      if (validMediaCount !== mediaIds.length) {
+        return res.status(400).json({ success: false, message: "Bang chung khong ton tai hoac khong thuoc ve ban" });
+      }
     }
 
     const report = await Report.create({
@@ -28,13 +75,16 @@ const createReport = async (req, res) => {
     });
 
     // Lưu bằng chứng nếu có (mảng mediaId từ upload trước)
-    if (Array.isArray(evidenceMediaIds) && evidenceMediaIds.length > 0) {
-      const evidenceDocs = evidenceMediaIds.map((mediaId) => ({
+    if (mediaIds.length > 0) {
+      const now = new Date();
+      const evidenceDocs = mediaIds.map((mediaId) => ({
         reportId: report._id,
-        mediaId,
+        mediaId: new ObjectId(mediaId),
         evidenceType: "image",
+        createdAt: now,
+        updatedAt: now,
       }));
-      await ReportEvidence.insertMany(evidenceDocs);
+      await ReportEvidence.collection.insertMany(evidenceDocs);
     }
 
     // Thông báo cho Admin (type: report_update)
@@ -73,7 +123,7 @@ const getAdminReports = async (req, res) => {
     const reports = await Report.find(filter)
       .populate("reporterId", "fullName email avatarUrl")
       .populate("reportedUserId", "fullName email reputationScore")
-      .populate("postId", "title images")
+      .populate("postId", "title description productType salePrice rentPricePerDay depositAmount conditionStatus location ownerId createdAt")
       .populate("orderId", "totalAmount")
       .populate("rentalContractId", "totalAmount")
       .sort({ createdAt: -1 })
@@ -100,9 +150,14 @@ const getReportById = async (req, res) => {
     if (!report) return res.status(404).json({ success: false, message: "Không tìm thấy báo cáo" });
 
     const evidences = await ReportEvidence.find({ reportId: report._id })
-      .populate("mediaId", "publicUrl fileType");
+      .populate("mediaId", "publicUrl fileType mimeType originalName fileName fileSize createdAt");
 
-    res.json({ success: true, data: { ...report.toObject(), evidences } });
+    const data = report.toObject();
+    if (data.postId?._id) {
+      await attachImagesToProducts([data.postId]);
+    }
+
+    res.json({ success: true, data: { ...data, evidences } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -135,10 +190,24 @@ const resolveReport = async (req, res) => {
 
     if (!report) return res.status(404).json({ success: false, message: "Không tìm thấy báo cáo" });
 
+    if (["resolved", "dismissed"].includes(report.status)) {
+      return res.status(409).json({ success: false, message: "Bao cao nay da duoc xu ly truoc do" });
+    }
+    if (report.status === status) {
+      return res.json({ success: true, data: report, message: "Trang thai bao cao da duoc cap nhat truoc do" });
+    }
+
+    const previousStatus = report.status;
+    const updateResult = await Report.updateOne(
+      { _id: report._id, status: previousStatus },
+      { $set: { status, adminNote: adminNote || null, adminId: req.user._id } }
+    );
+    if (updateResult.matchedCount === 0) {
+      return res.status(409).json({ success: false, message: "Bao cao nay vua duoc xu ly truoc do" });
+    }
     report.status = status;
     report.adminNote = adminNote || null;
     report.adminId = req.user._id;
-    await report.save();
 
     const io = req.app.get("io");
 
@@ -229,4 +298,46 @@ const addReportEvidence = async (req, res) => {
   }
 };
 
-module.exports = { createReport, getAdminReports, getReportById, getMyReports, resolveReport, addReportEvidence };
+const addReportEvidenceSafe = async (req, res) => {
+  try {
+    const mediaIds = normalizeIdList(req.body.mediaIds);
+
+    if (mediaIds.length === 0) {
+      return res.status(400).json({ success: false, message: "Can it nhat 1 bang chung" });
+    }
+    if (mediaIds.some((mediaId) => !ObjectId.isValid(mediaId))) {
+      return res.status(400).json({ success: false, message: "Bang chung khong hop le" });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ success: false, message: "Khong tim thay bao cao" });
+
+    if (String(report.reporterId) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: "Khong co quyen them bang chung" });
+    }
+
+    const validMediaCount = await MediaFile.countDocuments({
+      _id: { $in: mediaIds },
+      uploadedBy: req.user._id,
+    });
+    if (validMediaCount !== mediaIds.length) {
+      return res.status(400).json({ success: false, message: "Bang chung khong ton tai hoac khong thuoc ve ban" });
+    }
+
+    const now = new Date();
+    const evidenceDocs = mediaIds.map((mediaId) => ({
+      reportId: report._id,
+      mediaId: new ObjectId(mediaId),
+      evidenceType: "image",
+      createdAt: now,
+      updatedAt: now,
+    }));
+    const result = await ReportEvidence.collection.insertMany(evidenceDocs);
+
+    res.status(201).json({ success: true, data: Object.values(result.insertedIds), count: result.insertedCount });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { createReport, getAdminReports, getReportById, getMyReports, resolveReport, addReportEvidence: addReportEvidenceSafe };

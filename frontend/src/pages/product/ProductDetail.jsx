@@ -184,6 +184,21 @@ const ProductDetail = () => {
   const availableQuantity = Math.max(Number(product.quantity) || 0, 0);
   const sellerName = product.ownerId?.fullName || product.ownerId?.name || "Nguoi dung an";
   const sellerInitial = sellerName.charAt(0).toUpperCase();
+  const ownerId = product.ownerId?._id || product.ownerId;
+  const currentUserId = user?.id || user?._id;
+  const isOwnProduct = currentUserId && ownerId && String(currentUserId) === String(ownerId);
+
+  const openReportModal = () => {
+    if (!user) {
+      navigate("/dang-nhap");
+      return;
+    }
+    if (isOwnProduct) {
+      toast.error("Bạn không thể báo cáo sản phẩm của chính mình.");
+      return;
+    }
+    setShowReportModal(true);
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/20">
@@ -345,7 +360,7 @@ const ProductDetail = () => {
                 </button>
               )}
 
-              {(!user || String(user.id || user._id) !== String(product.ownerId?._id || product.ownerId)) && (
+              {(!user || !isOwnProduct) && (
                 <button onClick={handleChat} className="flex items-center justify-center gap-3 w-full py-5 rounded-pill bg-background text-primary font-bold hover:bg-primary/5 transition-all">
                   <span className="material-symbols-outlined text-[20px]">chat</span>
                   Liên hệ người đăng
@@ -391,9 +406,11 @@ const ProductDetail = () => {
                 <span className="material-symbols-outlined text-[18px]">verified_user</span>
                 Giao dịch được bảo vệ
               </div>
-              <button onClick={() => (user ? setShowReportModal(true) : navigate("/dang-nhap"))} className="text-[10px] font-black text-error/60 hover:text-error uppercase tracking-widest flex items-center gap-1">
-                Báo cáo đơn
-              </button>
+              {!isOwnProduct ? (
+                <button onClick={openReportModal} className="text-[10px] font-black text-error/60 hover:text-error uppercase tracking-widest flex items-center gap-1">
+                  Báo cáo đơn
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -489,7 +506,7 @@ const ProductDetail = () => {
       {showReportModal && product ? (
         <ReportModal
           onClose={() => setShowReportModal(false)}
-          reportedUserId={product.ownerId?._id}
+          reportedUserId={ownerId}
           postId={product._id}
           contextLabel={product.title}
         />

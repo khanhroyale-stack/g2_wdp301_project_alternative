@@ -606,12 +606,6 @@ export default function OrderDetail() {
               </div>
             ) : null}
 
-            {delivery?.failureReason ? (
-              <div className="rounded-[18px] border border-danger/30 bg-danger-soft/50 p-5 text-sm text-danger shadow-sm">
-                <div className="font-bold uppercase tracking-[0.12em]">Sự cố giao hàng</div>
-                <div className="mt-2 leading-6 text-danger-foreground">{delivery.failureReason}</div>
-              </div>
-            ) : null}
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "../../components/Sidebar";
 import reportService from "../../services/report.service";
 import toast from "react-hot-toast";
@@ -35,6 +35,13 @@ const STATUS_LABEL = {
 };
 
 // ── Modal xem chi tiết báo cáo ──────────────────────────────────────
+const formatFileSize = (size) => {
+  const value = Number(size) || 0;
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
+  if (value >= 1024) return `${Math.round(value / 1024)} KB`;
+  return `${value} B`;
+};
+
 const DetailModal = ({ reportId, onClose }) => {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +55,7 @@ const DetailModal = ({ reportId, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 py-8 overflow-auto">
-      <div className="bg-surface-container-lowest rounded-2xl shadow-apple-md border border-surface-variant w-full max-w-xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface-container-lowest rounded-2xl shadow-apple-md border border-surface-variant w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-on-surface text-lg">Chi tiết báo cáo</h3>
@@ -104,7 +111,35 @@ const DetailModal = ({ reportId, onClose }) => {
                   <div>
                     <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider mb-0.5">Bài đăng liên quan</p>
                     <p className="text-sm font-semibold text-on-surface">{detail.postId.title}</p>
+                    <p className="mt-1 text-xs text-on-surface-variant line-clamp-2">{detail.postId.description || "Khong co mo ta"}</p>
+                    <div className="mt-2 grid grid-cols-2 gap-1 text-xs text-on-surface-variant">
+                      <span>Loai: {detail.postId.productType || "—"}</span>
+                      <span>Tinh trang: {detail.postId.conditionStatus || "—"}</span>
+                      <span>Gia ban: {detail.postId.salePrice?.toLocaleString("vi-VN") || "—"}</span>
+                      <span>Gia thue/ngay: {detail.postId.rentPricePerDay?.toLocaleString("vi-VN") || "—"}</span>
+                    </div>
                   </div>
+                </div>
+              )}
+
+              {(detail.orderId || detail.rentalContractId) && (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {detail.orderId ? (
+                    <div className="bg-surface-container-low rounded-xl p-3">
+                      <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Đơn hàng liên quan</p>
+                      <p className="text-sm text-on-surface">#{String(detail.orderId._id || "").slice(-8).toUpperCase()}</p>
+                      <p className="text-xs text-on-surface-variant">Trạng thái: {detail.orderId.orderStatus || "—"}</p>
+                      <p className="text-xs text-on-surface-variant">Tổng tiền: {detail.orderId.totalAmount?.toLocaleString("vi-VN") || "—"}</p>
+                    </div>
+                  ) : null}
+                  {detail.rentalContractId ? (
+                    <div className="bg-surface-container-low rounded-xl p-3">
+                      <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Hợp đồng thuê liên quan</p>
+                      <p className="text-sm text-on-surface">#{String(detail.rentalContractId._id || "").slice(-8).toUpperCase()}</p>
+                      <p className="text-xs text-on-surface-variant">Trạng thái: {detail.rentalContractId.contractStatus || "—"}</p>
+                      <p className="text-xs text-on-surface-variant">Tổng tiền: {detail.rentalContractId.totalAmount?.toLocaleString("vi-VN") || "—"}</p>
+                    </div>
+                  ) : null}
                 </div>
               )}
 
@@ -115,24 +150,37 @@ const DetailModal = ({ reportId, onClose }) => {
               </div>
 
               {/* Bằng chứng */}
-              {detail.evidences && detail.evidences.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
-                    Bằng chứng ({detail.evidences.length})
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {detail.evidences.map((ev) => (
-                      <a key={ev._id} href={ev.mediaId?.publicUrl} target="_blank" rel="noopener noreferrer">
-                        <img
-                          src={ev.mediaId?.publicUrl}
-                          alt="Bằng chứng"
-                          className="w-full aspect-square object-cover rounded-xl border border-surface-variant hover:opacity-80 transition-opacity"
-                        />
-                      </a>
-                    ))}
+              <div>
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
+                  Bằng chứng ({detail.evidences?.length || 0})
+                </p>
+                {!detail.evidences?.length ? (
+                  <p className="rounded-xl bg-surface-container-low p-3 text-sm text-on-surface-variant">Người dùng không đính kèm bằng chứng.</p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {detail.evidences.map((ev) => {
+                      const media = ev.mediaId || {};
+                      const isImage = media.mimeType?.startsWith("image/") || media.publicUrl?.match(/\.(png|jpe?g|gif|webp)$/i);
+                      return (
+                        <a key={ev._id} href={media.publicUrl} target="_blank" rel="noopener noreferrer" className="overflow-hidden rounded-xl border border-surface-variant bg-surface-container-low hover:border-primary/40">
+                          {isImage ? (
+                            <img src={media.publicUrl} alt={media.originalName || "Bằng chứng"} className="h-44 w-full object-cover" />
+                          ) : (
+                            <div className="flex h-44 items-center justify-center text-on-surface-variant">
+                              <span className="material-symbols-outlined text-5xl">description</span>
+                            </div>
+                          )}
+                          <div className="space-y-1 p-3 text-xs text-on-surface-variant">
+                            <p className="truncate font-semibold text-on-surface">{media.originalName || media.fileName || "Tệp bằng chứng"}</p>
+                            <p>{media.mimeType || media.fileType || "Không rõ loại"} · {formatFileSize(media.fileSize)}</p>
+                            <p>Loại bằng chứng: {ev.evidenceType || "image"}</p>
+                          </div>
+                        </a>
+                      );
+                    })}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Admin note */}
               {detail.adminNote && (
@@ -158,9 +206,12 @@ const ResolveModal = ({ report, onClose, onSuccess }) => {
   const [adminNote, setAdminNote] = useState("");
   const [violationLevel, setViolationLevel] = useState("");
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     try {
       const res = await reportService.resolveReport(report._id, {
@@ -177,6 +228,7 @@ const ResolveModal = ({ report, onClose, onSuccess }) => {
     } catch (err) {
       toast.error(err.response?.data?.message || "Lỗi xử lý báo cáo");
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -196,7 +248,7 @@ const ResolveModal = ({ report, onClose, onSuccess }) => {
                 { v: "resolved", label: "Đã giải quyết" },
                 { v: "dismissed", label: "Từ chối báo cáo" },
               ].map((opt) => (
-                <button key={opt.v} type="button" onClick={() => setStatus(opt.v)}
+                <button key={opt.v} type="button" disabled={loading} onClick={() => setStatus(opt.v)}
                   className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${status === opt.v
                     ? "border-primary bg-primary/5 text-primary"
                     : "border-surface-variant text-on-surface-variant hover:border-primary/40"
@@ -219,6 +271,7 @@ const ResolveModal = ({ report, onClose, onSuccess }) => {
                   { v: "major", label: "Nặng", points: "-50" },
                 ].map((opt) => (
                   <button key={opt.v} type="button"
+                    disabled={loading}
                     onClick={() => setViolationLevel(violationLevel === opt.v ? "" : opt.v)}
                     className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all flex flex-col items-center ${violationLevel === opt.v
                       ? "border-error bg-error/5 text-error"
@@ -246,8 +299,8 @@ const ResolveModal = ({ report, onClose, onSuccess }) => {
           </div>
 
           <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-3 border border-surface-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-all">
+            <button type="button" onClick={onClose} disabled={loading}
+              className="flex-1 py-3 border border-surface-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-all disabled:cursor-not-allowed disabled:opacity-60">
               Hủy
             </button>
             <button type="submit" disabled={loading}

@@ -409,11 +409,7 @@ export default function MySales() {
                             )}
                           </Button>
                         </div>
-                      ) : (
-                        <div className="text-sm font-medium text-muted-foreground">
-                          Không có thao tác seller ở trạng thái hiện tại
-                        </div>
-                      )}
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>

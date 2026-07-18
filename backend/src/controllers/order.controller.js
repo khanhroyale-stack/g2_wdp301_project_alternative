@@ -291,7 +291,7 @@ const updateOrderStatus = async (req, res) => {
 
     const isBuyer = String(order.buyerId) === String(req.user._id);
     const isSeller = String(order.sellerId) === String(req.user._id);
-    const delivery = await Delivery.findOne({ orderId: order._id });
+    let delivery = await Delivery.findOne({ orderId: order._id });
 
     if (!isBuyer && !isSeller) {
       return res.status(403).json({

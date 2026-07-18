@@ -60,7 +60,7 @@ const ReportModal = ({
       // — upload ảnh trước nếu có
       let mediaIds = [];
       if (imageFiles.length > 0) {
-        const uploadRes = await uploadService.uploadImages(imageFiles);
+        const uploadRes = await uploadService.uploadImages(imageFiles, "evidence");
         if (uploadRes.success) mediaIds = uploadRes.mediaIds || [];
       }
 

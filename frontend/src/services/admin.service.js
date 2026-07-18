@@ -46,6 +46,8 @@ const adminService = {
   getShippers: async () => (await api.get("/admin/shippers")).data,
   getDeliveries: async (params) => (await api.get("/admin/deliveries", { params })).data,
   getInspections: async (params) => (await api.get("/admin/inspections", { params })).data,
+  getRevenueStats: async (params) => (await api.get("/admin/revenue/stats", { params })).data,
+  getRevenueTransactions: async (params) => (await api.get("/admin/revenue/transactions", { params })).data,
 };
 
 export default adminService;

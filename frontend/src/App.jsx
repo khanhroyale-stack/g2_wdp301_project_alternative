@@ -36,6 +36,7 @@ import OrderManagement from "./pages/admin/OrderManagement";
 import ContractManagement from "./pages/admin/ContractManagement";
 import LogisticsManagement from "./pages/admin/LogisticsManagement";
 import SupportManagement from "./pages/admin/SupportManagement";
+import RevenueReport from "./pages/admin/RevenueReport";
 
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
@@ -190,11 +191,13 @@ function App() {
               <Route path="/admin/danh-muc" element={<PrivateRoute adminOnly><CategoryManagement /></PrivateRoute>} />
               <Route path="/admin/bao-cao" element={<PrivateRoute adminOnly><ViolationReports /></PrivateRoute>} />
               <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><OrderManagement /></PrivateRoute>} />
+              <Route path="/admin/revenue" element={<PrivateRoute adminOnly><RevenueReport /></PrivateRoute>} />
               <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><ContractManagement /></PrivateRoute>} />
               <Route path="/admin/shippers" element={<PrivateRoute adminOnly><LogisticsManagement mode="shippers" /></PrivateRoute>} />
               <Route path="/admin/giao-hang" element={<PrivateRoute adminOnly><LogisticsManagement mode="deliveries" /></PrivateRoute>} />
               <Route path="/admin/kiem-dinh" element={<PrivateRoute adminOnly><LogisticsManagement mode="inspections" /></PrivateRoute>} />
               <Route path="/admin/bao-cao-giao-hang" element={<PrivateRoute adminOnly><LogisticsManagement mode="reports" /></PrivateRoute>} />
+              <Route path="/admin/support" element={<Navigate to="/admin/hotro" replace />} />
               <Route path="/admin/hotro" element={<PrivateRoute adminOnly><SupportManagement /></PrivateRoute>} />
 
               <Route path="/shipper" element={<PrivateRoute shipperOnly><DeliveryList /></PrivateRoute>} />
