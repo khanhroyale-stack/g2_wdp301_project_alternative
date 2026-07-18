@@ -79,10 +79,9 @@ const createReport = async (req, res) => {
       const now = new Date();
       const evidenceDocs = mediaIds.map((mediaId) => ({
         reportId: report._id,
-        mediaId: new ObjectId(mediaId),
+        field: new ObjectId(mediaId),
         evidenceType: "image",
         createdAt: now,
-        updatedAt: now,
       }));
       await ReportEvidence.collection.insertMany(evidenceDocs);
     }
@@ -142,7 +141,7 @@ const getReportById = async (req, res) => {
     const report = await Report.findById(req.params.id)
       .populate("reporterId", "fullName email avatarUrl phone")
       .populate("reportedUserId", "fullName email reputationScore accountStatus")
-      .populate("postId", "title images")
+      .populate("postId", "title description productType salePrice rentPricePerDay depositAmount conditionStatus location ownerId createdAt")
       .populate("orderId")
       .populate("rentalContractId")
       .populate("adminId", "fullName");
@@ -150,7 +149,8 @@ const getReportById = async (req, res) => {
     if (!report) return res.status(404).json({ success: false, message: "Không tìm thấy báo cáo" });
 
     const evidences = await ReportEvidence.find({ reportId: report._id })
-      .populate("mediaId", "publicUrl fileType mimeType originalName fileName fileSize createdAt");
+      .populate("mediaId", "publicUrl fileType mimeType originalName fileName fileSize createdAt")
+      .populate("field", "publicUrl fileType mimeType originalName fileName fileSize createdAt");
 
     const data = report.toObject();
     if (data.postId?._id) {
@@ -327,10 +327,9 @@ const addReportEvidenceSafe = async (req, res) => {
     const now = new Date();
     const evidenceDocs = mediaIds.map((mediaId) => ({
       reportId: report._id,
-      mediaId: new ObjectId(mediaId),
+      field: new ObjectId(mediaId),
       evidenceType: "image",
       createdAt: now,
-      updatedAt: now,
     }));
     const result = await ReportEvidence.collection.insertMany(evidenceDocs);
 

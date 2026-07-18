@@ -25,8 +25,6 @@ const uploadImages = async (req, res) => {
           fileName: file.filename,
           mimeType: file.mimetype,
           fileSize: new Int32(file.size),
-          storageType: "local",
-          localPath: `/uploads/products/${file.filename}`,
           publicUrl: `/uploads/products/${file.filename}`,
           fileType: requestedFileType,
           createdAt: new Date(),

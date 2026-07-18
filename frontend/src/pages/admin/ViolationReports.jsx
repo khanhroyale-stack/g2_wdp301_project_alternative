@@ -42,6 +42,14 @@ const formatFileSize = (size) => {
   return `${value} B`;
 };
 
+const getFileUrl = (url) => {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  const apiUrl = import.meta.env.VITE_API_URL || "";
+  const apiOrigin = apiUrl.replace(/\/api\/?$/, "");
+  return apiOrigin ? `${apiOrigin}${url}` : url;
+};
+
 const DetailModal = ({ reportId, onClose }) => {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -159,12 +167,13 @@ const DetailModal = ({ reportId, onClose }) => {
                 ) : (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {detail.evidences.map((ev) => {
-                      const media = ev.mediaId || {};
-                      const isImage = media.mimeType?.startsWith("image/") || media.publicUrl?.match(/\.(png|jpe?g|gif|webp)$/i);
+                      const media = ev.mediaId || ev.field || {};
+                      const fileUrl = getFileUrl(media.publicUrl);
+                      const isImage = media.mimeType?.startsWith("image/") || fileUrl.match(/\.(png|jpe?g|gif|webp)$/i);
                       return (
-                        <a key={ev._id} href={media.publicUrl} target="_blank" rel="noopener noreferrer" className="overflow-hidden rounded-xl border border-surface-variant bg-surface-container-low hover:border-primary/40">
+                        <a key={ev._id} href={fileUrl} target="_blank" rel="noopener noreferrer" className="overflow-hidden rounded-xl border border-surface-variant bg-surface-container-low hover:border-primary/40">
                           {isImage ? (
-                            <img src={media.publicUrl} alt={media.originalName || "Bằng chứng"} className="h-44 w-full object-cover" />
+                            <img src={fileUrl} alt={media.originalName || "Bằng chứng"} className="h-44 w-full object-cover" />
                           ) : (
                             <div className="flex h-44 items-center justify-center text-on-surface-variant">
                               <span className="material-symbols-outlined text-5xl">description</span>

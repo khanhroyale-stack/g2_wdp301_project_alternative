@@ -16,6 +16,7 @@ const connectDB = async () => {
     const collectionsToRelax = [
       "users", "rental_requests", "rental_contracts", "rental_inspections",
       "product_posts", "orders", "deliveries",
+      "media_files", "reports", "report_evidences", "notifications",
     ];
     for (const col of collectionsToRelax) {
       try {

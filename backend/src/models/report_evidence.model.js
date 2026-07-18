@@ -10,7 +10,12 @@ const reportEvidenceSchema = new mongoose.Schema(
     mediaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "MediaFile",
-      required: true,
+      default: null,
+    },
+    field: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MediaFile",
+      default: null,
     },
     evidenceType: {
       type: String,
