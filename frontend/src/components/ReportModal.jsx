@@ -38,12 +38,27 @@ const ReportModal = ({
   const [loading, setLoading] = useState(false);
 
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files).slice(0, 5);
-    setImageFiles(files);
-    setImagePreviews(files.map((f) => URL.createObjectURL(f)));
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    setImageFiles((currentFiles) => {
+      const availableSlots = Math.max(5 - currentFiles.length, 0);
+      const filesToAdd = selectedFiles.slice(0, availableSlots);
+      if (selectedFiles.length > availableSlots) {
+        toast.error("Chỉ có thể tải tối đa 5 ảnh bằng chứng.");
+      }
+      setImagePreviews((currentPreviews) => [
+        ...currentPreviews,
+        ...filesToAdd.map((file) => URL.createObjectURL(file)),
+      ]);
+      return [...currentFiles, ...filesToAdd];
+    });
+
+    e.target.value = "";
   };
 
   const removeImage = (idx) => {
+    URL.revokeObjectURL(imagePreviews[idx]);
     setImageFiles((prev) => prev.filter((_, i) => i !== idx));
     setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
   };
