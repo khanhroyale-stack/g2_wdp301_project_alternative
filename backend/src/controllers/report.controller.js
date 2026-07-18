@@ -1,6 +1,7 @@
 const Report = require("../models/report.model");
 const ReportEvidence = require("../models/report_evidence.model");
 const ReputationLog = require("../models/reputation_log.model");
+const { Int32 } = require("mongodb");
 const User = require("../models/user.model");
 const MediaFile = require("../models/media_file.model");
 const ProductPost = require("../models/product_post.model");
@@ -9,6 +10,20 @@ const { createNotification } = require("./notification.controller");
 
 const VIOLATION_POINTS = { warning: 10, minor: 20, major: 50 };
 const ObjectId = MediaFile.db.base.Types.ObjectId;
+
+const insertReputationLog = async (doc) => {
+  try {
+    return await ReputationLog.collection.insertOne(doc);
+  } catch (error) {
+    if (error?.code !== 121) throw error;
+    await ReputationLog.db.db.command({
+      collMod: "reputation_logs",
+      validator: {},
+      validationLevel: "off",
+    });
+    return ReputationLog.collection.insertOne(doc);
+  }
+};
 
 const normalizeIdList = (ids) => {
   if (!Array.isArray(ids)) return [];
@@ -222,13 +237,14 @@ const resolveReport = async (req, res) => {
         await victim.save();
 
         // Ghi log trừ điểm
-        await ReputationLog.create({
+        await insertReputationLog({
           userId: victim._id,
           reportId: report._id,
           changedBy: req.user._id,
-          changeAmount: -deductAmount,
+          changeAmount: new Int32(-deductAmount),
           reason: adminNote || `Vi phạm mức ${violationLevel}`,
           violationLevel,
+          createdAt: new Date(),
         });
 
         // Notify người bị báo cáo

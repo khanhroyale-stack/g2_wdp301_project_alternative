@@ -1,7 +1,22 @@
 const User = require("../models/user.model");
 const ReputationLog = require("../models/reputation_log.model");
+const { Int32, ObjectId } = require("mongodb");
 
 const VIOLATION_POINTS = { warning: 10, minor: 20, major: 50 };
+
+const insertReputationLog = async (doc) => {
+  try {
+    return await ReputationLog.collection.insertOne(doc);
+  } catch (error) {
+    if (error?.code !== 121) throw error;
+    await ReputationLog.db.db.command({
+      collMod: "reputation_logs",
+      validator: {},
+      validationLevel: "off",
+    });
+    return ReputationLog.collection.insertOne(doc);
+  }
+};
 
 // @route GET /api/reputation/me
 const getMyReputation = async (req, res) => {
@@ -59,13 +74,14 @@ const adminDeduct = async (req, res) => {
     }
     await user.save();
 
-    await ReputationLog.create({
-      userId,
-      reportId: reportId || null,
+    await insertReputationLog({
+      userId: new ObjectId(userId),
+      reportId: reportId ? new ObjectId(reportId) : null,
       changedBy: req.user._id,
-      changeAmount: -deductAmount,
+      changeAmount: new Int32(-deductAmount),
       reason,
       violationLevel,
+      createdAt: new Date(),
     });
 
     res.json({

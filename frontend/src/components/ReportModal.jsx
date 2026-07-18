@@ -41,18 +41,20 @@ const ReportModal = ({
     const selectedFiles = Array.from(e.target.files || []);
     if (selectedFiles.length === 0) return;
 
-    setImageFiles((currentFiles) => {
-      const availableSlots = Math.max(5 - currentFiles.length, 0);
-      const filesToAdd = selectedFiles.slice(0, availableSlots);
-      if (selectedFiles.length > availableSlots) {
-        toast.error("Chỉ có thể tải tối đa 5 ảnh bằng chứng.");
-      }
+    const availableSlots = Math.max(5 - imageFiles.length, 0);
+    const filesToAdd = selectedFiles.slice(0, availableSlots);
+
+    if (selectedFiles.length > availableSlots) {
+      toast.error("Chỉ có thể tải tối đa 5 ảnh bằng chứng.");
+    }
+
+    if (filesToAdd.length > 0) {
+      setImageFiles((currentFiles) => [...currentFiles, ...filesToAdd]);
       setImagePreviews((currentPreviews) => [
         ...currentPreviews,
         ...filesToAdd.map((file) => URL.createObjectURL(file)),
       ]);
-      return [...currentFiles, ...filesToAdd];
-    });
+    }
 
     e.target.value = "";
   };
