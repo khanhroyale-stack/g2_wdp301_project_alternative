@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import GoogleAuthButton from "../../components/auth/GoogleAuthButton";
 
 const RegisterPage = () => {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirmPassword: "", dateOfBirth: "", gender: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -13,24 +12,16 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
-      setError("Mat khau xac nhan khong khop.");
+      setError("Mật khẩu xác nhận không khớp.");
       return;
     }
     setError("");
     setLoading(true);
     try {
-      const data = await register({
-        fullName: form.name,
-        email: form.email,
-        phone: form.phone,
-        password: form.password,
-        dateOfBirth: form.dateOfBirth || undefined,
-        gender: form.gender || undefined
-      });
-      // Navigate to verify OTP page with email
-      navigate("/xac-thuc-email", { state: { email: data.email }, replace: true });
+      await register({ fullName: form.name, email: form.email, phone: form.phone, password: form.password });
+      navigate("/xac-minh-tai-khoan");
     } catch (err) {
-      setError(err.response?.data?.message || "Dang ky that bai. Vui long thu lai.");
+      setError(err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -64,31 +55,6 @@ const RegisterPage = () => {
             {field("name", "Họ và tên", "text", "Nguyễn Văn A")}
             {field("email", "Email", "email", "ban@example.com")}
             {field("phone", "Số điện thoại", "tel", "0912 345 678")}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-on-surface mb-1.5">Ngày sinh</label>
-                <input
-                  type="date"
-                  max={new Date().toISOString().split("T")[0]}
-                  value={form.dateOfBirth}
-                  onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-on-surface mb-1.5">Giới tính</label>
-                <select
-                  value={form.gender}
-                  onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
-                >
-                  <option value="">-- Chọn --</option>
-                  <option value="male">Nam</option>
-                  <option value="female">Nữ</option>
-                  <option value="other">Khác</option>
-                </select>
-              </div>
-            </div>
             <div>
               <label className="block text-sm font-medium text-on-surface mb-1.5">Mật khẩu</label>
               <input type="password" placeholder="Tối thiểu 6 ký tự" value={form.password}
@@ -116,14 +82,6 @@ const RegisterPage = () => {
               ) : "Đăng ký"}
             </button>
           </form>
-
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-surface-variant" />
-            <span className="text-xs text-on-surface-variant">hoặc</span>
-            <div className="flex-1 h-px bg-surface-variant" />
-          </div>
-
-          <GoogleAuthButton onError={setError} />
         </div>
 
         <p className="text-center mt-5 text-sm text-on-surface-variant">

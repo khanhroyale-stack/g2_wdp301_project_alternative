@@ -78,7 +78,7 @@ const ProductDetail = () => {
           setError(res.message);
         }
       } catch (_) {
-        setError("Khong the tai thong tin san pham.");
+        setError("Không thể tải thông tin sản phẩm.");
       } finally {
         setLoading(false);
       }
@@ -169,9 +169,9 @@ const ProductDetail = () => {
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center pt-20">
           <span className="material-symbols-outlined text-6xl text-error mb-4">error</span>
-          <h2 className="text-xl font-bold">{error || "San pham khong ton tai"}</h2>
+          <h2 className="text-xl font-bold">{error || "Sản phẩm không tồn tại"}</h2>
           <Link to="/" className="mt-4 px-6 py-2 bg-primary text-white rounded-full hover:opacity-90 transition-all">
-            Quay lai trang chu
+            Quay lại trang chủ
           </Link>
         </div>
       </div>
@@ -180,13 +180,18 @@ const ProductDetail = () => {
 
   const images = product.images?.length > 0 ? product.images : product.imageUrls?.length > 0 ? product.imageUrls : [];
   const displayPrice =
-    product.productType === "rent" ? `${formatPrice(product.rentPricePerDay)}/ngay` : formatPrice(product.salePrice);
+    product.productType === "rent" ? `${formatPrice(product.rentPricePerDay)}/ngày` : formatPrice(product.salePrice);
   const availableQuantity = Math.max(Number(product.quantity) || 0, 0);
-  const sellerName = product.ownerId?.fullName || product.ownerId?.name || "Nguoi dung an";
+  const sellerName = product.ownerId?.fullName || product.ownerId?.name || "Người dùng ẩn";
   const sellerInitial = sellerName.charAt(0).toUpperCase();
   const ownerId = product.ownerId?._id || product.ownerId;
   const currentUserId = user?.id || user?._id;
   const isOwnProduct = currentUserId && ownerId && String(currentUserId) === String(ownerId);
+  const isSaleProduct = ["sale", "both"].includes(product.productType);
+  const isRentProduct = ["rent", "both"].includes(product.productType);
+  const isPubliclyAvailable = ["approved", "available"].includes(product.postStatus);
+  const canBuyProduct = isSaleProduct && isPubliclyAvailable && availableQuantity > 0 && !isOwnProduct;
+  const canRentProduct = isRentProduct && isPubliclyAvailable && availableQuantity > 0 && !isOwnProduct;
 
   const openReportModal = () => {
     if (!user) {
@@ -327,7 +332,7 @@ const ProductDetail = () => {
             </div>
 
             <div className="flex flex-col gap-4">
-              {product.productType === "sale" && ["approved", "available"].includes(product.postStatus) ? (
+              {isSaleProduct && isPubliclyAvailable ? (
                 <div className="flex flex-col gap-3 bg-background p-4 rounded-2xl border border-primary/5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest">Số lượng</span>
@@ -341,21 +346,26 @@ const ProductDetail = () => {
                 </div>
               ) : null}
 
-              {product.postStatus === "closed" ? (
+              {!isPubliclyAvailable || availableQuantity <= 0 ? (
                 <button disabled className="w-full py-5 rounded-pill bg-background text-on-surface-variant/40 font-black uppercase tracking-widest cursor-not-allowed">
                   Hiện không khả dụng
                 </button>
-              ) : product.productType === "sale" ? (
+              ) : isSaleProduct ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <button onClick={handleBuy} className="w-full py-5 rounded-pill bg-primary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95">
+                  <button disabled={!canBuyProduct} onClick={handleBuy} className="w-full py-5 rounded-pill bg-primary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
                     Mua ngay
                   </button>
-                  <button onClick={handleAddToCart} className="w-full py-5 rounded-pill bg-white text-primary border-2 border-primary/20 font-black uppercase tracking-widest hover:bg-primary/5 transition-all">
+                  <button disabled={!canBuyProduct} onClick={handleAddToCart} className="w-full py-5 rounded-pill bg-white text-primary border-2 border-primary/20 font-black uppercase tracking-widest hover:bg-primary/5 transition-all disabled:cursor-not-allowed disabled:opacity-50">
                     Giỏ hàng
                   </button>
+                  {isRentProduct ? (
+                    <button disabled={!canRentProduct} onClick={() => (user ? navigate(`/thue/${product._id}`) : navigate("/dang-nhap"))} className="sm:col-span-2 w-full py-5 rounded-pill bg-secondary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-secondary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
+                      Tiến hành thuê
+                    </button>
+                  ) : null}
                 </div>
               ) : (
-                <button onClick={() => (user ? navigate(`/thue/${product._id}`) : navigate("/dang-nhap"))} className="w-full py-5 rounded-pill bg-secondary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-secondary/20 transition-all hover:scale-[1.02] active:scale-95">
+                <button disabled={!canRentProduct} onClick={() => (user ? navigate(`/thue/${product._id}`) : navigate("/dang-nhap"))} className="w-full py-5 rounded-pill bg-secondary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-secondary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
                   Tiến hành thuê
                 </button>
               )}

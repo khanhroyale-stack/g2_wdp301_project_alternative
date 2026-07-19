@@ -37,35 +37,45 @@ const deliverySchema = new mongoose.Schema(
       enum: ["standard", "express"],
       default: "standard",
     },
-    deliveryStatus: {
+    status: {
       type: String,
       enum: [
-        "pending",
-        "accepted",
-        "picking_up",
-        "picked_up",
-        "ready_for_delivery",
-        "received",
-        "in_transit",
-        "delivered",
-        "completed",
-        "inspection_failed",
-        "failed",
+        "WAITING_SHIPPER",
+        "SHIPPER_ACCEPTED",
+        "PICKING_UP",
+        "PICKED_UP",
+        "DELIVERING",
+        "DELIVERED",
+        "COMPLETED",
+        "FAILED",
       ],
-      default: "pending",
+      default: "WAITING_SHIPPER",
     },
     failureReason: {
       type: String,
-      default: null,
+      default: "",
+      trim: true,
     },
-    history: [{
-      status: String,
-      note: String,
-      timestamp: {
-        type: Date,
-        default: Date.now
-      }
-    }],
+    history: {
+      type: [
+        {
+          status: {
+            type: String,
+            required: true,
+          },
+          changedAt: {
+            type: Date,
+            default: Date.now,
+          },
+          note: {
+            type: String,
+            default: "",
+            trim: true,
+          },
+        },
+      ],
+      default: [{ status: "WAITING_SHIPPER" }],
+    },
   },
   {
     timestamps: true,

@@ -63,21 +63,24 @@ const orderSchema = new mongoose.Schema(
       enum: ["COD"],
       default: "COD",
     },
-    cancelReason: {
+    status: {
       type: String,
-      default: "",
-      trim: true,
+      enum: [
+        "PENDING",
+        "SELLER_CONFIRMED",
+        "PICKING_UP",
+        "PICKED_UP",
+        "DELIVERING",
+        "DELIVERED",
+        "COMPLETED",
+        "CANCELLED",
+      ],
+      default: "PENDING",
     },
     inventoryStatus: {
       type: String,
       enum: ["reserved", "released", "committed"],
       default: "reserved",
-      index: true,
-    },
-    orderStatus: {
-      type: String,
-      enum: ["pending", "confirmed", "shipping", "delivered", "cancelled", "completed"],
-      default: "pending",
     },
   },
   {
