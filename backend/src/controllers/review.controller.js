@@ -2,6 +2,7 @@ const Review = require("../models/review.model");
 const User = require("../models/user.model");
 const Order = require("../models/order.model");
 const RentalContract = require("../models/rental_contract.model");
+const Delivery = require("../models/delivery.model");
 const ProductPost = require("../models/product_post.model");
 const { createNotification } = require("./notification.controller");
 
@@ -13,12 +14,12 @@ const createReview = async (req, res) => {
       postId,
       orderId,
       rentalContractId,
-      reviewType,     // "seller" | "buyer" | "renter" | "owner"
+      reviewType,     // "seller" | "buyer" | "renter" | "owner" | "product"
       rating,
       comment,
     } = req.body;
 
-    if (!reviewUserId || !postId || !reviewType || !rating) {
+    if (!postId || !rating) {
       return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
     }
 
@@ -28,17 +29,18 @@ const createReview = async (req, res) => {
       if (!order) {
         return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
       }
-      // Chỉ buyer hoặc seller của đơn này mới được review
-      const isParticipant =
-        String(order.buyerId) === String(req.user._id) ||
-        String(order.sellerId) === String(req.user._id);
-      if (!isParticipant) {
-        return res.status(403).json({ success: false, message: "Bạn không tham gia đơn hàng này" });
+      const delivery = await Delivery.findOne({ orderId: order._id }).select("deliveryStatus");
+      // Chỉ buyer của đơn này mới được review sản phẩm
+      const isBuyer = String(order.buyerId) === String(req.user._id);
+      if (!isBuyer) {
+        return res.status(403).json({ success: false, message: "Bạn không phải người mua của đơn hàng này" });
       }
-      if (order.orderStatus !== "delivered") {
+      const canReviewCompletedOrder =
+        order.orderStatus === "completed" || delivery?.deliveryStatus === "completed";
+      if (!canReviewCompletedOrder) {
         return res.status(400).json({
           success: false,
-          message: "Chỉ được đánh giá sau khi đơn hàng đã giao thành công",
+          message: `Chỉ được đánh giá sau khi bạn xác nhận đã nhận hàng (order: ${order.orderStatus}, delivery: ${delivery?.deliveryStatus || "none"})`,
         });
       }
     }
@@ -48,12 +50,10 @@ const createReview = async (req, res) => {
       if (!contract) {
         return res.status(404).json({ success: false, message: "Không tìm thấy hợp đồng thuê" });
       }
-      // Chỉ renter hoặc owner mới được review
-      const isParticipant =
-        String(contract.renterId) === String(req.user._id) ||
-        String(contract.ownerId) === String(req.user._id);
-      if (!isParticipant) {
-        return res.status(403).json({ success: false, message: "Bạn không tham gia hợp đồng này" });
+      // Chỉ renter của hợp đồng này mới được review sản phẩm
+      const isRenter = String(contract.renterId) === String(req.user._id);
+      if (!isRenter) {
+        return res.status(403).json({ success: false, message: "Bạn không phải người thuê của hợp đồng này" });
       }
       if (contract.contractStatus !== "completed") {
         return res.status(400).json({
@@ -71,40 +71,69 @@ const createReview = async (req, res) => {
     if (orderId || rentalContractId) {
       const existing = await Review.findOne(existFilter);
       if (existing) {
-        return res.status(400).json({ success: false, message: "Bạn đã đánh giá giao dịch này rồi" });
+        return res.status(400).json({ success: false, message: "Bạn đã đánh giá sản phẩm này rồi" });
       }
     }
 
-    const review = await Review.create({
-      reviewerId: req.user._id,
-      reviewUserId,
-      postId,
-      orderId: orderId || null,
-      rentalContractId: rentalContractId || null,
-      reviewType,
-      rating,
-      comment: comment || null,
-    });
+    let review;
+    try {
+      review = await Review.create({
+        reviewerId: req.user._id,
+        reviewUserId: reviewUserId || null,
+        postId,
+        orderId: orderId || null,
+        rentalContractId: rentalContractId || null,
+        reviewType: reviewType || "product",
+        rating,
+        comment: comment || null,
+      });
+    } catch (schemaError) {
+      console.error("[review.createReview] Validation failed:", schemaError);
+      if (schemaError.errInfo?.details?.schemaRulesNotSatisfied) {
+        console.error("[review.createReview] JSON schema rules not satisfied:", JSON.stringify(schemaError.errInfo.details.schemaRulesNotSatisfied, null, 2));
+      }
+      if (schemaError.name === "ValidationError") {
+        return res.status(400).json({
+          success: false,
+          message: schemaError.message,
+          errors: schemaError.errors
+        });
+      }
+      throw schemaError;
+    }
 
-    // ── Tính và lưu averageRating vào User ──
-    const allReviews = await Review.find({ reviewUserId, isHidden: { $ne: true } });
-    const avg = allReviews.length
-      ? Math.round((allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length) * 10) / 10
+    // ── Tính và lưu averageRating vào User (nếu có reviewUserId) ──
+    if (reviewUserId) {
+      const allUserReviews = await Review.find({ reviewUserId, isHidden: { $ne: true } });
+      const userAvg = allUserReviews.length
+        ? Math.round((allUserReviews.reduce((s, r) => s + r.rating, 0) / allUserReviews.length) * 10) / 10
+        : 0;
+      await User.findByIdAndUpdate(reviewUserId, { averageRating: userAvg });
+
+      // Notify người được đánh giá
+      await createNotification({
+        recipientId: reviewUserId,
+        type: "review",
+        title: "Bạn nhận được đánh giá mới",
+        content: `${req.user.fullName} đã đánh giá ${rating}⭐ cho bạn.`,
+        relatedType: "review",
+        relatedId: review._id,
+      });
+    }
+
+    // ── Tính và lưu averageRating và reviewCount vào ProductPost ──
+    const allProductReviews = await Review.find({ postId, isHidden: { $ne: true } });
+    const productAvg = allProductReviews.length
+      ? Math.round((allProductReviews.reduce((s, r) => s + r.rating, 0) / allProductReviews.length) * 10) / 10
       : 0;
-    await User.findByIdAndUpdate(reviewUserId, { averageRating: avg });
-
-    // Notify người được đánh giá
-    await createNotification({
-      recipientId: reviewUserId,
-      type: "review",
-      title: "Bạn nhận được đánh giá mới",
-      content: `${req.user.fullName} đã đánh giá ${rating}⭐ cho bạn.`,
-      relatedType: "review",
-      relatedId: review._id,
+    await ProductPost.findByIdAndUpdate(postId, {
+      averageRating: productAvg,
+      reviewCount: allProductReviews.length
     });
 
-    res.status(201).json({ success: true, data: review, averageRating: avg });
+    res.status(201).json({ success: true, data: review, productAverageRating: productAvg, productReviewCount: allProductReviews.length });
   } catch (err) {
+    console.error("Error creating review:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -167,12 +196,26 @@ const adminHideReview = async (req, res) => {
     );
     if (!review) return res.status(404).json({ success: false, message: "Không tìm thấy đánh giá" });
 
-    // Cập nhật lại averageRating của user bị ẩn review
-    const remaining = await Review.find({ reviewUserId: review.reviewUserId, isHidden: { $ne: true } });
-    const avg = remaining.length
-      ? Math.round((remaining.reduce((s, r) => s + r.rating, 0) / remaining.length) * 10) / 10
-      : 0;
-    await User.findByIdAndUpdate(review.reviewUserId, { averageRating: avg });
+    // Cập nhật lại averageRating của user bị ẩn review (nếu có)
+    if (review.reviewUserId) {
+      const remaining = await Review.find({ reviewUserId: review.reviewUserId, isHidden: { $ne: true } });
+      const avg = remaining.length
+        ? Math.round((remaining.reduce((s, r) => s + r.rating, 0) / remaining.length) * 10) / 10
+        : 0;
+      await User.findByIdAndUpdate(review.reviewUserId, { averageRating: avg });
+    }
+
+    // Cập nhật lại averageRating và reviewCount của ProductPost (nếu có)
+    if (review.postId) {
+      const remainingProductReviews = await Review.find({ postId: review.postId, isHidden: { $ne: true } });
+      const productAvg = remainingProductReviews.length
+        ? Math.round((remainingProductReviews.reduce((s, r) => s + r.rating, 0) / remainingProductReviews.length) * 10) / 10
+        : 0;
+      await ProductPost.findByIdAndUpdate(review.postId, {
+        averageRating: productAvg,
+        reviewCount: remainingProductReviews.length
+      });
+    }
 
     res.json({ success: true, message: "Đã ẩn đánh giá" });
   } catch (err) {

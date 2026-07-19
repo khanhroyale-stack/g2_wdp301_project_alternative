@@ -296,7 +296,7 @@ const ProductDetail = () => {
                 </span>
               </div>
               <h1 className="text-3xl lg:text-4xl font-display font-bold text-foreground leading-[1.2] mb-5">{product.title}</h1>
-              
+
               <div className="flex flex-col gap-1 p-5 bg-background rounded-2xl border border-primary/5">
                 <p className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest">{product.productType === "rent" ? "Giá thuê mỗi ngày" : "Giá niêm yết"}</p>
                 <p className="text-4xl font-display font-black text-primary">{displayPrice}</p>
@@ -313,15 +313,15 @@ const ProductDetail = () => {
               <div className="flex flex-col gap-1">
                 <p className="text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">Khu vực</p>
                 <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-                   <span className="material-symbols-outlined text-primary text-[18px]">location_on</span>
-                   {product.location?.split(',')[0] || "Hòa Lạc"}
+                  <span className="material-symbols-outlined text-primary text-[18px]">location_on</span>
+                  {product.location?.split(',')[0] || "Hòa Lạc"}
                 </div>
               </div>
               <div className="flex flex-col gap-1">
                 <p className="text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">Tình trạng</p>
                 <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-                   <span className="material-symbols-outlined text-secondary text-[18px]">inventory_2</span>
-                   {availableQuantity > 0 ? "Còn hàng" : "Hết hàng"}
+                  <span className="material-symbols-outlined text-secondary text-[18px]">inventory_2</span>
+                  {availableQuantity > 0 ? "Còn hàng" : "Hết hàng"}
                 </div>
               </div>
             </div>
@@ -334,9 +334,9 @@ const ProductDetail = () => {
                     <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">Còn {availableQuantity} sản phẩm</span>
                   </div>
                   <div className="flex items-center gap-4 w-full">
-                     <button onClick={() => setPurchaseQuantity(q => Math.max(1, q - 1))} className="w-8 h-8 rounded-full bg-white border border-primary/10 flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors">-</button>
-                     <span className="font-display font-black text-lg text-center flex-1">{purchaseQuantity}</span>
-                     <button onClick={() => setPurchaseQuantity(q => Math.min(availableQuantity, q + 1))} className="w-8 h-8 rounded-full bg-white border border-primary/10 flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors">+</button>
+                    <button onClick={() => setPurchaseQuantity(q => Math.max(1, q - 1))} className="w-8 h-8 rounded-full bg-white border border-primary/10 flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors">-</button>
+                    <span className="font-display font-black text-lg text-center flex-1">{purchaseQuantity}</span>
+                    <button onClick={() => setPurchaseQuantity(q => Math.min(availableQuantity, q + 1))} className="w-8 h-8 rounded-full bg-white border border-primary/10 flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors">+</button>
                   </div>
                 </div>
               ) : null}
@@ -382,18 +382,13 @@ const ProductDetail = () => {
                       </div>
                     )}
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-success rounded-full border-2 border-white flex items-center justify-center">
-                       <span className="material-symbols-outlined text-white text-[10px] font-black">check</span>
+                      <span className="material-symbols-outlined text-white text-[10px] font-black">check</span>
                     </div>
                   </div>
                   <div>
                     <p className="font-display font-bold text-foreground text-lg leading-none mb-2">{sellerName}</p>
                     <div className="flex items-center gap-3">
-                       <span className="flex items-center gap-1 text-[10px] font-black text-amber-500 uppercase tracking-widest">
-                          <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                          {product.ownerId?.averageRating || "5.0"}
-                       </span>
-                       <span className="w-1 h-1 rounded-full bg-on-surface-variant/20"></span>
-                       <span className="text-[10px] font-black text-primary uppercase tracking-widest">Uy tín {product.ownerId?.reputationScore || 100}</span>
+                      <span className="text-[10px] font-black text-primary uppercase tracking-widest">Uy tín {product.ownerId?.reputationScore || 100}</span>
                     </div>
                   </div>
                 </div>
@@ -435,7 +430,12 @@ const ProductDetail = () => {
             <section className="bg-white p-6 lg:p-8 rounded-[28px] shadow-sm border border-primary/5">
               <h2 className="text-2xl font-display font-bold text-foreground mb-6 flex items-center justify-between">
                 Đánh giá ({product.reviewCount || 0})
-                <span className="text-sm font-bold text-primary hover:underline cursor-pointer">Xem tất cả</span>
+                <Link
+                  to={`/marketplaces/${product._id}/reviews`}
+                  className="text-sm font-bold text-primary hover:underline"
+                >
+                  Xem tất cả
+                </Link>
               </h2>
               {product.reviewCount === 0 ? (
                 <div className="text-center py-12 bg-background rounded-2xl border border-dashed border-primary/10">
@@ -445,24 +445,24 @@ const ProductDetail = () => {
               ) : (
                 <div className="flex items-center gap-10 p-8 bg-background rounded-2xl border border-primary/5">
                   <div className="text-center">
-                    <p className="text-6xl font-display font-black text-primary leading-none">{product.averageRating}</p>
+                    <p className="text-6xl font-display font-black text-primary leading-none">{product.averageRating || 0}</p>
                     <div className="flex justify-center text-amber-500 mt-4 mb-2">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <span key={star} className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: star <= Math.round(product.averageRating) ? "'FILL' 1" : "" }}>
+                        <span key={star} className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: star <= Math.round(product.averageRating || 0) ? "'FILL' 1" : "" }}>
                           star
                         </span>
                       ))}
                     </div>
                   </div>
                   <div className="flex-1 space-y-2">
-                     {[5, 4, 3, 2, 1].map(lvl => (
-                       <div key={lvl} className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold text-on-surface-variant/50 w-2">{lvl}</span>
-                          <div className="flex-1 h-1.5 bg-primary/5 rounded-full overflow-hidden">
-                             <div className="h-full bg-primary rounded-full" style={{ width: lvl === 5 ? '80%' : '5%' }}></div>
-                          </div>
-                       </div>
-                     ))}
+                    {[5, 4, 3, 2, 1].map(lvl => (
+                      <div key={lvl} className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-on-surface-variant/50 w-2">{lvl}</span>
+                        <div className="flex-1 h-1.5 bg-primary/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: lvl === 5 ? '80%' : '5%' }}></div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

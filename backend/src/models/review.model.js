@@ -10,7 +10,7 @@ const reviewSchema = new mongoose.Schema(
     reviewUserId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
     },
     postId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -29,7 +29,7 @@ const reviewSchema = new mongoose.Schema(
     },
     reviewType: {
       type: String,
-      enum: ["seller", "buyer", "renter", "owner"],
+      enum: ["seller", "buyer", "renter", "owner", "product"],
       required: true,
     },
     rating: {
