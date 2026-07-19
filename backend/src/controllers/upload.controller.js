@@ -4,7 +4,7 @@ const { Int32 } = require("mongodb");
 const uploadImages = async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: "No files uploaded" });
+      return res.status(400).json({ success: false, message: "Chưa có tệp nào được tải lên" });
     }
 
     const db = mongoose.connection.db;
@@ -14,7 +14,7 @@ const uploadImages = async (req, res) => {
     const requestedFileType = req.body.fileType || "product_image";
     const allowedFileTypes = ["product_image", "inspection", "verification", "evidence", "video", "other"];
     if (!allowedFileTypes.includes(requestedFileType)) {
-      return res.status(400).json({ success: false, message: "Loai tep khong hop le" });
+      return res.status(400).json({ success: false, message: "Loại tệp không hợp lệ" });
     }
 
     const insertResults = await Promise.all(
