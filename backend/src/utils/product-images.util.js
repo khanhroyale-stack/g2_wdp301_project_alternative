@@ -1,4 +1,8 @@
+const fs = require("fs");
+const path = require("path");
 const ProductImage = require("../models/product_image.model");
+
+const uploadsRoot = path.resolve(__dirname, "../../uploads");
 
 const normalizeLocalUploadUrl = (url) => {
   if (!url) {
@@ -26,6 +30,16 @@ const extractMediaUrl = (image) => {
   return normalizeLocalUploadUrl(media?.publicUrl);
 };
 
+const isAvailableImageUrl = (url) => {
+  if (!url || !url.startsWith("/uploads/")) return Boolean(url);
+
+  const relativePath = url.slice("/uploads/".length).replaceAll("/", path.sep);
+  const absolutePath = path.resolve(uploadsRoot, relativePath);
+  if (!absolutePath.startsWith(`${uploadsRoot}${path.sep}`)) return false;
+
+  return fs.existsSync(absolutePath);
+};
+
 const getImageQuery = (postIds) => ({
   $or: [
     { postId: Array.isArray(postIds) ? { $in: postIds } : postIds },
@@ -47,12 +61,12 @@ const fetchImages = async (postIds) => {
 
 const getProductImageUrls = async (postId) => {
   const images = await fetchImages(postId);
-  return images.map(extractMediaUrl).filter(Boolean);
+  return images.map(extractMediaUrl).filter(isAvailableImageUrl);
 };
 
 const getProductThumbnailUrl = async (postId) => {
   const images = await fetchImages(postId);
-  return images.map(extractMediaUrl).find(Boolean) || null;
+  return images.map(extractMediaUrl).find(isAvailableImageUrl) || null;
 };
 
 const attachImagesToProducts = async (products) => {
@@ -68,7 +82,7 @@ const attachImagesToProducts = async (products) => {
     const key = String(image.postId || image.productPostId);
     const publicUrl = extractMediaUrl(image);
 
-    if (!publicUrl) {
+    if (!isAvailableImageUrl(publicUrl)) {
       continue;
     }
 

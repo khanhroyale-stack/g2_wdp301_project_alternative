@@ -8,6 +8,7 @@ const GoogleAuthButton = ({ onError }) => {
   const { loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
 
   const handleSuccess = async (credentialResponse) => {
     try {
@@ -22,6 +23,14 @@ const GoogleAuthButton = ({ onError }) => {
       onError?.(err.response?.data?.message || "Đăng nhập Google thất bại.");
     }
   };
+
+  if (!googleClientId) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-700">
+        Đăng nhập Google chưa được cấu hình. Vui lòng đăng nhập bằng email và mật khẩu.
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center">

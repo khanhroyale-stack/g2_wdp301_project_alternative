@@ -196,6 +196,7 @@ function App() {
               <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><OrderManagement /></PrivateRoute>} />
               <Route path="/admin/revenue" element={<PrivateRoute adminOnly><RevenueReport /></PrivateRoute>} />
               <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><ContractManagement /></PrivateRoute>} />
+              <Route path="/admin/hop-dong/:id" element={<PrivateRoute adminOnly><RentalDetail /></PrivateRoute>} />
               <Route path="/admin/danh-gia" element={<PrivateRoute adminOnly><ReviewManagement /></PrivateRoute>} />
               <Route path="/admin/shippers" element={<PrivateRoute adminOnly><LogisticsManagement mode="shippers" /></PrivateRoute>} />
               <Route path="/admin/giao-hang" element={<PrivateRoute adminOnly><LogisticsManagement mode="deliveries" /></PrivateRoute>} />

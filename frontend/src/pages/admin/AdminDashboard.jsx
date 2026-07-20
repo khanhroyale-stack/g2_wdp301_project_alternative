@@ -87,7 +87,6 @@ const AdminDashboard = () => {
     { label: "Tổng số shipper", value: stats?.shippers?.total ?? 0, color: "text-foreground" },
     { label: "Báo cáo đã xử lý", value: stats?.reports?.resolved ?? 0, color: "text-primary" },
     { label: "Hợp đồng hoàn tất", value: stats?.rentals?.completed ?? 0, color: "text-foreground" },
-    { label: "Hợp đồng tranh chấp", value: stats?.rentals?.disputed ?? 0, color: "text-secondary" },
     { label: "Đơn hàng bị hủy", value: stats?.orders?.cancelled ?? 0, color: "text-on-surface-variant/60" },
     { label: "Tổng đánh giá", value: stats?.reviews?.total ?? 0, color: "text-primary" },
   ];

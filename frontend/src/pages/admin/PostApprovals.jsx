@@ -389,11 +389,6 @@ const PostApprovals = () => {
                         {formatPrice(isRent ? post.rentPricePerDay : post.salePrice)}
                         {isRent && <span className="text-sm font-semibold text-on-surface-variant ml-1">/ngày</span>}
                       </p>
-                      {isRent && post.depositAmount > 0 && (
-                        <p className="mt-1 text-sm text-on-surface-variant">
-                          Tiền đặt cọc: <span className="font-semibold text-on-surface">{formatPrice(post.depositAmount)}</span>
-                        </p>
-                      )}
                     </div>
 
                     {/* Location */}

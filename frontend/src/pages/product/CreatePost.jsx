@@ -31,7 +31,6 @@ const defaultForm = {
   salePrice: "",
   quantity: "1",
   rentPricePerDay: "",
-  depositAmount: "",
   location: "Khu vực Hòa Lạc",
   description: "",
 };
@@ -121,7 +120,6 @@ const CreatePost = () => {
             salePrice: product.salePrice || "",
             quantity: String(product.quantity || 1),
             rentPricePerDay: product.rentPricePerDay || "",
-            depositAmount: product.depositAmount || "",
             location: product.location || "",
             description: product.description || "",
           });
@@ -190,7 +188,6 @@ const CreatePost = () => {
         conditionStatus: form.conditionStatus,
         salePrice: form.productType === "sale" ? form.salePrice : 0,
         rentPricePerDay: form.productType === "rent" ? form.rentPricePerDay : 0,
-        depositAmount: form.productType === "rent" ? form.depositAmount : 0,
         location: form.location,
         quantity: form.quantity,
         ...(mediaIds.length > 0 ? { mediaIds } : {}),
@@ -539,17 +536,6 @@ const CreatePost = () => {
                       value={form.rentPricePerDay}
                       onChange={(event) => setField("rentPricePerDay", event.target.value)}
                       required
-                    />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Tiền đặt cọc (VND)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      className={inputCls}
-                      placeholder="₫ 0"
-                      value={form.depositAmount}
-                      onChange={(event) => setField("depositAmount", event.target.value)}
                     />
                   </div>
                 </div>

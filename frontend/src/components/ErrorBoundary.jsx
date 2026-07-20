@@ -23,6 +23,11 @@ class ErrorBoundary extends React.Component {
         <div style={{ padding: "2rem", textAlign: "center" }}>
           <h2>Đã có lỗi xảy ra trong quá trình hiển thị giao diện.</h2>
           <p style={{ color: "gray" }}>Vui lòng tải lại trang hoặc quay về trang chủ.</p>
+          {import.meta.env.DEV && this.state.error && (
+            <pre style={{ margin: "16px auto", maxWidth: "900px", overflow: "auto", padding: "12px", textAlign: "left", background: "#fff1f2", color: "#be123c", borderRadius: "8px" }}>
+              {this.state.error.stack || this.state.error.message}
+            </pre>
+          )}
           <button
             onClick={() => window.location.reload()}
             style={{

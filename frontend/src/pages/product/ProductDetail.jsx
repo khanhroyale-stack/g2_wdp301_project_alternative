@@ -305,12 +305,6 @@ const ProductDetail = () => {
               <div className="flex flex-col gap-1 p-5 bg-background rounded-2xl border border-primary/5">
                 <p className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest">{product.productType === "rent" ? "Giá thuê mỗi ngày" : "Giá niêm yết"}</p>
                 <p className="text-4xl font-display font-black text-primary">{displayPrice}</p>
-                {product.productType === "rent" && product.depositAmount > 0 && (
-                  <div className="mt-4 flex items-center gap-2 text-xs font-bold text-secondary bg-secondary/5 w-fit px-3 py-1.5 rounded-lg border border-secondary/10">
-                    <span className="material-symbols-outlined text-[16px]">lock_clock</span>
-                    Tiền cọc: {formatPrice(product.depositAmount)}
-                  </div>
-                )}
               </div>
             </div>
 
