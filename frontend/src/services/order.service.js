@@ -23,8 +23,12 @@ const orderService = {
     const response = await api.get(`/orders/${id}`);
     return response.data;
   },
-  updateOrderStatus: async (id, status) => {
-    const response = await api.patch(`/orders/${id}/status`, { status });
+  getOrderById: async (id) => {
+    const response = await api.get(`/orders/${id}`);
+    return response.data;
+  },
+  updateOrderStatus: async (id, status, extra = {}) => {
+    const response = await api.patch(`/orders/${id}/status`, { status, ...extra });
     return response.data;
   }
 };
