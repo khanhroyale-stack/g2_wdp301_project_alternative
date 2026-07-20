@@ -9,12 +9,12 @@ const createShipperReport = async (req, res) => {
   try {
     const { deliveryId, issueType, description } = req.body;
     if (!deliveryId || !ISSUE_TYPES.includes(issueType) || !description?.trim()) {
-      return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin sự cố" });
+      return res.status(400).json({ success: false, message: "Vui long dien day du thong tin su co" });
     }
 
     const delivery = await Delivery.findOne({ _id: deliveryId, shipperId: req.user._id });
     if (!delivery) {
-      return res.status(403).json({ success: false, message: "Bạn không phụ trách đơn giao hàng này" });
+      return res.status(403).json({ success: false, message: "Ban khong phu trach don giao hang nay" });
     }
 
     const report = await ShipperReport.create({
@@ -71,14 +71,14 @@ const resolveShipperReport = async (req, res) => {
   try {
     const { status, adminNote } = req.body;
     if (!["investigating", "resolved", "dismissed"].includes(status)) {
-      return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ" });
+      return res.status(400).json({ success: false, message: "Trang thai khong hop le" });
     }
     const report = await ShipperReport.findByIdAndUpdate(req.params.id, {
       status,
       adminNote: adminNote?.trim() || null,
       adminId: req.user._id,
     }, { new: true });
-    if (!report) return res.status(404).json({ success: false, message: "Không tìm thấy báo cáo" });
+    if (!report) return res.status(404).json({ success: false, message: "Khong tim thay bao cao" });
     res.json({ success: true, data: report });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

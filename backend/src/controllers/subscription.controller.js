@@ -25,7 +25,7 @@ const createPayment = async (req, res) => {
     const { plan } = req.body;
     const planInfo = PRO_PLANS[plan];
     if (!planInfo) {
-      return res.status(400).json({ success: false, message: "Gói Pro không hợp lệ" });
+      return res.status(400).json({ success: false, message: "Goi Pro khong hop le" });
     }
 
     const txnRef = `PRO-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
