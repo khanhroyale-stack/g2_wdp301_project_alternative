@@ -17,6 +17,7 @@ import { useAuth } from "../../context/AuthContext";
 import productService from "../../services/product.service";
 import uploadService from "../../services/upload.service";
 import categoryService from "../../services/category.service";
+import subscriptionService from "../../services/subscription.service";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 
 const MAX_IMAGES = 8;
@@ -61,8 +62,9 @@ const CreatePost = () => {
   const [success, setSuccess] = useState(false);
   const [categories, setCategories] = useState([]);
   const [myPostCount, setMyPostCount] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
 
-  const isPro = user?.accountType === "pro" || user?.subscriptionPlan === "pro" || user?.isPro;
+  const isPro = Boolean(subscriptionStatus?.isPro ?? user?.isPro);
 
   useEffect(() => {
     categoryService
@@ -72,21 +74,32 @@ const CreatePost = () => {
       })
       .catch((err) => console.error("Error fetching categories:", err));
 
-    // Fetch post count for non-pro users
-    if (!isPro && !isEditMode) {
-      productService
-        .getMyProducts()
+    if (!isEditMode) {
+      subscriptionService
+        .getStatus()
         .then((res) => {
           if (res.success) {
-            const activeCount = (res.data || []).filter(
-              (p) => !["sold", "rented", "inactive", "closed"].includes(p.postStatus)
-            ).length;
-            setMyPostCount(activeCount);
+            setSubscriptionStatus(res.data);
+            setMyPostCount(res.data.activePosts);
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (!user?.isPro) {
+            productService
+              .getMyProducts()
+              .then((res) => {
+                if (res.success) {
+                  const activeCount = (res.data || []).filter(
+                    (p) => !["sold", "rented", "inactive", "closed"].includes(p.postStatus)
+                  ).length;
+                  setMyPostCount(activeCount);
+                }
+              })
+              .catch(() => {});
+          }
+        });
     }
-  }, [isPro, isEditMode]);
+  }, [isEditMode, user?.isPro]);
 
   useEffect(() => {
     if (!isEditMode) {

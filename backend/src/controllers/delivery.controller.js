@@ -9,11 +9,63 @@ const {
 const { buildAvailableDeliveryClaimFilter, isDeliveryTransitionAllowed } = require("../utils/business-rules");
 const { releaseOrderInventory } = require("../services/order-inventory.service");
 
+const DELIVERY_STATUS_TO_UI = {
+  WAITING_SHIPPER: "pending",
+  SHIPPER_ACCEPTED: "accepted",
+  PICKING_UP: "picking_up",
+  PICKED_UP: "picked_up",
+  DELIVERING: "in_transit",
+  DELIVERED: "delivered",
+  COMPLETED: "completed",
+  FAILED: "failed",
+};
+
+const DELIVERY_STATUS_FROM_UI = {
+  pending: "WAITING_SHIPPER",
+  accepted: "SHIPPER_ACCEPTED",
+  picking_up: "PICKING_UP",
+  picked_up: "PICKED_UP",
+  ready_for_delivery: "PICKED_UP",
+  received: "PICKED_UP",
+  in_transit: "DELIVERING",
+  delivered: "DELIVERED",
+  completed: "COMPLETED",
+  inspection_failed: "FAILED",
+  failed: "FAILED",
+};
+
+const ORDER_STATUS_FROM_DELIVERY_UI = {
+  picking_up: "PICKING_UP",
+  picked_up: "PICKED_UP",
+  ready_for_delivery: "PICKED_UP",
+  received: "PICKED_UP",
+  in_transit: "DELIVERING",
+  delivered: "DELIVERED",
+  failed: "CANCELLED",
+};
+
+const getUiDeliveryStatus = (status) => DELIVERY_STATUS_TO_UI[status] || status || "pending";
+
+const normalizeDeliveryForClient = (delivery) => {
+  if (!delivery) return delivery;
+  const uiStatus = getUiDeliveryStatus(delivery.status || delivery.deliveryStatus);
+  return {
+    ...delivery,
+    status: delivery.status,
+    deliveryStatus: uiStatus,
+    history: (delivery.history || []).map((item) => ({
+      ...item,
+      status: getUiDeliveryStatus(item.status),
+      timestamp: item.timestamp || item.changedAt,
+    })),
+  };
+};
+
 const appendDeliveryHistory = (delivery, status, note) => {
   delivery.history.push({
     status,
     note,
-    timestamp: new Date(),
+    changedAt: new Date(),
   });
 };
 
@@ -27,7 +79,7 @@ const getAvailableDeliveries = async (req, res) => {
   try {
     const deliveries = await Delivery.find({
       shipperId: null,
-      deliveryStatus: "pending",
+      status: "WAITING_SHIPPER",
     })
       .populate({
         path: "orderId",
@@ -44,7 +96,7 @@ const getAvailableDeliveries = async (req, res) => {
       await hydrateProductImage(delivery);
     }
 
-    res.json({ success: true, data: deliveries });
+    res.json({ success: true, data: deliveries.map(normalizeDeliveryForClient) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -55,12 +107,12 @@ const acceptDelivery = async (req, res) => {
     const delivery = await Delivery.findOneAndUpdate(
       buildAvailableDeliveryClaimFilter(req.params.id),
       {
-        $set: { shipperId: req.user._id, deliveryStatus: "accepted" },
+        $set: { shipperId: req.user._id, status: "SHIPPER_ACCEPTED" },
         $push: {
           history: {
-            status: "accepted",
+            status: "SHIPPER_ACCEPTED",
             note: "Shipper da nhan don giao hang.",
-            timestamp: new Date(),
+            changedAt: new Date(),
           },
         },
       },
@@ -91,7 +143,7 @@ const acceptDelivery = async (req, res) => {
     res.json({
       success: true,
       message: "Đã nhận đơn giao hàng",
-      data: updatedDelivery,
+      data: normalizeDeliveryForClient(updatedDelivery),
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -103,7 +155,7 @@ const getMyDeliveries = async (req, res) => {
     const { status } = req.query;
     const filter = { shipperId: req.user._id };
     if (status) {
-      filter.deliveryStatus = status;
+      filter.status = DELIVERY_STATUS_FROM_UI[status] || status;
     }
 
     const deliveries = await Delivery.find(filter)
@@ -122,7 +174,7 @@ const getMyDeliveries = async (req, res) => {
       await hydrateProductImage(delivery);
     }
 
-    res.json({ success: true, data: deliveries });
+    res.json({ success: true, data: deliveries.map(normalizeDeliveryForClient) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -166,7 +218,7 @@ const getDeliveryById = async (req, res) => {
       .lean();
     delivery.inspections = inspections;
 
-    res.json({ success: true, data: delivery });
+    res.json({ success: true, data: normalizeDeliveryForClient(delivery) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -189,7 +241,7 @@ const updateDeliveryStatus = async (req, res) => {
       });
     }
 
-    const currentStatus = delivery.deliveryStatus;
+    const currentStatus = getUiDeliveryStatus(delivery.status || delivery.deliveryStatus);
     if (!isDeliveryTransitionAllowed(currentStatus, status)) {
       return res.status(400).json({
         success: false,
@@ -207,13 +259,13 @@ const updateDeliveryStatus = async (req, res) => {
       }
     }
 
-    delivery.deliveryStatus = status;
+    delivery.status = DELIVERY_STATUS_FROM_UI[status] || status;
     if (status === "failed") {
       delivery.failureReason = (failureReason || note || "").trim() || "Shipper bao cao giao hang that bai.";
     }
     appendDeliveryHistory(
       delivery,
-      status,
+      delivery.status,
       status === "picking_up"
         ? note || "Shipper dang di den diem lay hang."
         : status === "ready_for_delivery" || status === "picked_up"
@@ -230,13 +282,13 @@ const updateDeliveryStatus = async (req, res) => {
     );
     await delivery.save();
 
-    if (status === "in_transit") {
+    if (["picking_up", "picked_up", "ready_for_delivery", "received", "in_transit"].includes(status)) {
       await Order.findByIdAndUpdate(delivery.orderId, {
-        orderStatus: "shipping",
+        status: ORDER_STATUS_FROM_DELIVERY_UI[status],
       });
     } else if (status === "delivered") {
       const order = await Order.findByIdAndUpdate(delivery.orderId, {
-        orderStatus: "delivered",
+        status: ORDER_STATUS_FROM_DELIVERY_UI[status],
       }, { new: true })
         .populate("buyerId", "fullName")
         .populate("sellerId", "fullName")
@@ -268,7 +320,7 @@ const updateDeliveryStatus = async (req, res) => {
       }
     } else if (status === "failed") {
       const order = await Order.findByIdAndUpdate(delivery.orderId, {
-        orderStatus: "cancelled",
+        status: ORDER_STATUS_FROM_DELIVERY_UI[status],
         cancelReason: delivery.failureReason,
       }, { new: true }).lean();
 
@@ -294,7 +346,7 @@ const updateDeliveryStatus = async (req, res) => {
     res.json({
       success: true,
       message: "Cập nhật trạng thái thành công",
-      data: updatedDelivery,
+      data: normalizeDeliveryForClient(updatedDelivery),
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

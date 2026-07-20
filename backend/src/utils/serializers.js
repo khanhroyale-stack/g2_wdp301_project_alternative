@@ -1,6 +1,7 @@
 const Category = require("../models/category.model");
 const MediaFile = require("../models/media_file.model");
 const ProductImage = require("../models/product_image.model");
+const { isUserPro } = require("./business-rules");
 
 const formatUser = (user) => {
   if (!user) return null;
@@ -19,6 +20,9 @@ const formatUser = (user) => {
     verificationStatus: user.verificationStatus,
     reputationScore: user.reputationScore,
     accountStatus: user.accountStatus,
+    proExpiresAt: user.proExpiresAt || null,
+    isPro: isUserPro(user),
+    hasSetupFeaturedProducts: !!user.hasSetupFeaturedProducts,
   };
 };
 
