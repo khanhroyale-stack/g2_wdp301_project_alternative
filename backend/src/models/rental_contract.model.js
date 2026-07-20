@@ -54,6 +54,10 @@ const rentalContractSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    note: {
+      type: String,
+      default: null,
+    },
     compensationAmount: {
       type: Number,
       default: 0,
@@ -77,6 +81,26 @@ const rentalContractSchema = new mongoose.Schema(
       type: String,
       enum: ["none", "pending", "approved", "rejected"],
       default: "none",
+    },
+    lastExtendDays: {
+      type: Number,
+      default: 0,
+    },
+    lastExtendFee: {
+      type: Number,
+      default: 0,
+    },
+    lastExtendOldEndDate: {
+      type: Date,
+      default: null,
+    },
+    lastExtendNewEndDate: {
+      type: Date,
+      default: null,
+    },
+    lastExtendApprovedAt: {
+      type: Date,
+      default: null,
     },
     contractStatus: {
       type: String,

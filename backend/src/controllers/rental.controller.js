@@ -290,6 +290,7 @@ const updateRentalStatus = async (req, res) => {
           endDate:   request.endDate,
           rentalFee: request.rentalFee,
           depositAmount: request.depositAmount,
+          note: request.note || "",
           handoverMethod: "meet_directly",
           contractStatus: "active",
         });
@@ -560,6 +561,11 @@ const extendRental = async (req, res) => {
     const extraFee = calcRentalFee(contract.postId, extraDays);
     contract.pendingExtendDays = extraDays;
     contract.pendingExtendFee = extraFee;
+    contract.lastExtendOldEndDate = currentEnd;
+    contract.lastExtendNewEndDate = newEnd;
+    contract.lastExtendDays = extraDays;
+    contract.lastExtendFee = extraFee;
+    contract.lastExtendApprovedAt = null;
     contract.extendStatus = "pending";
     await contract.save();
 
@@ -602,9 +608,15 @@ const confirmExtend = async (req, res) => {
     const renterIdVal = contract.renterId?._id || contract.renterId;
 
     if (action === "approve") {
+      const oldEnd = new Date(contract.endDate);
       const newEnd = new Date(contract.endDate.getTime() + contract.pendingExtendDays * 24 * 60 * 60 * 1000);
       contract.endDate = newEnd;
       contract.rentalFee += contract.pendingExtendFee;
+      contract.lastExtendOldEndDate = oldEnd;
+      contract.lastExtendNewEndDate = newEnd;
+      contract.lastExtendDays = contract.pendingExtendDays;
+      contract.lastExtendFee = contract.pendingExtendFee;
+      contract.lastExtendApprovedAt = new Date();
       contract.extendStatus = "approved";
       contract.pendingExtendDays = 0;
       contract.pendingExtendFee = 0;

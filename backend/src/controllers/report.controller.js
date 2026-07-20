@@ -40,32 +40,32 @@ const createReport = async (req, res) => {
     }
 
     if (!ObjectId.isValid(reportedUserId)) {
-      return res.status(400).json({ success: false, message: "Nguoi bi bao cao khong hop le" });
+      return res.status(400).json({ success: false, message: "Người bị báo cáo không hợp lệ" });
     }
 
     if (String(reportedUserId) === String(req.user._id)) {
-      return res.status(400).json({ success: false, message: "Khong the bao cao san pham cua chinh minh" });
+      return res.status(400).json({ success: false, message: "Không thể báo cáo sản phẩm của chính mình" });
     }
 
     if (postId) {
       if (!ObjectId.isValid(postId)) {
-        return res.status(400).json({ success: false, message: "San pham khong hop le" });
+        return res.status(400).json({ success: false, message: "Sản phẩm không hợp lệ" });
       }
       const product = await ProductPost.findById(postId).select("ownerId");
       if (!product) {
-        return res.status(404).json({ success: false, message: "Khong tim thay san pham" });
+        return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
       }
       if (String(product.ownerId) === String(req.user._id)) {
-        return res.status(400).json({ success: false, message: "Khong the bao cao san pham cua chinh minh" });
+        return res.status(400).json({ success: false, message: "Không thể báo cáo sản phẩm của chính mình" });
       }
       if (String(product.ownerId) !== String(reportedUserId)) {
-        return res.status(400).json({ success: false, message: "Thong tin nguoi bi bao cao khong khop san pham" });
+        return res.status(400).json({ success: false, message: "Thông tin người bị báo cáo không khớp sản phẩm" });
       }
     }
 
     const mediaIds = normalizeIdList(evidenceMediaIds);
     if (mediaIds.some((mediaId) => !ObjectId.isValid(mediaId))) {
-      return res.status(400).json({ success: false, message: "Bang chung khong hop le" });
+      return res.status(400).json({ success: false, message: "Bằng chứng không hợp lệ" });
     }
 
     if (mediaIds.length > 0) {
@@ -74,7 +74,7 @@ const createReport = async (req, res) => {
         uploadedBy: req.user._id,
       });
       if (validMediaCount !== mediaIds.length) {
-        return res.status(400).json({ success: false, message: "Bang chung khong ton tai hoac khong thuoc ve ban" });
+        return res.status(400).json({ success: false, message: "Bằng chứng không tồn tại hoặc không thuộc về bạn" });
       }
     }
 
@@ -206,10 +206,10 @@ const resolveReport = async (req, res) => {
     if (!report) return res.status(404).json({ success: false, message: "Không tìm thấy báo cáo" });
 
     if (["resolved", "dismissed"].includes(report.status)) {
-      return res.status(409).json({ success: false, message: "Bao cao nay da duoc xu ly truoc do" });
+      return res.status(409).json({ success: false, message: "Báo cáo này đã được xử lý trước đó" });
     }
     if (report.status === status) {
-      return res.json({ success: true, data: report, message: "Trang thai bao cao da duoc cap nhat truoc do" });
+      return res.json({ success: true, data: report, message: "Trạng thái báo cáo đã được cập nhật trước đó" });
     }
 
     const previousStatus = report.status;
@@ -218,7 +218,7 @@ const resolveReport = async (req, res) => {
       { $set: { status, adminNote: adminNote || null, adminId: req.user._id } }
     );
     if (updateResult.matchedCount === 0) {
-      return res.status(409).json({ success: false, message: "Bao cao nay vua duoc xu ly truoc do" });
+      return res.status(409).json({ success: false, message: "Báo cáo này vừa được xử lý trước đó" });
     }
     report.status = status;
     report.adminNote = adminNote || null;
@@ -319,17 +319,17 @@ const addReportEvidenceSafe = async (req, res) => {
     const mediaIds = normalizeIdList(req.body.mediaIds);
 
     if (mediaIds.length === 0) {
-      return res.status(400).json({ success: false, message: "Can it nhat 1 bang chung" });
+      return res.status(400).json({ success: false, message: "Cần ít nhất 1 bằng chứng" });
     }
     if (mediaIds.some((mediaId) => !ObjectId.isValid(mediaId))) {
-      return res.status(400).json({ success: false, message: "Bang chung khong hop le" });
+      return res.status(400).json({ success: false, message: "Bằng chứng không hợp lệ" });
     }
 
     const report = await Report.findById(req.params.id);
-    if (!report) return res.status(404).json({ success: false, message: "Khong tim thay bao cao" });
+    if (!report) return res.status(404).json({ success: false, message: "Không tìm thấy báo cáo" });
 
     if (String(report.reporterId) !== String(req.user._id)) {
-      return res.status(403).json({ success: false, message: "Khong co quyen them bang chung" });
+      return res.status(403).json({ success: false, message: "Không có quyền thêm bằng chứng" });
     }
 
     const validMediaCount = await MediaFile.countDocuments({
@@ -337,7 +337,7 @@ const addReportEvidenceSafe = async (req, res) => {
       uploadedBy: req.user._id,
     });
     if (validMediaCount !== mediaIds.length) {
-      return res.status(400).json({ success: false, message: "Bang chung khong ton tai hoac khong thuoc ve ban" });
+      return res.status(400).json({ success: false, message: "Bằng chứng không tồn tại hoặc không thuộc về bạn" });
     }
 
     const now = new Date();

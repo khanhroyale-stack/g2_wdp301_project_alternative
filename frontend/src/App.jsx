@@ -37,9 +37,11 @@ import ContractManagement from "./pages/admin/ContractManagement";
 import LogisticsManagement from "./pages/admin/LogisticsManagement";
 import SupportManagement from "./pages/admin/SupportManagement";
 import RevenueReport from "./pages/admin/RevenueReport";
+import ReviewManagement from "./pages/admin/ReviewManagement";
 
 import Marketplace from "./pages/product/Marketplace";
 import ProductDetail from "./pages/product/ProductDetail";
+import ProductReviews from "./pages/product/ProductReviews";
 import CreateOrder from "./pages/orders/CreateOrder";
 import OrderList from "./pages/orders/OrderList";
 import OrderHistory from "./pages/orders/OrderHistory";
@@ -151,6 +153,7 @@ function App() {
               <Route path="/cho-thue" element={<ShipperRedirect><Marketplace /></ShipperRedirect>} />
               <Route path="/san-pham" element={<Navigate to="/marketplaces" replace />} />
               <Route path="/marketplaces/:id" element={<ShipperRedirect><ProductDetail /></ShipperRedirect>} />
+              <Route path="/marketplaces/:postId/reviews" element={<ShipperRedirect><ProductReviews /></ShipperRedirect>} />
               <Route path="/products/:id" element={<LegacyProductRedirect />} />
               <Route path="/product/:id" element={<LegacyProductRedirect />} />
               <Route path="/san-pham/:id" element={<LegacyProductRedirect />} />
@@ -193,6 +196,7 @@ function App() {
               <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><OrderManagement /></PrivateRoute>} />
               <Route path="/admin/revenue" element={<PrivateRoute adminOnly><RevenueReport /></PrivateRoute>} />
               <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><ContractManagement /></PrivateRoute>} />
+              <Route path="/admin/danh-gia" element={<PrivateRoute adminOnly><ReviewManagement /></PrivateRoute>} />
               <Route path="/admin/shippers" element={<PrivateRoute adminOnly><LogisticsManagement mode="shippers" /></PrivateRoute>} />
               <Route path="/admin/giao-hang" element={<PrivateRoute adminOnly><LogisticsManagement mode="deliveries" /></PrivateRoute>} />
               <Route path="/admin/kiem-dinh" element={<PrivateRoute adminOnly><LogisticsManagement mode="inspections" /></PrivateRoute>} />

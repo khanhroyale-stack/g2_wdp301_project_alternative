@@ -1,220 +1,194 @@
+const Delivery = require("../models/delivery.model");
+const DeliveryInspection = require("../models/delivery_inspection.model");
 const Order = require("../models/order.model");
 const ProductPost = require("../models/product_post.model");
-const Delivery = require("../models/delivery.model");
 const User = require("../models/user.model");
-const { createNotification } = require("./notification.controller");
-const { validateSellerCancellation } = require("../utils/business-rules");
+const { formatUser, hydrateProducts } = require("../utils/serializers");
 const {
   commitOrderInventory,
   releaseOrderInventory,
   releaseProductQuantity,
   reserveProductQuantity,
-  syncProductAvailability,
 } = require("../services/order-inventory.service");
-const { autoCompleteExpiredDeliveredOrders } = require("../services/order-auto-complete.service");
-const {
-  getProductImageUrls,
-  getProductThumbnailUrl,
-} = require("../utils/product-images.util");
 
 const SHIPPING_FEE = 35000;
+const ACTIVE_DELIVERY_STATES = ["WAITING_SHIPPER", "SHIPPER_ACCEPTED", "PICKING_UP", "PICKED_UP", "DELIVERING", "DELIVERED"];
 const AVAILABLE_PRODUCT_STATUSES = ["approved", "available"];
 
-const sendOrderNotification = async (payload, io) => {
-  await createNotification(
-    {
-      ...payload,
-      type: "order_update",
-      relatedType: "order",
-      link: payload.link || `/orders/${payload.relatedId}`,
-    },
-    io
-  );
+const loadOrdersWithRelations = async (filter) => {
+  const orders = await Order.find(filter).sort({ createdAt: -1 }).lean();
+  const postIds = [...new Set(orders.map((order) => String(order.postId)))];
+
+  const [products, deliveries] = await Promise.all([
+    ProductPost.find({ _id: { $in: postIds } }).lean(),
+    Delivery.find({ orderId: { $in: orders.map((order) => order._id) } }).lean(),
+  ]);
+
+  const userIds = [
+    ...new Set(
+      orders
+        .flatMap((order) => [order.buyerId, order.sellerId])
+        .concat(deliveries.map((delivery) => delivery.shipperId))
+        .filter(Boolean)
+        .map(String)
+    ),
+  ];
+  const users = await User.find({ _id: { $in: userIds } }).lean();
+
+  const productMap = new Map((await hydrateProducts(products)).map((item) => [String(item._id), item]));
+  const userMap = new Map(users.map((user) => [String(user._id), user]));
+  const deliveryMap = new Map(deliveries.map((delivery) => [String(delivery.orderId), delivery]));
+
+  return orders.map((order) => {
+    const delivery = deliveryMap.get(String(order._id));
+    const shipper = delivery?.shipperId ? userMap.get(String(delivery.shipperId)) : null;
+
+    return {
+      ...order,
+      status: order.status,
+      product: productMap.get(String(order.postId)) || null,
+      buyer: formatUser(userMap.get(String(order.buyerId))),
+      seller: formatUser(userMap.get(String(order.sellerId))),
+      shipper: formatUser(shipper),
+      delivery: delivery
+        ? {
+            _id: delivery._id,
+            status: delivery.status,
+            pickupAddress: delivery.pickupAddress,
+            deliveryAddress: delivery.deliveryAddress,
+            deliveryFee: delivery.deliveryFee,
+            history: delivery.history || [],
+          }
+        : null,
+    };
+  });
 };
 
-const getProductAvailabilityError = (product, viewerId, seller) => {
+const ensureProductCanBeOrdered = (product, buyerId, quantity = 1) => {
   if (!product) {
-    return { code: 404, message: "San pham khong ton tai" };
+    return "Sản phẩm không tồn tại";
+  }
+
+  if (!["sale", "both"].includes(product.productType) || !product.salePrice) {
+    return "Sản phẩm này không hỗ trợ mua trực tiếp";
   }
 
   if (!AVAILABLE_PRODUCT_STATUSES.includes(product.postStatus)) {
-    return { code: 400, message: "San pham hien khong kha dung de dat mua" };
+    return "Sản phẩm hiện không sẵn sàng để mua";
   }
 
-  if (!["sale", "both"].includes(product.productType)) {
-    return { code: 400, message: "San pham nay khong ho tro mua" };
+  if ((Number(product.quantity) || 0) < quantity) {
+    return `Số lượng vượt quá tồn kho hiện có. Chỉ còn ${product.quantity || 0} sản phẩm.`;
   }
 
-  if ((Number(product.quantity) || 0) < 1) {
-    return { code: 400, message: "San pham da het hang" };
-  }
-
-  if (String(product.ownerId?._id || product.ownerId) === String(viewerId)) {
-    return { code: 400, message: "Ban khong the mua san pham cua chinh minh" };
-  }
-
-  if (!seller || seller.accountStatus !== "active") {
-    return { code: 400, message: "Nguoi ban hien khong the nhan don hang" };
+  if (String(product.ownerId) === String(buyerId)) {
+    return "Bạn không thể tự mua sản phẩm của chính mình";
   }
 
   return null;
 };
 
-const getOrderActionFlags = (order, delivery, userId) => {
-  const currentUserId = String(userId);
-  const isBuyer = String(order.buyerId?._id || order.buyerId) === currentUserId;
-  const isSeller = String(order.sellerId?._id || order.sellerId) === currentUserId;
+const getCheckoutPreview = async (req, res) => {
+  try {
+    const quantity = Math.max(Number(req.query.quantity) || 1, 1);
+    const product = await ProductPost.findById(req.params.productId).lean();
+    const invalidReason = ensureProductCanBeOrdered(product, req.user._id, quantity);
 
-  return {
-    isBuyer,
-    isSeller,
-    canBuyerCancel:
-      isBuyer &&
-      ["pending", "confirmed"].includes(order.orderStatus) &&
-      (!delivery || !delivery.shipperId),
-    canSellerConfirm: isSeller && order.orderStatus === "pending",
-    canSellerReject:
-      isSeller &&
-      order.orderStatus === "pending" &&
-      (!delivery || !delivery.shipperId),
-    canBuyerComplete:
-      isBuyer &&
-      order.orderStatus === "delivered" &&
-      delivery?.deliveryStatus === "delivered",
-  };
-};
+    if (invalidReason) {
+      return res.status(400).json({ success: false, message: invalidReason });
+    }
 
-const hydrateOrderListItem = async (order, viewerId) => {
-  if (order.postId?._id) {
-    order.productImage = await getProductThumbnailUrl(order.postId._id);
+    const seller = await User.findById(product.ownerId).lean();
+    const [formattedProduct] = await hydrateProducts([product]);
+    const subtotal = (product.salePrice || 0) * quantity;
+    const totalAmount = subtotal + SHIPPING_FEE;
+
+    res.json({
+      success: true,
+      data: {
+        product: {
+          ...formattedProduct,
+          seller: formatUser(seller),
+        },
+        quantity,
+        shippingFee: SHIPPING_FEE,
+        subtotal,
+        discountAmount: 0,
+        totalAmount,
+        customer: {
+          recipientName: req.user.fullName || "",
+          phone: req.user.phone || "",
+          address: req.user.address || "",
+        },
+        paymentMethod: "COD",
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-
-  const delivery = await Delivery.findOne({ orderId: order._id })
-    .select("deliveryStatus shipperId createdAt updatedAt history failureReason")
-    .populate("shipperId", "fullName phone")
-    .lean();
-  order.delivery = delivery;
-  order.actions = getOrderActionFlags(order, delivery, viewerId);
-
-  return order;
-};
-
-const buildOrderResponse = async (orderId, viewerId) => {
-  const updatedOrder = await Order.findById(orderId)
-    .populate("buyerId", "fullName email phone address")
-    .populate("sellerId", "fullName email phone address")
-    .populate("postId", "title salePrice")
-    .lean();
-  const delivery = await Delivery.findOne({ orderId })
-    .populate("shipperId", "fullName phone")
-    .lean();
-  updatedOrder.delivery = delivery;
-  updatedOrder.actions = getOrderActionFlags(updatedOrder, delivery, viewerId);
-  return updatedOrder;
 };
 
 const createOrder = async (req, res) => {
-  let reservedProductId = null;
-  let reservedQuantity = 0;
-  let createdOrder = false;
   try {
-    const { productId, buyerAddress, buyerPhone, recipientName, note, quantity: rawQuantity } = req.body;
-    const io = req.app.get("io");
-    const quantity = Math.max(Number(rawQuantity) || 1, 1);
+    const { productId, recipientName, buyerPhone, buyerAddress, note, shippingFee } = req.body;
+    const quantity = Math.max(Number(req.body.quantity) || 1, 1);
 
-    if (!productId || !buyerAddress || !buyerPhone || !recipientName) {
-      return res.status(400).json({
-        success: false,
-        message: "Vui long dien day du thong tin",
-      });
+    if (!productId || !recipientName || !buyerPhone || !buyerAddress) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin đặt hàng" });
     }
 
-    const product = await ProductPost.findById(productId);
-    const seller = product ? await User.findById(product.ownerId).select("accountStatus") : null;
-    const availabilityError = getProductAvailabilityError(product, req.user._id, seller);
-    if (availabilityError) {
-      return res.status(availabilityError.code).json({ success: false, message: availabilityError.message });
+    const product = await ProductPost.findById(productId).lean();
+    const invalidReason = ensureProductCanBeOrdered(product, req.user._id, quantity);
+
+    if (invalidReason) {
+      return res.status(400).json({ success: false, message: invalidReason });
     }
 
-    if ((Number(product.quantity) || 0) < quantity) {
-      return res.status(400).json({
-        success: false,
-        message: `So luong san pham con lai khong du. Hien chi con ${product.quantity}.`,
-      });
-    }
-
-    const reservedProduct = await reserveProductQuantity(productId, quantity);
+    const reservedProduct = await reserveProductQuantity(product._id, quantity);
     if (!reservedProduct) {
-      return res.status(400).json({
-        success: false,
-        message: "So luong san pham hien khong con du de dat mua",
-      });
+      return res.status(400).json({ success: false, message: "Sản phẩm hiện không đủ số lượng để mua" });
     }
-    reservedProductId = productId;
-    reservedQuantity = quantity;
 
-    const totalAmount = product.salePrice * quantity + SHIPPING_FEE;
-    const order = await Order.create({
-      buyerId: req.user._id,
-      sellerId: product.ownerId,
-      postId: productId,
-      quantity,
-      productPrice: product.salePrice,
-      shippingFee: SHIPPING_FEE,
-      totalAmount,
-      buyerAddress: buyerAddress.trim(),
-      buyerPhone: buyerPhone.trim(),
-      recipientName: recipientName.trim(),
-      note: note || "",
-      orderStatus: "pending",
-    });
-    createdOrder = true;
+    const normalizedShippingFee = Number.isFinite(Number(shippingFee)) ? Number(shippingFee) : SHIPPING_FEE;
+    let order;
+    try {
+      order = await Order.create({
+        buyerId: req.user._id,
+        sellerId: product.ownerId,
+        postId: product._id,
+        quantity,
+        productPrice: product.salePrice,
+        shippingFee: normalizedShippingFee,
+        totalAmount: product.salePrice * quantity + normalizedShippingFee,
+        recipientName: recipientName.trim(),
+        buyerPhone: buyerPhone.trim(),
+        buyerAddress: buyerAddress.trim(),
+        note: (note || "").trim(),
+        paymentMethod: "COD",
+        status: "PENDING",
+        inventoryStatus: "reserved",
+      });
+    } catch (error) {
+      await releaseProductQuantity(product._id, quantity);
+      throw error;
+    }
 
-    const populatedOrder = await Order.findById(order._id)
-      .populate("buyerId", "fullName email phone")
-      .populate("sellerId", "fullName email phone address")
-      .populate("postId", "title salePrice")
-      .lean();
-    populatedOrder.actions = getOrderActionFlags(populatedOrder, null, req.user._id);
-
-    await sendOrderNotification(
-      {
-        recipientId: populatedOrder.sellerId?._id || product.ownerId,
-        title: "Bạn có đơn hàng mới",
-        content: `${populatedOrder.buyerId?.fullName || "Người mua"} vừa đặt mua ${quantity} "${populatedOrder.postId?.title || "sản phẩm"}".`,
-        relatedId: order._id,
-      },
-      io
-    );
+    const [data] = await loadOrdersWithRelations({ _id: order._id });
 
     res.status(201).json({
       success: true,
       message: "Tạo đơn hàng thành công",
-      data: populatedOrder,
+      data,
     });
   } catch (error) {
-    if (reservedProductId && !createdOrder) {
-      await releaseProductQuantity(reservedProductId, reservedQuantity).catch(() => null);
-    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const getMyOrders = async (req, res) => {
   try {
-    await autoCompleteExpiredDeliveredOrders(req.app.get("io"));
-
-    const orders = await Order.find({ buyerId: req.user._id })
-      .populate("sellerId", "fullName email phone")
-      .populate("postId", "title salePrice")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    for (const order of orders) {
-      await hydrateOrderListItem(order, req.user._id);
-    }
-
-    res.json({ success: true, data: orders });
+    const data = await loadOrdersWithRelations({ buyerId: req.user._id });
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -222,19 +196,8 @@ const getMyOrders = async (req, res) => {
 
 const getMySales = async (req, res) => {
   try {
-    await autoCompleteExpiredDeliveredOrders(req.app.get("io"));
-
-    const orders = await Order.find({ sellerId: req.user._id })
-      .populate("buyerId", "fullName email phone")
-      .populate("postId", "title salePrice")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    for (const order of orders) {
-      await hydrateOrderListItem(order, req.user._id);
-    }
-
-    res.json({ success: true, data: orders });
+    const data = await loadOrdersWithRelations({ sellerId: req.user._id });
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -242,36 +205,21 @@ const getMySales = async (req, res) => {
 
 const getOrderById = async (req, res) => {
   try {
-    await autoCompleteExpiredDeliveredOrders(req.app.get("io"));
-
-    const order = await Order.findById(req.params.id)
-      .populate("buyerId", "fullName email phone address")
-      .populate("sellerId", "fullName email phone address")
-      .populate("postId")
-      .lean();
+    const [order] = await loadOrdersWithRelations({ _id: req.params.id });
 
     if (!order) {
-      return res.status(404).json({ success: false, message: "Khong tim thay don hang" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
     }
 
-    const isBuyer = order.buyerId && String(order.buyerId._id) === String(req.user._id);
-    const isSeller = order.sellerId && String(order.sellerId._id) === String(req.user._id);
-    if (!isBuyer && !isSeller && req.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Ban khong co quyen xem don hang nay",
-      });
-    }
+    const canView =
+      String(order.buyerId) === String(req.user._id) ||
+      String(order.sellerId) === String(req.user._id) ||
+      String(order.shipper?._id || "") === String(req.user._id) ||
+      req.user.role === "admin";
 
-    if (order.postId?._id) {
-      order.postId.images = await getProductImageUrls(order.postId._id);
+    if (!canView) {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền xem đơn hàng này" });
     }
-
-    const delivery = await Delivery.findOne({ orderId: order._id })
-      .populate("shipperId", "fullName phone")
-      .lean();
-    order.delivery = delivery;
-    order.actions = getOrderActionFlags(order, delivery, req.user._id);
 
     res.json({ success: true, data: order });
   } catch (error) {
@@ -279,232 +227,192 @@ const getOrderById = async (req, res) => {
   }
 };
 
+const ensureDeliveryForOrder = async (order, seller) => {
+  let delivery = await Delivery.findOne({ orderId: order._id });
+
+  if (!delivery) {
+    delivery = await Delivery.create({
+      orderId: order._id,
+      pickupAddress: seller.address || "Chưa cập nhật địa chỉ người bán",
+      deliveryAddress: order.buyerAddress,
+      deliveryFee: order.shippingFee,
+      deliveryType: "standard",
+      status: "WAITING_SHIPPER",
+      history: [{ status: "WAITING_SHIPPER", note: "Seller đã xác nhận đơn hàng" }],
+    });
+  }
+
+  return delivery;
+};
+
 const updateOrderStatus = async (req, res) => {
   try {
-    const { status, cancelReason } = req.body;
+    const { status } = req.body;
     const order = await Order.findById(req.params.id);
-    const io = req.app.get("io");
 
     if (!order) {
-      return res.status(404).json({ success: false, message: "Khong tim thay don hang" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
     }
 
     const isBuyer = String(order.buyerId) === String(req.user._id);
     const isSeller = String(order.sellerId) === String(req.user._id);
+    const isAdmin = req.user.role === "admin";
+
+    if (!isBuyer && !isSeller && !isAdmin && req.user.role !== "shipper") {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền cập nhật đơn hàng này" });
+    }
+
     let delivery = await Delivery.findOne({ orderId: order._id });
 
-    if (!isBuyer && !isSeller) {
-      return res.status(403).json({
-        success: false,
-        message: "Ban khong co quyen cap nhat don hang nay",
-      });
-    }
-
-    const cancellationError = validateSellerCancellation({ isSeller, status, cancelReason });
-    if (cancellationError) {
-      return res.status(400).json({ success: false, message: cancellationError });
-    }
-
-    if (status === order.orderStatus) {
-      const currentOrder = await buildOrderResponse(order._id, req.user._id);
-      return res.json({
-        success: true,
-        message: "Trang thai don hang da duoc cap nhat truoc do",
-        data: currentOrder,
-      });
-    }
-
-    if (status === "confirmed" && isSeller && order.orderStatus === "pending") {
-      order.orderStatus = "confirmed";
-      order.cancelReason = "";
-
-      const seller = await User.findById(order.sellerId).select("address accountStatus");
-      if (!seller || seller.accountStatus !== "active") {
-        return res.status(400).json({ success: false, message: "Seller hien khong the xac nhan don" });
+    if (status === "CANCELLED") {
+      if (!isBuyer && !isSeller && !isAdmin) {
+        return res.status(403).json({ success: false, message: "Chỉ người mua hoặc người bán mới có thể hủy đơn" });
       }
-
-      if (!delivery) {
-        delivery = await Delivery.create({
-          orderId: order._id,
-          shipperId: null,
-          pickupAddress: seller.address || "Dia chi nguoi ban chua cap nhat",
-          deliveryAddress: order.buyerAddress,
-          deliveryFee: order.shippingFee,
-          deliveryType: "standard",
-          deliveryStatus: "pending",
-          history: [
-            {
-              status: "pending",
-              note: "Don giao hang duoc tao sau khi seller xac nhan don.",
-              timestamp: new Date(),
-            },
-          ],
-        });
-        io?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
+      if (delivery && ACTIVE_DELIVERY_STATES.includes(delivery.status) && delivery.status !== "WAITING_SHIPPER") {
+        return res.status(400).json({ success: false, message: "Không thể hủy vì đơn đã bắt đầu giao" });
       }
-
-      await sendOrderNotification(
-        {
-          recipientId: order.buyerId,
-          title: "Đơn hàng đã được xác nhận",
-          content: "Người bán đã xác nhận đơn hàng của bạn và hệ thống đang chờ shipper nhận đơn.",
-          relatedId: order._id,
-        },
-        io
-      );
-    } else if (
-      status === "cancelled" &&
-      ((isBuyer && ["pending", "confirmed"].includes(order.orderStatus)) ||
-        (isSeller && order.orderStatus === "pending"))
-    ) {
-      if (delivery?.shipperId || ["in_transit", "delivered"].includes(delivery?.deliveryStatus)) {
-        return res.status(400).json({
-          success: false,
-          message: "Khong the huy don khi delivery da co shipper hoac dang giao",
-        });
-      }
-
-      order.orderStatus = "cancelled";
-      order.cancelReason = (cancelReason || "").trim();
-
+      order.status = "CANCELLED";
+      await releaseOrderInventory(order._id);
       if (delivery) {
-        delivery.deliveryStatus = "failed";
-        delivery.failureReason = order.cancelReason || `Đơn hàng bị hủy bởi ${isBuyer ? "người mua" : "người bán"}.`;
-        delivery.history.push({
-          status: "failed",
-          note: delivery.failureReason,
-          timestamp: new Date(),
-        });
+        delivery.status = "FAILED";
+        delivery.failureReason = "Đơn hàng đã bị hủy";
+        delivery.history.push({ status: "FAILED", note: "Đơn hàng bị hủy" });
         await delivery.save();
       }
-
-      await releaseOrderInventory(order._id);
-
-      if (isSeller) {
-        await sendOrderNotification(
-          {
-            recipientId: order.buyerId,
-            title: "Đơn hàng đã bị từ chối",
-            content: order.cancelReason
-              ? `Người bán đã từ chối đơn hàng. Lý do: ${order.cancelReason}`
-              : "Người bán đã từ chối đơn hàng của bạn.",
-            relatedId: order._id,
-          },
-          io
-        );
+    } else if (status === "SELLER_CONFIRMED") {
+      if (!isSeller && !isAdmin) {
+        return res.status(403).json({ success: false, message: "Chỉ người bán mới có thể xác nhận đơn" });
       }
-
-      if (isBuyer) {
-        await sendOrderNotification(
-          {
-            recipientId: order.sellerId,
-            title: "Người mua đã hủy đơn hàng",
-            content: order.cancelReason
-              ? `Người mua đã hủy đơn hàng. Lý do: ${order.cancelReason}`
-              : "Người mua đã hủy đơn hàng này.",
-            relatedId: order._id,
-          },
-          io
-        );
+      if (order.status !== "PENDING") {
+        return res.status(400).json({ success: false, message: "Đơn hàng không còn ở trạng thái chờ xác nhận" });
       }
-    } else if (status === "completed" && isBuyer && order.orderStatus === "delivered") {
-      if (!delivery || delivery.deliveryStatus !== "delivered") {
-        return res.status(400).json({
-          success: false,
-          message: "Don hang chua o trang thai da giao de xac nhan hoan tat",
-        });
+      order.status = "SELLER_CONFIRMED";
+      await ensureDeliveryForOrder(order, req.user);
+    } else if (status === "PICKED_UP" || status === "DELIVERING" || status === "DELIVERED") {
+      if (req.user.role !== "shipper" && !isAdmin) {
+        return res.status(403).json({ success: false, message: "Chỉ shipper mới có thể cập nhật tiến trình giao hàng" });
       }
-
-      order.orderStatus = "completed";
-      order.cancelReason = "";
-      delivery.deliveryStatus = "completed";
-      delivery.history.push({
-        status: "completed",
-        note: "Buyer da xac nhan da nhan hang va hoan tat giao dich.",
-        timestamp: new Date(),
-      });
+      if (!delivery || String(delivery.shipperId) !== String(req.user._id)) {
+        return res.status(400).json({ success: false, message: "Bạn chưa được phân công đơn giao này" });
+      }
+      order.status = status;
+      delivery.status = status;
+      delivery.history.push({ status, note: "Cập nhật từ shipper" });
       await delivery.save();
+    } else if (status === "COMPLETED") {
+      if (!isBuyer && !isAdmin) {
+        return res.status(403).json({ success: false, message: "Chỉ người mua mới có thể hoàn tất đơn" });
+      }
+      if (!["DELIVERING", "DELIVERED"].includes(order.status)) {
+        return res.status(400).json({ success: false, message: "Đơn hàng chưa ở giai đoạn có thể hoàn tất" });
+      }
+      order.status = "COMPLETED";
       await commitOrderInventory(order._id);
-      await syncProductAvailability(order.postId, true);
-
-      await sendOrderNotification(
-        {
-          recipientId: order.sellerId,
-          title: "Đơn hàng đã hoàn tất",
-          content: "Người mua đã xác nhận nhận hàng. Giao dịch đã hoàn tất.",
-          relatedId: order._id,
-        },
-        io
-      );
+      if (delivery) {
+        delivery.status = "COMPLETED";
+        delivery.history.push({ status: "COMPLETED", note: "Người mua xác nhận đã nhận hàng" });
+        await delivery.save();
+      }
     } else {
-      return res.status(400).json({
-        success: false,
-        message: "Khong the cap nhat trang thai don hang",
-      });
+      return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ" });
     }
 
     await order.save();
-    const updatedOrder = await buildOrderResponse(order._id, req.user._id);
-
-    res.json({
-      success: true,
-      message: "Cap nhat trang thai thanh cong",
-      data: updatedOrder,
-    });
+    const [data] = await loadOrdersWithRelations({ _id: order._id });
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const getCheckoutPreview = async (req, res) => {
+const getAvailableOrdersForShipper = async (req, res) => {
   try {
-    const product = await ProductPost.findById(req.params.productId)
-      .populate("ownerId", "fullName email phone address reputationScore accountStatus")
-      .lean();
+    const deliveries = await Delivery.find({ status: "WAITING_SHIPPER", shipperId: null }).lean();
+    const orderIds = deliveries.map((item) => item.orderId);
+    const data = await loadOrdersWithRelations({ _id: { $in: orderIds }, status: "SELLER_CONFIRMED" });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
-    const availabilityError = getProductAvailabilityError(product, req.user._id, product?.ownerId);
-    if (availabilityError) {
-      return res.status(availabilityError.code).json({ success: false, message: availabilityError.message });
+const acceptOrderForShipper = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    const delivery = await Delivery.findOne({ orderId: req.params.id });
+
+    if (!order || !delivery) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn giao" });
     }
 
-    product.images = await getProductImageUrls(product._id);
-
-    const quantity = Math.max(Number(req.query.quantity) || 1, 1);
-    if ((Number(product.quantity) || 0) < quantity) {
-      return res.status(400).json({
-        success: false,
-        message: `So luong san pham con lai khong du. Hien chi con ${product.quantity}.`,
-      });
+    if (delivery.status !== "WAITING_SHIPPER" || delivery.shipperId) {
+      return res.status(400).json({ success: false, message: "Đơn giao này đã có shipper nhận" });
     }
 
-    const subtotal = product.salePrice * quantity;
-    const totalAmount = subtotal + SHIPPING_FEE;
+    delivery.shipperId = req.user._id;
+    delivery.status = "PICKING_UP";
+    delivery.history.push({ status: "SHIPPER_ACCEPTED", note: "Shipper đã nhận đơn" });
+    delivery.history.push({ status: "PICKING_UP", note: "Shipper đang đến lấy hàng" });
+    await delivery.save();
 
-    res.json({
-      success: true,
-      data: {
-        product,
-        quantity,
-        shippingFee: SHIPPING_FEE,
-        subtotal,
-        totalAmount,
-        buyer: {
-          fullName: req.user.fullName,
-          phone: req.user.phone || "",
-          address: req.user.address || "",
-        },
-      },
+    order.status = "PICKING_UP";
+    await order.save();
+
+    const [data] = await loadOrdersWithRelations({ _id: order._id });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getMyDeliveries = async (req, res) => {
+  try {
+    const deliveries = await Delivery.find({ shipperId: req.user._id }).lean();
+    const orderIds = deliveries.map((item) => item.orderId);
+    const data = await loadOrdersWithRelations({ _id: { $in: orderIds } });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const createInspection = async (req, res) => {
+  try {
+    const { orderId, inspectionType, status, notes } = req.body;
+    const delivery = await Delivery.findOne({ orderId });
+
+    if (!delivery) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy delivery cho đơn hàng này" });
+    }
+
+    if (String(delivery.shipperId) !== String(req.user._id) && req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền tạo biên bản kiểm tra" });
+    }
+
+    const inspection = await DeliveryInspection.create({
+      deliveryId: delivery._id,
+      shipperId: req.user._id,
+      inspectionType: inspectionType === "RECEIVE" ? "receive" : "pickup",
+      conditionNote: notes || "",
+      isMatchDescription: status !== "REJECTED",
+      isDamagedByShipper: false,
     });
+
+    res.status(201).json({ success: true, data: inspection });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 module.exports = {
+  getCheckoutPreview,
   createOrder,
   getMyOrders,
   getMySales,
   getOrderById,
   updateOrderStatus,
-  getCheckoutPreview,
+  getAvailableOrdersForShipper,
+  acceptOrderForShipper,
+  getMyDeliveries,
+  createInspection,
 };

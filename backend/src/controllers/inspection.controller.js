@@ -117,7 +117,7 @@ const createInspection = async (req, res) => {
     if (!deliveryId || !inspectionType || !result) {
       return res.status(400).json({
         success: false,
-        message: "Vui long dien day du thong tin",
+        message: "Vui lòng điền đầy đủ thông tin",
       });
     }
     const outcomeError = validateInspectionOutcome({
@@ -131,13 +131,13 @@ const createInspection = async (req, res) => {
     if (normalizedImages.length !== REQUIRED_IMAGE_TYPES.length || REQUIRED_IMAGE_TYPES.some((type) => !providedTypes.has(type))) {
       return res.status(400).json({
         success: false,
-        message: "Bat buoc co du anh mat truoc, mat sau va phu kien",
+        message: "Bắt buộc có đủ ảnh mặt trước, mặt sau và phụ kiện",
       });
     }
 
     const mediaIds = normalizedImages.map((image) => image.mediaId);
     if (new Set(mediaIds.map(String)).size !== REQUIRED_IMAGE_TYPES.length) {
-      return res.status(400).json({ success: false, message: "Anh kiem dinh khong duoc trung lap" });
+      return res.status(400).json({ success: false, message: "Ảnh kiểm định không được trùng lặp" });
     }
     const ownedMediaCount = await MediaFile.countDocuments({
       _id: { $in: mediaIds },
@@ -145,25 +145,25 @@ const createInspection = async (req, res) => {
       fileType: "inspection",
     });
     if (ownedMediaCount !== REQUIRED_IMAGE_TYPES.length) {
-      return res.status(400).json({ success: false, message: "Anh kiem dinh khong hop le" });
+      return res.status(400).json({ success: false, message: "Ảnh kiểm định không hợp lệ" });
     }
 
     const delivery = await Delivery.findById(deliveryId);
     if (!delivery) {
-      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn giao hàng" });
     }
 
     if (String(delivery.shipperId) !== String(req.user._id)) {
       return res.status(403).json({
         success: false,
-        message: "Ban khong co quyen tao bien ban cho don nay",
+        message: "Bạn không có quyền tạo biên bản cho đơn này",
       });
     }
 
     if (!["picking_up", "picked_up", "ready_for_delivery"].includes(delivery.deliveryStatus)) {
       return res.status(400).json({
         success: false,
-        message: "Chi co the lap bien ban khi shipper dang den diem lay hang va truoc khi bat dau giao",
+        message: "Chỉ có thể lập biên bản khi shipper đang đến điểm lấy hàng và trước khi bắt đầu giao",
       });
     }
 
@@ -174,7 +174,7 @@ const createInspection = async (req, res) => {
     if (existingInspection) {
       return res.status(400).json({
         success: false,
-        message: "Bien ban kiem tra cho buoc nay da ton tai",
+        message: "Biên bản kiểm tra cho bước này đã tồn tại",
       });
     }
 
@@ -245,7 +245,7 @@ const createInspection = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Tao bien ban kiem tra thanh cong",
+      message: "Tạo biên bản kiểm tra thành công",
       data: populatedInspection,
     });
   } catch (error) {
@@ -256,7 +256,7 @@ const createInspection = async (req, res) => {
 const getInspectionsByDelivery = async (req, res) => {
   try {
     if (!(await canAccessDelivery(req.params.deliveryId, req.user))) {
-      return res.status(403).json({ success: false, message: "Ban khong co quyen xem bien ban nay" });
+      return res.status(403).json({ success: false, message: "Bạn không có quyền xem biên bản này" });
     }
     const inspections = await DeliveryInspection.find({
       deliveryId: req.params.deliveryId,
@@ -295,13 +295,13 @@ const getInspectionById = async (req, res) => {
       .lean();
 
     if (!inspection) {
-      return res.status(404).json({ success: false, message: "Khong tim thay bien ban kiem tra" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy biên bản kiểm tra" });
     }
 
 
     const deliveryId = inspection.deliveryId?._id || inspection.deliveryId;
     if (!(await canAccessDelivery(deliveryId, req.user))) {
-      return res.status(403).json({ success: false, message: "Ban khong co quyen xem bien ban nay" });
+      return res.status(403).json({ success: false, message: "Bạn không có quyền xem biên bản này" });
     }
 
     await attachInspectionImages(inspection);

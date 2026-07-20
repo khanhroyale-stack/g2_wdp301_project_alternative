@@ -92,9 +92,13 @@ const Marketplace = () => {
     navigate(user ? `/thue/${productId}` : "/dang-nhap");
   };
 
-  const handleBuyNow = (event, productId) => {
+  const handleBuyNow = (event, product) => {
     event.stopPropagation();
-    navigate(user ? `/dat-hang/${productId}?quantity=1` : "/dang-nhap");
+    if (!["sale", "both"].includes(product.productType) || (Number(product.quantity) || 0) < 1) {
+      toast.error("Sản phẩm hiện không sẵn sàng để mua.");
+      return;
+    }
+    navigate(user ? `/dat-hang/${product._id}?quantity=1` : "/dang-nhap");
   };
 
   const handleAddToCart = async (event, product) => {
@@ -107,6 +111,11 @@ const Marketplace = () => {
     const ownerId = product.ownerId?._id || product.ownerId;
     if (ownerId && String(ownerId) === String(user.id || user._id)) {
       toast.error("Không thể thêm sản phẩm của chính bạn vào giỏ hàng.");
+      return;
+    }
+
+    if (!["sale", "both"].includes(product.productType) || (Number(product.quantity) || 0) < 1) {
+      toast.error("Sản phẩm hiện không sẵn sàng để mua.");
       return;
     }
 
@@ -252,7 +261,7 @@ const Marketplace = () => {
                             {product.location?.split(',')[0] || "Hòa Lạc"}
                           </span>
                         </div>
-                        {product.productType === "rent" && (
+                        {["rent", "both"].includes(product.productType) && (
                           <div className="mt-4 grid grid-cols-2 gap-2">
                             <button
                               type="button"
@@ -270,11 +279,11 @@ const Marketplace = () => {
                             </button>
                           </div>
                         )}
-                        {product.productType === "sale" && (
+                        {["sale", "both"].includes(product.productType) && (
                           <div className="mt-4 grid grid-cols-2 gap-2">
                             <button
                               type="button"
-                              onClick={(event) => handleBuyNow(event, product._id)}
+                              onClick={(event) => handleBuyNow(event, product)}
                               className="h-10 rounded-full bg-primary px-3 text-xs font-black text-white transition-all hover:bg-primary/90 active:scale-95"
                             >
                               Mua ngay
@@ -328,7 +337,7 @@ const Marketplace = () => {
                         <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${conditionColor}`}>
                           {conditionLabel}
                         </span>
-                        {product.productType === "rent" && (
+                        {["rent", "both"].includes(product.productType) && (
                           <span className="px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-secondary text-white shadow-sm">Thuê</span>
                         )}
                       </div>
@@ -355,7 +364,7 @@ const Marketplace = () => {
                           <span className="text-[11px] font-medium truncate max-w-[70px]">{product.location?.split(',')[0] || "Hòa Lạc"}</span>
                         </div>
                       </div>
-                      {product.productType === "rent" && (
+                      {["rent", "both"].includes(product.productType) && (
                         <div className="mt-4 grid grid-cols-2 gap-2">
                           <button
                             type="button"
@@ -373,11 +382,11 @@ const Marketplace = () => {
                           </button>
                         </div>
                       )}
-                      {product.productType === "sale" && (
+                      {["sale", "both"].includes(product.productType) && (
                         <div className="mt-4 grid grid-cols-2 gap-2">
                           <button
                             type="button"
-                            onClick={(event) => handleBuyNow(event, product._id)}
+                            onClick={(event) => handleBuyNow(event, product)}
                             className="h-10 rounded-full bg-primary px-3 text-xs font-black text-white transition-all hover:bg-primary/90 active:scale-95"
                           >
                             Mua ngay

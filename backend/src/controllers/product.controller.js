@@ -1,4 +1,4 @@
-const ProductPost = require("../models/product_post.model");
+﻿const ProductPost = require("../models/product_post.model");
 const ProductImage = require("../models/product_image.model");
 const Category = require("../models/category.model");
 const MediaFile = require("../models/media_file.model");
@@ -241,7 +241,7 @@ const getProductById = async (req, res) => {
       .lean();
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "San pham khong ton tai" });
+      return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại" });
     }
 
     product.images = await getProductImageUrls(product._id);
@@ -275,7 +275,7 @@ const createProduct = async (req, res) => {
       if (activePosts >= FREE_POST_LIMIT) {
         return res.status(403).json({
           success: false,
-          message: `Ban da dat gioi han ${FREE_POST_LIMIT} bai dang. Nang cap Pro de dang khong gioi han.`,
+          message: `Bạn đã đạt giới hạn ${FREE_POST_LIMIT} bài đăng. Nâng cấp Pro để đăng không giới hạn.`,
         });
       }
     }
@@ -304,7 +304,7 @@ const createProduct = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Tao bai dang thanh cong. Bai dang dang cho duyet.",
+      message: "Tạo bài đăng thành công. Bài đăng đang chờ duyệt.",
       data: createdProduct,
     });
   } catch (error) {
@@ -316,11 +316,11 @@ const updateProduct = async (req, res) => {
   try {
     const product = await ProductPost.findById(req.params.id);
     if (!product) {
-      return res.status(404).json({ success: false, message: "Khong tim thay san pham" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
     }
 
     if (String(product.ownerId) !== String(req.user._id) && req.user.role !== "admin") {
-      return res.status(403).json({ success: false, message: "Ban khong co quyen cap nhat bai dang nay" });
+      return res.status(403).json({ success: false, message: "Bạn không có quyền cập nhật bài đăng này" });
     }
 
     const incomingPayload = mapProductPayload(req.body);
@@ -334,7 +334,7 @@ const updateProduct = async (req, res) => {
       const imageError = await validateProductImages(replacementImageIds, req.user._id);
       if (imageError) return res.status(400).json({ success: false, message: imageError });
     } else if (await ProductImage.countDocuments({ postId: product._id }) < 1) {
-      return res.status(400).json({ success: false, message: "San pham phai co it nhat 1 hinh anh" });
+      return res.status(400).json({ success: false, message: "Sản phẩm phải có ít nhất 1 hình ảnh" });
     }
 
     const sensitiveFields = ["title", "description", "salePrice", "rentPricePerDay",
@@ -369,7 +369,7 @@ const updateProduct = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Cap nhat bai dang thanh cong. Bai dang da duoc dua ve trang thai cho duyet.",
+      message: "Cập nhật bài đăng thành công. Bài đăng đã được đưa về trạng thái chờ duyệt.",
       data: updatedProduct,
     });
   } catch (error) {
@@ -381,11 +381,11 @@ const deleteProduct = async (req, res) => {
   try {
     const product = await ProductPost.findById(req.params.id);
     if (!product) {
-      return res.status(404).json({ success: false, message: "Khong tim thay san pham" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
     }
 
     if (String(product.ownerId) !== String(req.user._id) && req.user.role !== "admin") {
-      return res.status(403).json({ success: false, message: "Ban khong co quyen cap nhat bai dang nay" });
+      return res.status(403).json({ success: false, message: "Bạn không có quyền cập nhật bài đăng này" });
     }
 
     product.postStatus = "inactive";
@@ -394,7 +394,7 @@ const deleteProduct = async (req, res) => {
     await product.save();
     req.app.get("io")?.emit("realtime_update", { type: "product", relatedType: "product", relatedId: product._id });
 
-    res.json({ success: true, message: "Da an bai dang" });
+    res.json({ success: true, message: "Đã ẩn bài đăng" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -447,24 +447,24 @@ const setFeaturedProducts = async (req, res) => {
     if (!isUserPro(req.user)) {
       return res.status(403).json({
         success: false,
-        message: "Chi tai khoan Pro moi co the chon san pham noi bat",
+        message: "Chỉ tài khoản Pro mới có thể chọn sản phẩm nổi bật",
       });
     }
 
     if (!Array.isArray(productIds) || productIds.length > MAX_FEATURED_PRODUCTS) {
       return res.status(400).json({
         success: false,
-        message: `Chi duoc chon toi da ${MAX_FEATURED_PRODUCTS} san pham noi bat`,
+        message: `Chỉ được chọn tối đa ${MAX_FEATURED_PRODUCTS} sản phẩm nổi bật`,
       });
     }
 
     const normalizedIds = [...new Set(productIds.map(String).filter(Boolean))];
     if (normalizedIds.length !== productIds.length) {
-      return res.status(400).json({ success: false, message: "Danh sach san pham khong hop le" });
+      return res.status(400).json({ success: false, message: "Danh sách sản phẩm không hợp lệ" });
     }
 
     if (normalizedIds.some((id) => !/^[0-9a-fA-F]{24}$/.test(id))) {
-      return res.status(400).json({ success: false, message: "Ma san pham khong hop le" });
+      return res.status(400).json({ success: false, message: "Mã sản phẩm không hợp lệ" });
     }
 
     const products = await ProductPost.find({
@@ -476,7 +476,7 @@ const setFeaturedProducts = async (req, res) => {
     if (products.length !== normalizedIds.length) {
       return res.status(400).json({
         success: false,
-        message: "Mot so san pham khong ton tai, khong thuoc ve ban, hoac chua duoc duyet",
+        message: "Một số sản phẩm không tồn tại, không thuộc về bạn, hoặc chưa được duyệt",
       });
     }
 
@@ -497,7 +497,7 @@ const setFeaturedProducts = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Da cap nhat san pham noi bat thanh cong",
+      message: "Đã cập nhật sản phẩm nổi bật thành công",
       data: { selectedCount: normalizedIds.length, maxAllowed: MAX_FEATURED_PRODUCTS },
     });
   } catch (error) {
@@ -528,12 +528,12 @@ const adminChangeStatus = async (req, res) => {
   try {
     const { status, reason } = req.body;
     if (!ADMIN_POST_STATUSES.includes(status)) {
-      return res.status(400).json({ success: false, message: "Trang thai khong hop le" });
+      return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ" });
     }
 
     const existingProduct = await ProductPost.findById(req.params.id).select("postStatus ownerId title").lean();
     if (!existingProduct) {
-      return res.status(404).json({ success: false, message: "Khong tim thay bai dang" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy bài đăng" });
     }
 
     const update = { postStatus: status };
@@ -564,7 +564,7 @@ const adminChangeStatus = async (req, res) => {
       .lean();
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "Khong tim thay bai dang" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy bài đăng" });
     }
 
     product.images = await getProductImageUrls(product._id);

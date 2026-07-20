@@ -78,7 +78,7 @@ const ProductDetail = () => {
           setError(res.message);
         }
       } catch (_) {
-        setError("Khong the tai thong tin san pham.");
+        setError("Không thể tải thông tin sản phẩm.");
       } finally {
         setLoading(false);
       }
@@ -169,9 +169,9 @@ const ProductDetail = () => {
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center pt-20">
           <span className="material-symbols-outlined text-6xl text-error mb-4">error</span>
-          <h2 className="text-xl font-bold">{error || "San pham khong ton tai"}</h2>
+          <h2 className="text-xl font-bold">{error || "Sản phẩm không tồn tại"}</h2>
           <Link to="/" className="mt-4 px-6 py-2 bg-primary text-white rounded-full hover:opacity-90 transition-all">
-            Quay lai trang chu
+            Quay lại trang chủ
           </Link>
         </div>
       </div>
@@ -180,13 +180,18 @@ const ProductDetail = () => {
 
   const images = product.images?.length > 0 ? product.images : product.imageUrls?.length > 0 ? product.imageUrls : [];
   const displayPrice =
-    product.productType === "rent" ? `${formatPrice(product.rentPricePerDay)}/ngay` : formatPrice(product.salePrice);
+    product.productType === "rent" ? `${formatPrice(product.rentPricePerDay)}/ngày` : formatPrice(product.salePrice);
   const availableQuantity = Math.max(Number(product.quantity) || 0, 0);
-  const sellerName = product.ownerId?.fullName || product.ownerId?.name || "Nguoi dung an";
+  const sellerName = product.ownerId?.fullName || product.ownerId?.name || "Người dùng ẩn";
   const sellerInitial = sellerName.charAt(0).toUpperCase();
   const ownerId = product.ownerId?._id || product.ownerId;
   const currentUserId = user?.id || user?._id;
   const isOwnProduct = currentUserId && ownerId && String(currentUserId) === String(ownerId);
+  const isSaleProduct = ["sale", "both"].includes(product.productType);
+  const isRentProduct = ["rent", "both"].includes(product.productType);
+  const isPubliclyAvailable = ["approved", "available"].includes(product.postStatus);
+  const canBuyProduct = isSaleProduct && isPubliclyAvailable && availableQuantity > 0 && !isOwnProduct;
+  const canRentProduct = isRentProduct && isPubliclyAvailable && availableQuantity > 0 && !isOwnProduct;
 
   const openReportModal = () => {
     if (!user) {
@@ -296,7 +301,7 @@ const ProductDetail = () => {
                 </span>
               </div>
               <h1 className="text-3xl lg:text-4xl font-display font-bold text-foreground leading-[1.2] mb-5">{product.title}</h1>
-              
+
               <div className="flex flex-col gap-1 p-5 bg-background rounded-2xl border border-primary/5">
                 <p className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest">{product.productType === "rent" ? "Giá thuê mỗi ngày" : "Giá niêm yết"}</p>
                 <p className="text-4xl font-display font-black text-primary">{displayPrice}</p>
@@ -313,49 +318,54 @@ const ProductDetail = () => {
               <div className="flex flex-col gap-1">
                 <p className="text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">Khu vực</p>
                 <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-                   <span className="material-symbols-outlined text-primary text-[18px]">location_on</span>
-                   {product.location?.split(',')[0] || "Hòa Lạc"}
+                  <span className="material-symbols-outlined text-primary text-[18px]">location_on</span>
+                  {product.location?.split(',')[0] || "Hòa Lạc"}
                 </div>
               </div>
               <div className="flex flex-col gap-1">
                 <p className="text-[9px] font-black text-on-surface-variant/40 uppercase tracking-widest">Tình trạng</p>
                 <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-                   <span className="material-symbols-outlined text-secondary text-[18px]">inventory_2</span>
-                   {availableQuantity > 0 ? "Còn hàng" : "Hết hàng"}
+                  <span className="material-symbols-outlined text-secondary text-[18px]">inventory_2</span>
+                  {availableQuantity > 0 ? "Còn hàng" : "Hết hàng"}
                 </div>
               </div>
             </div>
 
             <div className="flex flex-col gap-4">
-              {product.productType === "sale" && ["approved", "available"].includes(product.postStatus) ? (
+              {isSaleProduct && isPubliclyAvailable ? (
                 <div className="flex flex-col gap-3 bg-background p-4 rounded-2xl border border-primary/5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest">Số lượng</span>
                     <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">Còn {availableQuantity} sản phẩm</span>
                   </div>
                   <div className="flex items-center gap-4 w-full">
-                     <button onClick={() => setPurchaseQuantity(q => Math.max(1, q - 1))} className="w-8 h-8 rounded-full bg-white border border-primary/10 flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors">-</button>
-                     <span className="font-display font-black text-lg text-center flex-1">{purchaseQuantity}</span>
-                     <button onClick={() => setPurchaseQuantity(q => Math.min(availableQuantity, q + 1))} className="w-8 h-8 rounded-full bg-white border border-primary/10 flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors">+</button>
+                    <button onClick={() => setPurchaseQuantity(q => Math.max(1, q - 1))} className="w-8 h-8 rounded-full bg-white border border-primary/10 flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors">-</button>
+                    <span className="font-display font-black text-lg text-center flex-1">{purchaseQuantity}</span>
+                    <button onClick={() => setPurchaseQuantity(q => Math.min(availableQuantity, q + 1))} className="w-8 h-8 rounded-full bg-white border border-primary/10 flex items-center justify-center font-bold hover:bg-primary hover:text-white transition-colors">+</button>
                   </div>
                 </div>
               ) : null}
 
-              {product.postStatus === "closed" ? (
+              {!isPubliclyAvailable || availableQuantity <= 0 ? (
                 <button disabled className="w-full py-5 rounded-pill bg-background text-on-surface-variant/40 font-black uppercase tracking-widest cursor-not-allowed">
                   Hiện không khả dụng
                 </button>
-              ) : product.productType === "sale" ? (
+              ) : isSaleProduct ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <button onClick={handleBuy} className="w-full py-5 rounded-pill bg-primary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95">
+                  <button disabled={!canBuyProduct} onClick={handleBuy} className="w-full py-5 rounded-pill bg-primary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
                     Mua ngay
                   </button>
-                  <button onClick={handleAddToCart} className="w-full py-5 rounded-pill bg-white text-primary border-2 border-primary/20 font-black uppercase tracking-widest hover:bg-primary/5 transition-all">
+                  <button disabled={!canBuyProduct} onClick={handleAddToCart} className="w-full py-5 rounded-pill bg-white text-primary border-2 border-primary/20 font-black uppercase tracking-widest hover:bg-primary/5 transition-all disabled:cursor-not-allowed disabled:opacity-50">
                     Giỏ hàng
                   </button>
+                  {isRentProduct ? (
+                    <button disabled={!canRentProduct} onClick={() => (user ? navigate(`/thue/${product._id}`) : navigate("/dang-nhap"))} className="sm:col-span-2 w-full py-5 rounded-pill bg-secondary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-secondary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
+                      Tiến hành thuê
+                    </button>
+                  ) : null}
                 </div>
               ) : (
-                <button onClick={() => (user ? navigate(`/thue/${product._id}`) : navigate("/dang-nhap"))} className="w-full py-5 rounded-pill bg-secondary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-secondary/20 transition-all hover:scale-[1.02] active:scale-95">
+                <button disabled={!canRentProduct} onClick={() => (user ? navigate(`/thue/${product._id}`) : navigate("/dang-nhap"))} className="w-full py-5 rounded-pill bg-secondary text-white font-black uppercase tracking-widest hover:shadow-xl hover:shadow-secondary/20 transition-all hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100">
                   Tiến hành thuê
                 </button>
               )}
@@ -382,18 +392,13 @@ const ProductDetail = () => {
                       </div>
                     )}
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-success rounded-full border-2 border-white flex items-center justify-center">
-                       <span className="material-symbols-outlined text-white text-[10px] font-black">check</span>
+                      <span className="material-symbols-outlined text-white text-[10px] font-black">check</span>
                     </div>
                   </div>
                   <div>
                     <p className="font-display font-bold text-foreground text-lg leading-none mb-2">{sellerName}</p>
                     <div className="flex items-center gap-3">
-                       <span className="flex items-center gap-1 text-[10px] font-black text-amber-500 uppercase tracking-widest">
-                          <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                          {product.ownerId?.averageRating || "5.0"}
-                       </span>
-                       <span className="w-1 h-1 rounded-full bg-on-surface-variant/20"></span>
-                       <span className="text-[10px] font-black text-primary uppercase tracking-widest">Uy tín {product.ownerId?.reputationScore || 100}</span>
+                      <span className="text-[10px] font-black text-primary uppercase tracking-widest">Uy tín {product.ownerId?.reputationScore || 100}</span>
                     </div>
                   </div>
                 </div>
@@ -435,7 +440,12 @@ const ProductDetail = () => {
             <section className="bg-white p-6 lg:p-8 rounded-[28px] shadow-sm border border-primary/5">
               <h2 className="text-2xl font-display font-bold text-foreground mb-6 flex items-center justify-between">
                 Đánh giá ({product.reviewCount || 0})
-                <span className="text-sm font-bold text-primary hover:underline cursor-pointer">Xem tất cả</span>
+                <Link
+                  to={`/marketplaces/${product._id}/reviews`}
+                  className="text-sm font-bold text-primary hover:underline"
+                >
+                  Xem tất cả
+                </Link>
               </h2>
               {product.reviewCount === 0 ? (
                 <div className="text-center py-12 bg-background rounded-2xl border border-dashed border-primary/10">
@@ -445,24 +455,24 @@ const ProductDetail = () => {
               ) : (
                 <div className="flex items-center gap-10 p-8 bg-background rounded-2xl border border-primary/5">
                   <div className="text-center">
-                    <p className="text-6xl font-display font-black text-primary leading-none">{product.averageRating}</p>
+                    <p className="text-6xl font-display font-black text-primary leading-none">{product.averageRating || 0}</p>
                     <div className="flex justify-center text-amber-500 mt-4 mb-2">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <span key={star} className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: star <= Math.round(product.averageRating) ? "'FILL' 1" : "" }}>
+                        <span key={star} className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: star <= Math.round(product.averageRating || 0) ? "'FILL' 1" : "" }}>
                           star
                         </span>
                       ))}
                     </div>
                   </div>
                   <div className="flex-1 space-y-2">
-                     {[5, 4, 3, 2, 1].map(lvl => (
-                       <div key={lvl} className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold text-on-surface-variant/50 w-2">{lvl}</span>
-                          <div className="flex-1 h-1.5 bg-primary/5 rounded-full overflow-hidden">
-                             <div className="h-full bg-primary rounded-full" style={{ width: lvl === 5 ? '80%' : '5%' }}></div>
-                          </div>
-                       </div>
-                     ))}
+                    {[5, 4, 3, 2, 1].map(lvl => (
+                      <div key={lvl} className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-on-surface-variant/50 w-2">{lvl}</span>
+                        <div className="flex-1 h-1.5 bg-primary/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: lvl === 5 ? '80%' : '5%' }}></div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

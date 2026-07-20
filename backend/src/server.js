@@ -1,66 +1,41 @@
 const dns = require("dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
 const path = require("path");
-const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
+const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
+const { Server } = require("socket.io");
 const connectDB = require("./config/db");
-const { autoCompleteExpiredDeliveredOrders } = require("./services/order-auto-complete.service");
+const { sendExpiryReminders } = require("./controllers/rental.controller");
 
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
 dotenv.config();
+connectDB();
 
 const app = express();
 const httpServer = http.createServer(app);
-
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.CLIENT_URL || "http://localhost:5173",
-    methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
 app.set("io", io);
+require("./sockets")(io);
 
-io.on("connection", (socket) => {
-  socket.on("join_user", (userId) => {
-    socket.join(`user_${userId}`);
-  });
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  credentials: true,
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-  socket.on("join_chat", (roomId) => {
-    socket.join(`chat_${roomId}`);
-  });
-
-  socket.on("leave_chat", (roomId) => {
-    socket.leave(`chat_${roomId}`);
-  });
-
-  // Support chat
-  socket.on("join_support", (customerId) => {
-    socket.join(`support_${customerId}`);
-  });
-
-  socket.on("leave_support", (customerId) => {
-    socket.leave(`support_${customerId}`);
-  });
-
-  socket.on("disconnect", () => { });
-});
-
-module.exports.io = io;
-
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-  })
-);
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: false, limit: "10mb" }));
-if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
@@ -69,79 +44,50 @@ app.use("/api/users", require("./routes/user.routes"));
 app.use("/api/reputation", require("./routes/reputation.routes"));
 app.use("/api/categories", require("./routes/category.routes"));
 app.use("/api/products", require("./routes/product.routes"));
-app.use("/api/orders", require("./routes/order.routes"));
 app.use("/api/cart", require("./routes/cart.routes"));
+app.use("/api/orders", require("./routes/order.routes"));
 app.use("/api/deliveries", require("./routes/delivery.routes"));
-app.use("/api/inspections", require("./routes/inspection.routes"));
-app.use("/api/shipper-reports", require("./routes/shipper_report.routes"));
 app.use("/api/rentals", require("./routes/rental.routes"));
 app.use("/api/chat", require("./routes/chat.routes"));
 app.use("/api/support-chat", require("./routes/support_chat.routes"));
 app.use("/api/notifications", require("./routes/notification.routes"));
 app.use("/api/reports", require("./routes/report.routes"));
+app.use("/api/shipper-reports", require("./routes/shipper_report.routes"));
 app.use("/api/reviews", require("./routes/review.routes"));
-app.use("/api/admin", require("./routes/stats.routes"));
-app.use("/api/upload", require("./routes/upload.routes"));
 app.use("/api/subscriptions", require("./routes/subscription.routes"));
+app.use("/api/admin", require("./routes/stats.routes"));
+app.use("/api/inspections", require("./routes/inspection.routes"));
+app.use("/api/upload", require("./routes/upload.routes"));
 
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    message: "EcoTrade API dang chay",
+    message: "EcoTrade API is running",
     environment: process.env.NODE_ENV,
     timestamp: new Date().toISOString(),
   });
 });
 
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: "Route khong ton tai" });
+  res.status(404).json({ success: false, message: "Route not found" });
 });
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({
     success: false,
-    message: err.message || "Loi may chu",
+    message: err.message || "Internal Server Error",
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
 
 const PORT = process.env.PORT || 5000;
-const AUTO_COMPLETE_INTERVAL_MS = 60 * 60 * 1000;
+httpServer.listen(PORT, () => {
+  console.log(`EcoTrade API running on http://localhost:${PORT} [${process.env.NODE_ENV || "development"}]`);
+});
 
-async function startServer() {
-  await connectDB();
-
-  const runAutoComplete = () => {
-    autoCompleteExpiredDeliveredOrders(io).catch((error) => {
-      console.error(`Auto complete delivered orders failed: ${error.message}`);
-    });
-  };
-  runAutoComplete();
-  setInterval(runAutoComplete, AUTO_COMPLETE_INTERVAL_MS);
-
-  httpServer.listen(PORT, () => {
-    console.log(`🚀 EcoTrade API: http://localhost:${PORT} [${process.env.NODE_ENV}]`);
-    console.log(`🔌 Socket.IO ready`);
-
-    // Cron: nhắc hợp đồng thuê sắp hết hạn — chạy mỗi giờ
-    const { sendExpiryReminders } = require("./controllers/rental.controller");
-    setInterval(sendExpiryReminders, 60 * 60 * 1000);
-    // Chạy ngay sau 5s để tránh block startup
-    setTimeout(sendExpiryReminders, 5000);
+setInterval(() => {
+  sendExpiryReminders(app).catch((error) => {
+    console.error("[rental expiry reminder]", error.message);
   });
-}
-
-startServer().catch((error) => {
-  console.error(`Failed to start server: ${error.message}`);
-  process.exit(1);
-});
-
-// Xử lý các lỗi ngoại lệ không mong muốn để server không bị crash ngang
-process.on("uncaughtException", (err) => {
-  console.error("UNCAUGHT EXCEPTION! Bỏ qua crash cho mục đích demo:", err);
-});
-
-process.on("unhandledRejection", (err) => {
-  console.error("UNHANDLED REJECTION! Bỏ qua crash cho mục đích demo:", err);
-});
+}, 60 * 60 * 1000);

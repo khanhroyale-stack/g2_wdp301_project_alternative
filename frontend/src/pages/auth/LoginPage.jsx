@@ -2,9 +2,17 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import GoogleAuthButton from "../../components/auth/GoogleAuthButton";
+import AuthLayout from "../../components/auth/AuthLayout";
+import AuthField from "../../components/auth/AuthField";
+import PasswordField from "../../components/auth/PasswordField";
+import { validators, validateAll } from "../../components/auth/validators";
+
+const FIELDS = ["email", "password"];
 
 const LoginPage = () => {
   const [form, setForm] = useState({ email: "", password: "" });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -12,8 +20,30 @@ const LoginPage = () => {
   const location = useLocation();
   const successMessage = location.state?.message;
 
+  // Chỉ báo lỗi sau khi người dùng đã rời ô lần đầu, rồi mới cập nhật theo từng ký tự.
+  const handleChange = (field) => (e) => {
+    const next = { ...form, [field]: e.target.value };
+    setForm(next);
+    if (touched[field]) {
+      setErrors((prev) => ({ ...prev, [field]: validators[field](next[field], next) }));
+    }
+  };
+
+  const handleBlur = (field) => () => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    setErrors((prev) => ({ ...prev, [field]: validators[field](form[field], form) }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const nextErrors = validateAll(form, FIELDS);
+    if (Object.keys(nextErrors).length) {
+      setErrors(nextErrors);
+      setTouched(FIELDS.reduce((acc, field) => ({ ...acc, [field]: true }), {}));
+      return;
+    }
+
     setError("");
     setLoading(true);
     try {
@@ -33,7 +63,7 @@ const LoginPage = () => {
       if (data?.needVerification && data?.email) {
         navigate("/xac-thuc-email", { state: { email: data.email }, replace: true });
       } else {
-        setError(data?.message || "Email hoac mat khau khong dung.");
+        setError(data?.message || "Email hoặc mật khẩu không đúng");
       }
     } finally {
       setLoading(false);
@@ -41,74 +71,89 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface-container-low flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-block text-2xl font-bold text-primary tracking-tight mb-3">EcoTrade</Link>
-          <h2 className="text-2xl font-bold text-on-surface">Đăng nhập</h2>
-          <p className="text-on-surface-variant text-sm mt-1">Chào mừng trở lại!</p>
-        </div>
-
-        <div className="bg-surface-container-lowest rounded-2xl shadow-apple-md p-8 border border-surface-variant/30">
-          {successMessage && (
-            <div className="flex items-center gap-2 text-primary mb-5 p-3.5 bg-primary/10 rounded-xl text-sm border border-primary/20">
-              <span className="material-symbols-outlined text-[18px]">check_circle</span>
-              {successMessage}
-            </div>
-          )}
-          {error && (
-            <div className="flex items-center gap-2 text-error mb-5 p-3.5 bg-error-container/30 rounded-xl text-sm border border-error/20">
-              <span className="material-symbols-outlined text-[18px]">error</span>
-              {error}
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-sm font-medium text-on-surface mb-1.5">Email</label>
-              <input type="email" placeholder="ban@example.com" value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })} required
-                className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-on-surface mb-1.5">Mật khẩu</label>
-              <input type="password" placeholder="••••••••" value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })} required
-                className="w-full px-4 py-3 border border-surface-variant rounded-xl text-sm bg-surface-bright focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all" />
-            </div>
-            <div className="flex justify-end">
-              <Link to="/quen-mat-khau" className="text-sm text-primary hover:underline">Quên mật khẩu?</Link>
-            </div>
-            <button type="submit" disabled={loading}
-              className="w-full py-3.5 bg-primary text-on-primary font-semibold rounded-xl hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60">
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
-                  Đang đăng nhập...
-                </span>
-              ) : "Đăng nhập"}
-            </button>
-          </form>
-
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-surface-variant" />
-            <span className="text-xs text-on-surface-variant">hoặc</span>
-            <div className="flex-1 h-px bg-surface-variant" />
-          </div>
-
-          <GoogleAuthButton onError={setError} />
-        </div>
-
+    <AuthLayout
+      title="Đăng nhập"
+      subtitle="Chào mừng trở lại!"
+      footer={
         <p className="text-center mt-5 text-sm text-on-surface-variant">
           Chưa có tài khoản?{" "}
-          <Link to="/dang-ky" className="text-primary font-semibold hover:underline">Đăng ký ngay</Link>
+          <Link to="/dang-ky" className="text-primary font-semibold hover:underline">
+            Đăng ký ngay
+          </Link>
         </p>
-        <div className="text-center mt-3">
-          <Link to="/" className="text-sm text-on-surface-variant hover:text-primary flex items-center justify-center gap-1">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>Về trang chủ
+      }
+    >
+      {successMessage && (
+        <div className="flex items-center gap-2 text-primary mb-5 p-3.5 bg-primary/10 rounded-xl text-sm border border-primary/20">
+          <span className="material-symbols-outlined text-[18px]">check_circle</span>
+          {successMessage}
+        </div>
+      )}
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center gap-2 text-error mb-5 p-3.5 bg-error-container/30 rounded-xl text-sm border border-error/20"
+        >
+          <span className="material-symbols-outlined text-[18px]">error</span>
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <AuthField
+          id="login-email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="ban@example.com"
+          value={form.email}
+          onChange={handleChange("email")}
+          onBlur={handleBlur("email")}
+          error={touched.email ? errors.email : ""}
+        />
+
+        <PasswordField
+          id="login-password"
+          label="Mật khẩu"
+          autoComplete="current-password"
+          placeholder="••••••••"
+          value={form.password}
+          onChange={handleChange("password")}
+          onBlur={handleBlur("password")}
+          error={touched.password ? errors.password : ""}
+        />
+
+        <div className="flex justify-end">
+          <Link to="/quen-mat-khau" className="text-sm text-primary hover:underline">
+            Quên mật khẩu?
           </Link>
         </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3.5 bg-primary text-on-primary font-semibold rounded-xl hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-60"
+        >
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+              Đang đăng nhập...
+            </span>
+          ) : (
+            "Đăng nhập"
+          )}
+        </button>
+      </form>
+
+      <div className="flex items-center gap-3 my-5">
+        <div className="flex-1 h-px bg-surface-variant" />
+        <span className="text-xs text-on-surface-variant">hoặc</span>
+        <div className="flex-1 h-px bg-surface-variant" />
       </div>
-    </div>
+
+      <GoogleAuthButton onError={setError} />
+    </AuthLayout>
   );
 };
+
 export default LoginPage;

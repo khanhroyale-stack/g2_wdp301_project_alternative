@@ -12,32 +12,34 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
+import ReviewModal from "../../components/reviews/ReviewModal";
 import { useAuth } from "../../context/AuthContext";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { getDeliveryStatusInfo, getOrderStatusInfo } from "../../lib/orderFlow";
 import orderService from "../../services/order.service";
+import reviewService from "../../services/review.service";
 
 const money = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
 const dateText = (value, options = {}) =>
   value
     ? new Date(value).toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-        ...options,
-      })
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      ...options,
+    })
     : "Chưa cập nhật";
 
 const dateTimeText = (value) =>
   value
     ? new Date(value).toLocaleString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
     : "Chưa cập nhật";
 
 const shortCode = (order) => {
@@ -165,6 +167,8 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   const refreshOrder = useCallback(async () => {
     const res = await orderService.getOrderById(id);
@@ -210,6 +214,9 @@ export default function OrderDetail() {
       if (res.success) {
         await refreshOrder();
         toast.success("Đã cập nhật trạng thái đơn hàng");
+        if (status === "completed" && isBuyerView) {
+          setShowReviewModal(true);
+        }
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Không thể cập nhật đơn hàng");
@@ -217,6 +224,24 @@ export default function OrderDetail() {
       setProcessing(false);
     }
   };
+
+  useEffect(() => {
+    const checkReviewStatus = async () => {
+      if (!order || !user) return;
+      try {
+        const myReviewsRes = await reviewService.getMyReviews();
+        if (myReviewsRes.success) {
+          const hasReviewedThisOrder = myReviewsRes.data.some(
+            (r) => String(r.orderId) === String(order._id)
+          );
+          setHasReviewed(hasReviewedThisOrder);
+        }
+      } catch (e) {
+        console.error("Error checking review status:", e);
+      }
+    };
+    checkReviewStatus();
+  }, [order, user]);
 
   const trackCode = order ? shortCode(order) : "";
   const product = order?.postId || {};
@@ -555,6 +580,22 @@ export default function OrderDetail() {
                 {processing && canComplete ? "Đang xử lý..." : "Xác nhận đã nhận hàng"}
               </button>
 
+              {isBuyerView && order?.orderStatus === "completed" && !hasReviewed && (
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(true)}
+                  className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-primary/30 bg-primary/5 px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+                >
+                  Đánh giá sản phẩm
+                </button>
+              )}
+
+              {hasReviewed && (
+                <div className="mt-3 text-center text-sm font-medium text-success bg-success/5 rounded-xl py-3 border border-success/20">
+                  Bạn đã đánh giá đơn hàng này
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
@@ -609,6 +650,48 @@ export default function OrderDetail() {
           </div>
         </div>
       </div>
+
+      {showReviewModal && order && (
+        <ReviewModal
+          isOpen={showReviewModal}
+          onClose={() => {
+            setShowReviewModal(false);
+            // Refresh the review status after closing
+            const checkAgain = async () => {
+              if (!order || !user) return;
+              try {
+                const myReviewsRes = await reviewService.getMyReviews();
+                if (myReviewsRes.success) {
+                  const hasReviewedThisOrder = myReviewsRes.data.some(
+                    (r) => String(r.orderId) === String(order._id)
+                  );
+                  setHasReviewed(hasReviewedThisOrder);
+                }
+              } catch (e) {
+                console.error("Error checking review status again:", e);
+              }
+            };
+            checkAgain();
+          }}
+          orderId={order._id}
+          postId={order.postId?._id || order.postId}
+          reviewUserId={order.sellerId?._id || order.sellerId}
+          onSuccess={async () => {
+            // Refresh hasReviewed after successful review
+            try {
+              const myReviewsRes = await reviewService.getMyReviews();
+              if (myReviewsRes.success) {
+                const hasReviewedThisOrder = myReviewsRes.data.some(
+                  (r) => String(r.orderId) === String(order._id)
+                );
+                setHasReviewed(hasReviewedThisOrder);
+              }
+            } catch (e) {
+              console.error("Error checking review status after success:", e);
+            }
+          }}
+        />
+      )}
     </EcoTradeLayout>
   );
 }
