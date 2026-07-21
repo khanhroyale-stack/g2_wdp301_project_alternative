@@ -1,0 +1,213 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.5 Chrome/138.0.7204.251 Electron/37.6.1 Safari/537.36" version="28.2.5">
+  <diagram id="ecotrade-context" name="Context Diagram">
+    <mxGraphModel dx="1489" dy="891" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="EcoTrade — Context Diagram)" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#1F2933;" parent="1" vertex="1">
+          <mxGeometry x="440" y="20" width="720" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sys" value="EcoTrade System&#xa;&#xa;(React SPA + Express REST API + Socket.IO)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#4C9A54;strokeWidth=3;fontSize=17;fontStyle=1;verticalAlign=middle;" parent="1" vertex="1">
+          <mxGeometry x="620" y="460" width="360" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="guest" value="Khách vãng lai&#xa;(Guest)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="80" y="180" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="user" value="Người dùng&#xa;(Buyer / Renter / Seller)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="290" y="300" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="shipper" value="Shipper" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="210" y="690" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="admin" value="Quản trị viên&#xa;(Admin)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="80" y="860" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="google" value="Google Identity&#xa;(OAuth 2.0)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="1300" y="180" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="vnpay" value="VNPay Sandbox&#xa;(Payment Gateway)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="1060" y="310" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="smtp" value="SMTP Email Server&#xa;(Gmail / Nodemailer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="1150" y="730" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="mongo" value="MongoDB Atlas&#xa;(Cloud Database)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="1300" y="860" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#3A6EA5;strokeWidth=2;fontSize=12;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="guest" target="sys" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="220" as="sourcePoint" />
+            <mxPoint x="740" y="447.71909584179366" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="740" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e1l" value="Tìm kiếm / xem sản phẩm,&#xa;Đăng ký, Đăng nhập, Quên mật khẩu" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e1" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#3A6EA5;strokeWidth=2;dashed=1;" parent="1" source="sys" target="guest" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2l" value="Danh sách sản phẩm, JWT token" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e2" vertex="1" connectable="0">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#3A6EA5;strokeWidth=2;" parent="1" source="user" target="sys" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3l" value="Đăng bài bán/cho thuê, Giỏ hàng &amp; đặt đơn,&#xa;Yêu cầu thuê, Chat, Đánh giá, Báo cáo vi phạm,&#xa;Mua gói Pro, Cập nhật hồ sơ" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e3" vertex="1" connectable="0">
+          <mxGeometry x="-0.15" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#3A6EA5;strokeWidth=2;dashed=1;" parent="1" source="sys" target="user" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4l" value="Thông báo, Trạng thái đơn/hợp đồng,&#xa;Tin nhắn realtime, Điểm uy tín" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e4" vertex="1" connectable="0">
+          <mxGeometry x="0.2" relative="1" as="geometry">
+            <mxPoint x="54" y="-30" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#3A6EA5;strokeWidth=2;" parent="1" source="shipper" target="sys" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5l" value="Nhận đơn giao hàng, Cập nhật trạng thái,&#xa;Tạo biên bản kiểm tra + ảnh, Báo cáo sự cố" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e5" vertex="1" connectable="0">
+          <mxGeometry x="-0.15" relative="1" as="geometry">
+            <mxPoint x="64" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#3A6EA5;strokeWidth=2;dashed=1;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="750" y="670.0045359210587" as="sourcePoint" />
+            <mxPoint x="410" y="733.94" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="750" y="733.94" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6l" value="Danh sách đơn khả dụng,&#xa;Thông tin giao/nhận" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e6" vertex="1" connectable="0">
+          <mxGeometry x="0.2" relative="1" as="geometry">
+            <mxPoint x="-31" y="6" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#3A6EA5;strokeWidth=2;" parent="1" source="admin" target="sys" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7l" value="Duyệt bài đăng, Quản lý user &amp; danh mục,&#xa;Xử lý báo cáo, Quản lý gói Pro, Hỗ trợ chat" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e7" vertex="1" connectable="0">
+          <mxGeometry x="-0.15" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#3A6EA5;strokeWidth=2;dashed=1;" parent="1" source="sys" target="admin" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="580" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8l" value="Dashboard thống kê,&#xa;Báo cáo doanh thu" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e8" vertex="1" connectable="0">
+          <mxGeometry x="0.25" relative="1" as="geometry">
+            <mxPoint y="30" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B87333;strokeWidth=2;" parent="1" source="sys" target="google" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9l" value="Xác thực Google ID token" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e9" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint x="86" y="-20" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B87333;strokeWidth=2;dashed=1;" parent="1" source="google" target="sys" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10l" value="Payload hồ sơ (email, name, picture)" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e10" vertex="1" connectable="0">
+          <mxGeometry x="0.15" relative="1" as="geometry">
+            <mxPoint y="20" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B87333;strokeWidth=2;" parent="1" source="sys" target="vnpay" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1190" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11l" value="Payment URL (đã ký HMAC-SHA512)" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e11" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B87333;strokeWidth=2;dashed=1;" parent="1" source="vnpay" target="sys" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="420" />
+              <mxPoint x="1140" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12l" value="Return URL: kết quả giao dịch&#xa;+ chữ ký xác thực" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e12" vertex="1" connectable="0">
+          <mxGeometry x="0.15" relative="1" as="geometry">
+            <mxPoint x="80" y="-50" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B87333;strokeWidth=2;" parent="1" source="sys" target="smtp" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="620" />
+              <mxPoint x="1140" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13l" value="Gửi email OTP (đăng ký / quên mật khẩu)" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e13" vertex="1" connectable="0">
+          <mxGeometry x="-0.05" relative="1" as="geometry">
+            <mxPoint y="8" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B87333;strokeWidth=2;startArrow=classic;startFill=1;" parent="1" source="sys" target="mongo" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="580" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14l" value="Đọc / ghi dữ liệu nghiệp vụ&#xa;(users, product_posts, orders, rental_contracts,&#xa;transactions, messages, reports, ...)" style="edgeLabel;html=1;align=center;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="e14" vertex="1" connectable="0">
+          <mxGeometry x="-0.05" relative="1" as="geometry">
+            <mxPoint x="90" y="30" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cloudinary" value="Cloudinary&#xa;(Cloud Media Storage / CDN)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="930" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B87333;strokeWidth=2;" edge="1" parent="1" source="sys" target="cloudinary">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="795" />
+              <mxPoint x="1040" y="795" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
