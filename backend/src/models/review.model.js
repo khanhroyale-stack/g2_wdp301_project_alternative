@@ -20,12 +20,10 @@ const reviewSchema = new mongoose.Schema(
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
-      default: null,
     },
     rentalContractId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "RentalContract",
-      default: null,
     },
     reviewType: {
       type: String,

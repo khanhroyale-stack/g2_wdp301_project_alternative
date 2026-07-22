@@ -16,11 +16,11 @@ const getDeliveryStatus = (delivery) => delivery?.deliveryStatus || delivery?.st
 const createReview = async (req, res) => {
   try {
     const {
-      reviewUserId,   // người được đánh giá
+      reviewUserId,
       postId,
       orderId,
       rentalContractId,
-      reviewType,     // "seller" | "buyer" | "renter" | "owner" | "product"
+      reviewType,
       rating,
       comment,
     } = req.body;
@@ -83,18 +83,21 @@ const createReview = async (req, res) => {
       }
     }
 
+    // Prepare review data
+    const reviewData = {
+      reviewerId: req.user._id,
+      postId,
+      reviewType: reviewType || "product",
+      rating
+    };
+    if (reviewUserId) reviewData.reviewUserId = reviewUserId;
+    if (orderId) reviewData.orderId = orderId;
+    if (rentalContractId) reviewData.rentalContractId = rentalContractId;
+    if (comment) reviewData.comment = comment;
+
     let review;
     try {
-      review = await Review.create({
-        reviewerId: req.user._id,
-        reviewUserId: reviewUserId || null,
-        postId,
-        orderId: orderId || null,
-        rentalContractId: rentalContractId || null,
-        reviewType: reviewType || "product",
-        rating,
-        comment: comment || null,
-      });
+      review = await Review.create(reviewData);
     } catch (schemaError) {
       console.error("[review.createReview] Validation failed:", schemaError);
       if (schemaError.errInfo?.details?.schemaRulesNotSatisfied) {
