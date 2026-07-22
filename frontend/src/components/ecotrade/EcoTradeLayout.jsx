@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Box, ShoppingCart, Store, Truck, ChevronDown, ChevronRight, History, PackageSearch, User, Handshake, MessageSquare, Bell } from "lucide-react";
+import { Box, ShoppingCart, Store, Truck, ChevronDown, ChevronRight, History, PackageSearch, User, Handshake, MessageSquare, Bell, BarChart3 } from "lucide-react";
 import Navbar from "../Navbar";
 import Footer from "../Footer";
 import FeaturedReminderBanner from "../FeaturedReminderBanner";
@@ -40,6 +40,7 @@ export default function EcoTradeLayout({ children }) {
           ]
         },
         { label: "Đơn bán", icon: Store, to: "/orders/my-sales" },
+        { label: "Thống kê bán hàng", icon: BarChart3, to: "/thong-ke-ban-hang" },
         { label: "Thuê và mượn", icon: Handshake, to: "/thue-muon" },
         { label: "Tin nhắn", icon: MessageSquare, to: "/tin-nhan" },
         { label: "Thông báo", icon: Bell, to: "/thong-bao" },

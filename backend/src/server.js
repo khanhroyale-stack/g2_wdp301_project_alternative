@@ -56,6 +56,7 @@ app.use("/api/shipper-reports", require("./routes/shipper_report.routes"));
 app.use("/api/reviews", require("./routes/review.routes"));
 app.use("/api/subscriptions", require("./routes/subscription.routes"));
 app.use("/api/admin", require("./routes/stats.routes"));
+app.use("/api/seller", require("./routes/seller_stats.routes"));
 app.use("/api/inspections", require("./routes/inspection.routes"));
 app.use("/api/upload", require("./routes/upload.routes"));
 
