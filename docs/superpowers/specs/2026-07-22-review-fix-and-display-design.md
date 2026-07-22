@@ -18,7 +18,7 @@ trang Chi tiết đơn hàng (`OrderDetail` → `ReviewModal`). Hiện tại tha
   là `bsonType: "int"`. Mongoose lưu kiểu `Number` thành BSON `double` (5 → 5.0),
   nên **mọi** insert review đều vi phạm validator → rơi vào nhánh `catch`
   `schemaRulesNotSatisfied` ở `review.controller.js`.
-
+  
 Kết luận: review fail với **mọi** sản phẩm, không riêng sản phẩm hết hàng. Reviews
 KHÔNG bị mất do hết hàng — chúng gắn theo `postId` và tồn tại độc lập với tồn kho.
 
