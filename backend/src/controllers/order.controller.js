@@ -15,6 +15,56 @@ const SHIPPING_FEE = 35000;
 const ACTIVE_DELIVERY_STATES = ["WAITING_SHIPPER", "SHIPPER_ACCEPTED", "PICKING_UP", "PICKED_UP", "DELIVERING", "DELIVERED"];
 const AVAILABLE_PRODUCT_STATUSES = ["approved", "available"];
 
+const ORDER_STATUS_TO_UI = {
+  PENDING: "pending",
+  SELLER_CONFIRMED: "confirmed",
+  PICKING_UP: "shipping",
+  PICKED_UP: "shipping",
+  DELIVERING: "shipping",
+  DELIVERED: "delivered",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
+};
+
+const ORDER_STATUS_FROM_UI = {
+  pending: "PENDING",
+  confirmed: "SELLER_CONFIRMED",
+  shipping: "DELIVERING",
+  delivered: "DELIVERED",
+  completed: "COMPLETED",
+  cancelled: "CANCELLED",
+};
+
+const DELIVERY_STATUS_TO_UI = {
+  WAITING_SHIPPER: "pending",
+  SHIPPER_ACCEPTED: "accepted",
+  PICKING_UP: "picking_up",
+  PICKED_UP: "picked_up",
+  DELIVERING: "in_transit",
+  DELIVERED: "delivered",
+  COMPLETED: "completed",
+  FAILED: "failed",
+};
+
+const getUiOrderStatus = (status) => ORDER_STATUS_TO_UI[status] || status || "pending";
+const getUiDeliveryStatus = (status) => DELIVERY_STATUS_TO_UI[status] || status || "pending";
+const getEntityId = (value) => value?._id || value?.id || value;
+
+const buildOrderActions = (order, viewerId) => {
+  const isBuyer = String(getEntityId(order.buyerId)) === String(viewerId);
+  const isSeller = String(getEntityId(order.sellerId)) === String(viewerId);
+  const uiStatus = getUiOrderStatus(order.status);
+
+  return {
+    isBuyer,
+    isSeller,
+    canBuyerCancel: isBuyer && uiStatus === "pending",
+    canBuyerComplete: isBuyer && uiStatus === "delivered",
+    canSellerConfirm: isSeller && uiStatus === "pending",
+    canSellerReject: isSeller && uiStatus === "pending",
+  };
+};
+
 const loadOrdersWithRelations = async (filter) => {
   const orders = await Order.find(filter).sort({ createdAt: -1 }).lean();
   const postIds = [...new Set(orders.map((order) => String(order.postId)))];
@@ -42,21 +92,33 @@ const loadOrdersWithRelations = async (filter) => {
   return orders.map((order) => {
     const delivery = deliveryMap.get(String(order._id));
     const shipper = delivery?.shipperId ? userMap.get(String(delivery.shipperId)) : null;
+    const product = productMap.get(String(order.postId)) || null;
+    const buyer = formatUser(userMap.get(String(order.buyerId)));
+    const seller = formatUser(userMap.get(String(order.sellerId)));
 
     return {
       ...order,
       status: order.status,
-      product: productMap.get(String(order.postId)) || null,
-      buyer: formatUser(userMap.get(String(order.buyerId))),
-      seller: formatUser(userMap.get(String(order.sellerId))),
+      orderStatus: getUiOrderStatus(order.status),
+      postId: product,
+      product,
+      productImage: product?.images?.[0] || product?.thumbnailUrl || null,
+      buyerId: buyer || order.buyerId,
+      sellerId: seller || order.sellerId,
+      buyer,
+      seller,
       shipper: formatUser(shipper),
+      actions: buildOrderActions(order, filter.buyerId || filter.sellerId || null),
       delivery: delivery
         ? {
             _id: delivery._id,
             status: delivery.status,
+            deliveryStatus: getUiDeliveryStatus(delivery.status),
+            shipperId: shipper ? { _id: delivery.shipperId, ...formatUser(shipper) } : null,
             pickupAddress: delivery.pickupAddress,
             deliveryAddress: delivery.deliveryAddress,
             deliveryFee: delivery.deliveryFee,
+            deliveryType: delivery.deliveryType,
             history: delivery.history || [],
           }
         : null,
@@ -212,8 +274,8 @@ const getOrderById = async (req, res) => {
     }
 
     const canView =
-      String(order.buyerId) === String(req.user._id) ||
-      String(order.sellerId) === String(req.user._id) ||
+      String(getEntityId(order.buyerId)) === String(req.user._id) ||
+      String(getEntityId(order.sellerId)) === String(req.user._id) ||
       String(order.shipper?._id || "") === String(req.user._id) ||
       req.user.role === "admin";
 
@@ -221,7 +283,7 @@ const getOrderById = async (req, res) => {
       return res.status(403).json({ success: false, message: "Bạn không có quyền xem đơn hàng này" });
     }
 
-    res.json({ success: true, data: order });
+    res.json({ success: true, data: { ...order, actions: buildOrderActions(order, req.user._id) } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -247,7 +309,8 @@ const ensureDeliveryForOrder = async (order, seller) => {
 
 const updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const requestedStatus = req.body.status;
+    const status = ORDER_STATUS_FROM_UI[requestedStatus] || requestedStatus;
     const order = await Order.findById(req.params.id);
 
     if (!order) {

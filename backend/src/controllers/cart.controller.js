@@ -1,10 +1,8 @@
 const Cart = require("../models/cart.model");
 const Order = require("../models/order.model");
 const ProductPost = require("../models/product_post.model");
-const User = require("../models/user.model");
-const Delivery = require("../models/delivery.model");
 const { getProductThumbnailUrl } = require("../utils/product-images.util");
-const { getProductAvailabilityStatus } = require("../utils/business-rules");
+const { reserveProductQuantity } = require("../services/order-inventory.service");
 
 const SHIPPING_FEE = 35000;
 const AVAILABLE_PRODUCT_STATUSES = ["approved", "available"];
@@ -208,30 +206,10 @@ const checkoutCart = async (req, res) => {
         continue;
       }
 
-      const seller = await User.findById(product.ownerId).select("accountStatus");
-      if (!seller || seller.accountStatus !== "active") {
+      const reservedProduct = await reserveProductQuantity(product._id, requestedQuantity);
+      if (!reservedProduct) {
         remainingItems.push(item);
         continue;
-      }
-
-      const updatedProduct = await ProductPost.findOneAndUpdate(
-        {
-          _id: product._id,
-          quantity: { $gte: requestedQuantity },
-          postStatus: { $in: AVAILABLE_PRODUCT_STATUSES },
-        },
-        { $inc: { quantity: -requestedQuantity } },
-        { new: true }
-      );
-      if (!updatedProduct) {
-        remainingItems.push(item);
-        continue;
-      }
-
-      const nextStatus = getProductAvailabilityStatus(updatedProduct.quantity);
-      if (updatedProduct.postStatus !== nextStatus) {
-        updatedProduct.postStatus = nextStatus;
-        await updatedProduct.save();
       }
 
       const totalAmount = Number(product.salePrice || 0) * requestedQuantity + SHIPPING_FEE;
@@ -247,7 +225,9 @@ const checkoutCart = async (req, res) => {
         buyerPhone: buyerPhone.trim(),
         recipientName: recipientName.trim(),
         note: note || "",
-        orderStatus: "pending",
+        paymentMethod: "COD",
+        status: "PENDING",
+        inventoryStatus: "reserved",
       });
       createdOrders.push(order);
     }

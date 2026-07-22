@@ -20,11 +20,15 @@ const adminService = {
       : { success: response.data.success, data: response.data.users || [] };
   },
   approveUser: async (id) => {
-    const response = await api.patch(`/verification/admin/${id}/approve`);
+    const response = await api.patch(`/users/admin/${id}`, { verificationStatus: "verified" });
     return response.data;
   },
   rejectUser: async (id, reason) => {
-    const response = await api.patch(`/verification/admin/${id}/reject`, { reason });
+    const response = await api.patch(`/users/admin/${id}`, { verificationStatus: "unverified", verificationRejectReason: reason });
+    return response.data;
+  },
+  updateUser: async (id, data) => {
+    const response = await api.patch(`/users/admin/${id}`, data);
     return response.data;
   },
   banUser: async (id) => {

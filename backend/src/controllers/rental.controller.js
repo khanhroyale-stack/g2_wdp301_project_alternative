@@ -138,8 +138,6 @@ const createRentalRequest = async (req, res) => {
 
     const totalDays = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
     const rentalFee = calcRentalFee(product, totalDays);
-    const depositAmount = product.depositAmount || 0;
-
     // Bỏ tắt validator Atlas runtime theo kế hoạch fix #14
 
     const request = await RentalRequest.create({
@@ -150,8 +148,7 @@ const createRentalRequest = async (req, res) => {
       endDate: end,
       totalDays,
       rentalFee,
-      depositAmount,
-      totalAmount: rentalFee + depositAmount,
+      totalAmount: rentalFee,
       note: req.body.note || "",
       requestStatus: "pending",
     });
@@ -181,14 +178,14 @@ const createRentalRequest = async (req, res) => {
 const getRental = async (req, res) => {
   try {
     let rental = await RentalContract.findById(req.params.id)
-      .populate("postId", "title thumbnailUrl imageUrls rentPricePerDay depositAmount location categoryId")
+      .populate("postId", "title thumbnailUrl imageUrls rentPricePerDay location categoryId")
       .populate("renterId", "fullName avatarUrl phone")
       .populate("ownerId",  "fullName avatarUrl phone")
       .lean();
 
     if (!rental) {
       rental = await RentalRequest.findById(req.params.id)
-        .populate("postId", "title thumbnailUrl imageUrls rentPricePerDay depositAmount location categoryId")
+        .populate("postId", "title thumbnailUrl imageUrls rentPricePerDay location categoryId")
         .populate("renterId", "fullName avatarUrl phone")
         .populate("ownerId",  "fullName avatarUrl phone")
         .lean();
@@ -214,12 +211,12 @@ const getRental = async (req, res) => {
 const getMyRentals = async (req, res) => {
   try {
     const requests = await RentalRequest.find({ renterId: req.user._id })
-      .populate("postId", "title thumbnailUrl rentPricePerDay rentPricePerWeek rentPricePerMonth depositAmount")
+      .populate("postId", "title thumbnailUrl rentPricePerDay rentPricePerWeek rentPricePerMonth")
       .populate("ownerId", "fullName avatarUrl phone")
       .sort({ createdAt: -1 }).lean();
       
     const contracts = await RentalContract.find({ renterId: req.user._id })
-      .populate("postId", "title thumbnailUrl rentPricePerDay rentPricePerWeek rentPricePerMonth depositAmount")
+      .populate("postId", "title thumbnailUrl rentPricePerDay rentPricePerWeek rentPricePerMonth")
       .populate("ownerId", "fullName avatarUrl phone")
       .sort({ createdAt: -1 }).lean();
 
@@ -234,12 +231,12 @@ const getMyRentals = async (req, res) => {
 const getMyLendings = async (req, res) => {
   try {
     const requests = await RentalRequest.find({ ownerId: req.user._id })
-      .populate("postId", "title thumbnailUrl rentPricePerDay depositAmount")
+      .populate("postId", "title thumbnailUrl rentPricePerDay")
       .populate("renterId", "fullName avatarUrl phone")
       .sort({ createdAt: -1 }).lean();
       
     const contracts = await RentalContract.find({ ownerId: req.user._id })
-      .populate("postId", "title thumbnailUrl rentPricePerDay depositAmount")
+      .populate("postId", "title thumbnailUrl rentPricePerDay")
       .populate("renterId", "fullName avatarUrl phone")
       .sort({ createdAt: -1 }).lean();
 
@@ -253,7 +250,7 @@ const getMyLendings = async (req, res) => {
 
 const updateRentalStatus = async (req, res) => {
   try {
-    const { status, reason, compensationAmount, compensationReason } = req.body;
+    const { status, reason } = req.body;
 
     // ── Tìm Request trước ──────────────────────────────────────────────────
     let request = await RentalRequest.findById(req.params.id)
@@ -289,7 +286,6 @@ const updateRentalStatus = async (req, res) => {
           startDate: request.startDate,
           endDate:   request.endDate,
           rentalFee: request.rentalFee,
-          depositAmount: request.depositAmount,
           note: request.note || "",
           handoverMethod: "meet_directly",
           contractStatus: "active",
@@ -408,20 +404,15 @@ const updateRentalStatus = async (req, res) => {
       return res.json({ success: true, data: contract, message: "Đã xác nhận nhận đồ" });
     }
 
-    // Hoàn tất hợp đồng (sau khi xử lý cọc)
+    // Chủ đồ xác nhận đã nhận lại sản phẩm và hoàn tất hợp đồng.
     if (s === "completed") {
+      const ownerIdStr = (contract.ownerId?._id || contract.ownerId).toString();
+      if (ownerIdStr !== req.user._id.toString() && req.user.role !== "admin")
+        return res.status(403).json({ success: false, message: "Chỉ chủ đồ mới có thể hoàn tất hợp đồng" });
+      if (contract.contractStatus !== "return_requested")
+        return res.status(400).json({ success: false, message: "Chỉ hoàn tất khi người thuê đã yêu cầu trả đồ" });
       contract.contractStatus = "completed";
-      if (compensationAmount !== undefined) {
-        contract.compensationAmount = compensationAmount;
-        contract.depositRefundAmount = Math.max(0, contract.depositAmount - compensationAmount);
-      } else {
-        contract.depositRefundAmount = contract.depositAmount;
-      }
-      if (compensationReason) contract.accessoriesNote = compensationReason;
       await ProductPost.findByIdAndUpdate(contract.postId._id, { postStatus: "approved" });
-
-    } else if (s === "disputed") {
-      contract.contractStatus = "disputed";
 
     } else if (s === "cancelled") {
       contract.contractStatus = "cancelled";
@@ -463,7 +454,7 @@ const requestReturn = async (req, res) => {
       await createNotification({
         recipientId: contract.ownerId._id,
         title: "Yêu cầu trả đồ 📦",
-        content: `Người thuê đã gửi yêu cầu trả lại "${contract.postId.title}". Vui lòng kiểm tra và xử lý tiền cọc.`,
+        content: `Người thuê đã gửi yêu cầu trả lại "${contract.postId.title}". Vui lòng kiểm tra sản phẩm và xác nhận hoàn tất hợp đồng.`,
         type: "RETURN_REQUESTED",
         relatedType: "rental",
         relatedId: contract._id,
@@ -478,64 +469,12 @@ const requestReturn = async (req, res) => {
   }
 };
 
-// POST /api/rentals/:id/resolve-deposit — Admin hoặc Owner xử lý cọc
-const resolveDeposit = async (req, res) => {
-  try {
-    const { compensationAmount, compensationReason } = req.body;
-
-    const contract = await RentalContract.findById(req.params.id)
-      .populate("postId", "title")
-      .populate("renterId", "_id name");
-
-    if (!contract)
-      return res.status(404).json({ success: false, message: "Không tìm thấy hợp đồng" });
-
-    // Chỉ owner hoặc admin mới được xử lý
-    const isOwner = contract.ownerId.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "admin";
-    if (!isOwner && !isAdmin)
-      return res.status(403).json({ success: false, message: "Không có quyền xử lý cọc" });
-
-    if (!["return_requested", "disputed"].includes(contract.contractStatus))
-      return res.status(400).json({ success: false, message: "Chỉ xử lý cọc khi đồ đã được trả hoặc đang tranh chấp" });
-
-    const comp = Math.max(0, compensationAmount || 0);
-    const refund = Math.max(0, contract.depositAmount - comp);
-
-    contract.compensationAmount = comp;
-    contract.depositRefundAmount = refund;
-    if (compensationReason) contract.accessoriesNote = compensationReason;
-    contract.contractStatus = "completed";
-
-    await ProductPost.findByIdAndUpdate(contract.postId._id, { postStatus: "approved" });
-    await contract.save();
-
-    // Thông báo cho renter
-    await createNotification({
-      recipientId: contract.renterId._id,
-      title: "Kết quả xử lý cọc 💰",
-      content: comp > 0
-        ? `Cọc của bạn: bị trừ ${comp.toLocaleString("vi-VN")}đ bồi thường, hoàn lại ${refund.toLocaleString("vi-VN")}đ. Lý do: ${compensationReason || "Hư hỏng sản phẩm"}`
-        : `Cọc của bạn được hoàn 100% (${refund.toLocaleString("vi-VN")}đ).`,
-      type: "DEPOSIT_RESOLVED",
-      relatedType: "rental",
-      relatedId: contract._id,
-      link: "/thue-muon",
-    });
-
-    emitRentalUpdate(req, contract._id);
-    res.json({ success: true, data: contract, message: "Xử lý cọc thành công" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
 // POST /api/rentals/:id/extend — Renter gửi yêu cầu gia hạn (chờ owner duyệt)
 const extendRental = async (req, res) => {
   try {
-    const { extraDays } = req.body;
-    if (!extraDays || extraDays <= 0)
-      return res.status(400).json({ success: false, message: "Số ngày gia hạn không hợp lệ (phải >= 1)" });
+    const extraDays = Number(req.body.extraDays);
+    if (!Number.isInteger(extraDays) || extraDays < 1 || extraDays > 365)
+      return res.status(400).json({ success: false, message: "Số ngày gia hạn phải là số nguyên từ 1 đến 365" });
 
     const contract = await RentalContract.findById(req.params.id).populate("postId").populate("ownerId", "_id fullName");
     if (!contract || !["active", "renting"].includes(contract.contractStatus))
@@ -609,14 +548,18 @@ const confirmExtend = async (req, res) => {
 
     if (action === "approve") {
       const oldEnd = new Date(contract.endDate);
-      const newEnd = new Date(contract.endDate.getTime() + contract.pendingExtendDays * 24 * 60 * 60 * 1000);
+      const approvedDays = contract.pendingExtendDays;
+      const approvedFee = contract.pendingExtendFee;
+      const newEnd = new Date(contract.endDate.getTime() + approvedDays * 24 * 60 * 60 * 1000);
       contract.endDate = newEnd;
-      contract.rentalFee += contract.pendingExtendFee;
+      contract.rentalFee += approvedFee;
       contract.lastExtendOldEndDate = oldEnd;
       contract.lastExtendNewEndDate = newEnd;
-      contract.lastExtendDays = contract.pendingExtendDays;
-      contract.lastExtendFee = contract.pendingExtendFee;
+      contract.lastExtendDays = approvedDays;
+      contract.lastExtendFee = approvedFee;
       contract.lastExtendApprovedAt = new Date();
+      contract.totalExtendedDays = (contract.totalExtendedDays || 0) + approvedDays;
+      contract.extensionHistory.push({ extraDays: approvedDays, extraFee: approvedFee, previousEndDate: oldEnd, newEndDate: newEnd });
       contract.extendStatus = "approved";
       contract.pendingExtendDays = 0;
       contract.pendingExtendFee = 0;
@@ -693,4 +636,4 @@ const sendExpiryReminders = async () => {
   }
 };
 
-module.exports = { getRentalAvailability, createRentalRequest, getRental, getMyRentals, getMyLendings, updateRentalStatus, extendRental, confirmExtend, requestReturn, resolveDeposit, sendExpiryReminders };
+module.exports = { getRentalAvailability, createRentalRequest, getRental, getMyRentals, getMyLendings, updateRentalStatus, extendRental, confirmExtend, requestReturn, sendExpiryReminders };

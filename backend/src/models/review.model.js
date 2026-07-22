@@ -53,7 +53,19 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-reviewSchema.index({ reviewerId: 1, orderId: 1 }, { unique: true, sparse: true });
-reviewSchema.index({ reviewerId: 1, rentalContractId: 1 }, { unique: true, sparse: true });
+reviewSchema.index(
+  { reviewerId: 1, orderId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { orderId: { $type: "objectId" } },
+  }
+);
+reviewSchema.index(
+  { reviewerId: 1, rentalContractId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { rentalContractId: { $type: "objectId" } },
+  }
+);
 
 module.exports = mongoose.model("Review", reviewSchema);

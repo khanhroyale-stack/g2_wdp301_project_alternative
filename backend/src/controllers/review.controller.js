@@ -6,6 +6,12 @@ const Delivery = require("../models/delivery.model");
 const ProductPost = require("../models/product_post.model");
 const { createNotification } = require("./notification.controller");
 
+const completedOrderStatuses = new Set(["completed", "COMPLETED"]);
+const completedDeliveryStatuses = new Set(["completed", "COMPLETED"]);
+
+const getOrderStatus = (order) => order?.orderStatus || order?.status || "";
+const getDeliveryStatus = (delivery) => delivery?.deliveryStatus || delivery?.status || "";
+
 // POST /api/reviews
 const createReview = async (req, res) => {
   try {
@@ -29,18 +35,20 @@ const createReview = async (req, res) => {
       if (!order) {
         return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
       }
-      const delivery = await Delivery.findOne({ orderId: order._id }).select("deliveryStatus");
+      const delivery = await Delivery.findOne({ orderId: order._id }).select("deliveryStatus status");
       // Chỉ buyer của đơn này mới được review sản phẩm
       const isBuyer = String(order.buyerId) === String(req.user._id);
       if (!isBuyer) {
         return res.status(403).json({ success: false, message: "Bạn không phải người mua của đơn hàng này" });
       }
+      const orderStatus = getOrderStatus(order);
+      const deliveryStatus = getDeliveryStatus(delivery);
       const canReviewCompletedOrder =
-        order.orderStatus === "completed" || delivery?.deliveryStatus === "completed";
+        completedOrderStatuses.has(orderStatus) || completedDeliveryStatuses.has(deliveryStatus);
       if (!canReviewCompletedOrder) {
         return res.status(400).json({
           success: false,
-          message: `Chỉ được đánh giá sau khi bạn xác nhận đã nhận hàng (order: ${order.orderStatus}, delivery: ${delivery?.deliveryStatus || "none"})`,
+          message: `Chỉ được đánh giá sau khi bạn xác nhận đã nhận hàng (order: ${orderStatus || "none"}, delivery: ${deliveryStatus || "none"})`,
         });
       }
     }

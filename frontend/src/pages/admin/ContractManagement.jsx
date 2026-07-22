@@ -3,11 +3,13 @@ import Sidebar from "../../components/Sidebar";
 import adminService from "../../services/admin.service";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const ContractManagement = () => {
   const [rentals, setRentals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const navigate = useNavigate();
 
   const fetchRentals = useCallback(async () => {
     setLoading(true);
@@ -35,7 +37,6 @@ const ContractManagement = () => {
     completed: { label: "Hoàn tất", color: "text-green-600 bg-green-100" },
     cancelled: { label: "Đã hủy", color: "text-red-500 bg-red-50" },
     rejected: { label: "Bị từ chối", color: "text-red-600 bg-red-100" },
-    disputed: { label: "Tranh chấp", color: "text-purple-600 bg-purple-100" },
   };
 
   return (
@@ -51,7 +52,7 @@ const ContractManagement = () => {
             <p className="text-on-surface-variant">Theo dõi hoạt động cho thuê trên hệ thống.</p>
           </div>
           <div className="flex flex-wrap bg-surface-container-low rounded-xl p-1 shadow-sm border border-surface-variant/30">
-            {["", "active", "completed", "cancelled", "disputed"].map(st => (
+            {["", "active", "completed", "cancelled"].map(st => (
               <button
                 key={st}
                 onClick={() => setFilter(st)}
@@ -83,6 +84,7 @@ const ContractManagement = () => {
                     <th className="p-4 font-semibold">Thời gian</th>
                     <th className="p-4 font-semibold text-right">Tổng phí</th>
                     <th className="p-4 font-semibold text-center">Trạng thái</th>
+                    <th className="p-4 font-semibold text-center">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-variant/20">
@@ -120,12 +122,22 @@ const ContractManagement = () => {
                         <p>{new Date(r.endDate).toLocaleDateString("vi-VN")}</p>
                       </td>
                       <td className="p-4 text-sm font-bold text-right text-error">
-                        {((r.rentalFee || 0) + (r.depositAmount || 0)).toLocaleString()}đ
+                        {(r.rentalFee || 0).toLocaleString()}đ
                       </td>
                       <td className="p-4 text-center">
                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${STATUS_MAP[r.contractStatus]?.color || "bg-gray-100 text-gray-600"}`}>
                           {STATUS_MAP[r.contractStatus]?.label || r.contractStatus}
                         </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/admin/hop-dong/${r._id}`)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-primary/20 px-3 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/5"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">visibility</span>
+                          Xem chi tiết
+                        </button>
                       </td>
                     </tr>
                     );

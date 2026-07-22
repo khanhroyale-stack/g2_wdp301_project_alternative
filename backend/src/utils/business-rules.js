@@ -61,7 +61,7 @@ const isDeliveryTransitionAllowed = (currentStatus, nextStatus) => {
 const buildAvailableDeliveryClaimFilter = (deliveryId) => ({
   _id: deliveryId,
   shipperId: null,
-  deliveryStatus: "pending",
+  status: "WAITING_SHIPPER",
 });
 
 const PRO_PLANS = {

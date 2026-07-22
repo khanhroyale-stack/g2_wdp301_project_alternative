@@ -64,12 +64,6 @@ const rentalService = {
     return response.data;
   },
 
-  // Xử lý tiền cọc sau khi trả đồ
-  resolveDeposit: async (id, data) => {
-    // data: { compensationAmount, compensationReason }
-    const response = await api.post(`/rentals/${id}/resolve-deposit`, data);
-    return response.data;
-  },
 };
 
 export default rentalService;

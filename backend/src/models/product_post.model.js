@@ -46,11 +46,6 @@ const productPostSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    depositAmount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
     location: {
       type: String,
       default: null,

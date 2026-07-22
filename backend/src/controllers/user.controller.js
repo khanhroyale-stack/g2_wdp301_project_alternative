@@ -144,10 +144,19 @@ const getUserById = async (req, res) => {
 // @route PUT /api/users/admin/:id  (admin — đổi role hoặc status)
 const updateUserByAdmin = async (req, res) => {
   try {
-    const { role, accountStatus } = req.body;
+    const { role, accountStatus, verificationStatus } = req.body;
+    const updatePayload = {};
+    if (role !== undefined) updatePayload.role = role;
+    if (accountStatus !== undefined) updatePayload.accountStatus = accountStatus;
+    if (verificationStatus !== undefined) updatePayload.verificationStatus = verificationStatus;
+
+    if (!Object.keys(updatePayload).length) {
+      return res.status(400).json({ success: false, message: "KhÃ´ng cÃ³ thÃ´ng tin cáº§n cáº­p nháº­t" });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { role, accountStatus },
+      updatePayload,
       { new: true, runValidators: true }
     ).select("-passwordHash");
 

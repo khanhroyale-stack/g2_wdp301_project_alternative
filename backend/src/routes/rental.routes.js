@@ -11,7 +11,6 @@ const {
   extendRental,
   confirmExtend,
   requestReturn,
-  resolveDeposit,
 } = require("../controllers/rental.controller");
 
 // Kiểm tra lịch trống (public)
@@ -38,8 +37,5 @@ router.post("/:id/extend/confirm", protect, confirmExtend);
 
 // Trả đồ
 router.post("/:id/return", protect, requestReturn);
-
-// Xử lý cọc
-router.post("/:id/resolve-deposit", protect, resolveDeposit);
 
 module.exports = router;

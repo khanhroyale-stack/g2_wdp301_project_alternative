@@ -206,8 +206,7 @@ const CreateRentalRequest = () => {
   }, [startDate, endDate, startTime, endTime]);
 
   const rentalFee    = useMemo(() => calcFee(totalDays, product), [totalDays, product]);
-  const depositAmt   = product?.depositAmount || 0;
-  const totalAmount  = rentalFee + depositAmt;
+  const totalAmount  = rentalFee;
   const rangeBlocked = isRangeBlocked(startDate, endDate, bookedRanges);
 
   const validate = () => {
@@ -314,7 +313,6 @@ const CreateRentalRequest = () => {
                     {product.rentPricePerDay  > 0 && <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-100 font-semibold">{fmt(product.rentPricePerDay)}/ngày</span>}
                     {product.rentPricePerWeek > 0 && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100 font-semibold">{fmt(product.rentPricePerWeek)}/tuần</span>}
                     {product.rentPricePerMonth> 0 && <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-100 font-semibold">{fmt(product.rentPricePerMonth)}/tháng</span>}
-                    {depositAmt > 0 && <span className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full border border-orange-100 font-semibold">Cọc {fmt(depositAmt)}</span>}
                   </div>
                 </div>
               </div>
@@ -405,7 +403,6 @@ const CreateRentalRequest = () => {
                     ["Ngày kết thúc", endDate   ? `${fmtDate(endDate)} ${endTime}`   : <span className="text-gray-300 italic">Chưa chọn</span>],
                     ["Số ngày thuê", totalDays > 0 ? `${totalDays} ngày` : "—"],
                     ["Tiền thuê", totalDays > 0 ? fmt(rentalFee) : "—"],
-                    ...(depositAmt > 0 ? [["Tiền cọc", fmt(depositAmt)]] : []),
                     ...(form.note ? [["Ghi chú", form.note]] : []),
                   ].map(([k, v]) => (
                     <div key={k} className="flex flex-col py-2.5 gap-1 sm:flex-row sm:justify-between sm:gap-4">
