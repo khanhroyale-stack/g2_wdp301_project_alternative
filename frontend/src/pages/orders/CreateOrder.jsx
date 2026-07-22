@@ -179,6 +179,7 @@ export default function CreateOrder() {
     buyerAddress: "",
     note: "",
   });
+  const [paymentMethod, setPaymentMethod] = useState("COD");
 
   const addressBook = useMemo(() => {
     const source = profile?.user || user || {};
@@ -320,8 +321,13 @@ export default function CreateOrder() {
 
     setSubmitting(true);
     try {
-      const res = await orderService.createOrder({ productId, quantity: requestedQuantity, ...form });
+      const res = await orderService.createOrder({ productId, quantity: requestedQuantity, ...form, paymentMethod });
       if (res.success) {
+        // Thanh toán chuyển khoản VNPay → chuyển sang cổng thanh toán
+        if (res.paymentMethod === "VNPAY" && res.paymentUrl) {
+          window.location.href = res.paymentUrl;
+          return;
+        }
         navigate(`/orders/${res.data._id}`);
       }
     } catch (error) {
@@ -555,8 +561,55 @@ export default function CreateOrder() {
                   </div>
                 </div>
 
+                <div className="space-y-3 border-t border-dashed border-surface-variant/30 pt-5">
+                  <div className="text-sm font-bold text-on-surface">Phương thức thanh toán</div>
+                  <div className="grid gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("COD")}
+                      className={`flex items-center gap-3 rounded-[18px] border p-4 text-left transition-all ${
+                        paymentMethod === "COD"
+                          ? "border-[#18c76b] bg-[#f0fff5] shadow-[0_0_0_1px_rgba(24,199,107,.08)]"
+                          : "border-[#e6eaee] bg-white hover:border-[#cfd6dd]"
+                      }`}
+                    >
+                      <Truck className={`h-6 w-6 shrink-0 ${paymentMethod === "COD" ? "text-[#18c76b]" : "text-[#98a2b3]"}`} />
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-[#202124]">Thanh toán khi nhận hàng (COD)</div>
+                        <div className="text-xs text-[#667085]">Trả tiền mặt cho shipper khi nhận hàng</div>
+                      </div>
+                      <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${paymentMethod === "COD" ? "border-[#18c76b]" : "border-[#cfd6dd]"}`}>
+                        {paymentMethod === "COD" ? <span className="h-2.5 w-2.5 rounded-full bg-[#18c76b]" /> : null}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("VNPAY")}
+                      className={`flex items-center gap-3 rounded-[18px] border p-4 text-left transition-all ${
+                        paymentMethod === "VNPAY"
+                          ? "border-[#18c76b] bg-[#f0fff5] shadow-[0_0_0_1px_rgba(24,199,107,.08)]"
+                          : "border-[#e6eaee] bg-white hover:border-[#cfd6dd]"
+                      }`}
+                    >
+                      <CreditCard className={`h-6 w-6 shrink-0 ${paymentMethod === "VNPAY" ? "text-[#18c76b]" : "text-[#98a2b3]"}`} />
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-[#202124]">Chuyển khoản qua VNPay</div>
+                        <div className="text-xs text-[#667085]">Thanh toán online qua cổng VNPay (Sandbox)</div>
+                      </div>
+                      <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${paymentMethod === "VNPAY" ? "border-[#18c76b]" : "border-[#cfd6dd]"}`}>
+                        {paymentMethod === "VNPAY" ? <span className="h-2.5 w-2.5 rounded-full bg-[#18c76b]" /> : null}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
                 <Button type="submit" size="lg" className="w-full text-[1rem]" disabled={submitting}>
-                  {submitting ? "Đang xử lý..." : "Đặt hàng ngay"}
+                  {submitting
+                    ? "Đang xử lý..."
+                    : paymentMethod === "VNPAY"
+                    ? "Thanh toán qua VNPay"
+                    : "Đặt hàng ngay"}
                 </Button>
 
                 <Button type="button" variant="outline" size="lg" className="w-full text-[1rem]" onClick={() => navigate(`/marketplaces/${productId}`)}>

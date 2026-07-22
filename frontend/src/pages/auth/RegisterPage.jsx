@@ -11,7 +11,16 @@ import { validators, validateAll } from "../../components/auth/validators";
 const FIELDS = ["name", "email", "phone", "password", "confirmPassword"];
 
 const RegisterPage = () => {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    bankAccountNumber: "",
+    bankName: "",
+    bankAccountHolder: "",
+  });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [error, setError] = useState("");
@@ -54,7 +63,15 @@ const RegisterPage = () => {
     setError("");
     setLoading(true);
     try {
-      await register({ fullName: form.name, email: form.email, phone: form.phone, password: form.password });
+      await register({
+        fullName: form.name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        bankAccountNumber: form.bankAccountNumber.trim(),
+        bankName: form.bankName.trim(),
+        bankAccountHolder: form.bankAccountHolder.trim(),
+      });
       navigate("/xac-minh-tai-khoan");
     } catch (err) {
       setError(err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.");
@@ -146,6 +163,39 @@ const RegisterPage = () => {
           onBlur={handleBlur("confirmPassword")}
           error={touched.confirmPassword ? errors.confirmPassword : ""}
         />
+
+        <div className="mt-1 rounded-xl border border-surface-variant/60 bg-surface-variant/10 p-4">
+          <p className="mb-3 text-sm font-semibold text-on-surface">
+            Thông tin ngân hàng nhận thanh toán{" "}
+            <span className="font-normal text-on-surface-variant">(tuỳ chọn)</span>
+          </p>
+          <p className="mb-3 text-xs text-on-surface-variant">
+            Dùng để nhận tiền khi bạn bán hàng. Có thể bỏ trống và cập nhật sau trong hồ sơ.
+          </p>
+          <div className="flex flex-col gap-4">
+            <AuthField
+              id="register-bank-number"
+              label="Số tài khoản"
+              placeholder="VD: 0123456789"
+              value={form.bankAccountNumber}
+              onChange={(e) => setForm((f) => ({ ...f, bankAccountNumber: e.target.value }))}
+            />
+            <AuthField
+              id="register-bank-name"
+              label="Ngân hàng"
+              placeholder="VD: Vietcombank"
+              value={form.bankName}
+              onChange={(e) => setForm((f) => ({ ...f, bankName: e.target.value }))}
+            />
+            <AuthField
+              id="register-bank-holder"
+              label="Chủ tài khoản"
+              placeholder="VD: NGUYEN VAN A"
+              value={form.bankAccountHolder}
+              onChange={(e) => setForm((f) => ({ ...f, bankAccountHolder: e.target.value }))}
+            />
+          </div>
+        </div>
 
         <p className="text-xs text-on-surface-variant">
           Bằng cách đăng ký, bạn đồng ý với{" "}

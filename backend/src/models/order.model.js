@@ -60,8 +60,21 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["COD"],
+      enum: ["COD", "VNPAY"],
       default: "COD",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["unpaid", "paid"],
+      default: "unpaid",
+    },
+    vnpTxnRef: {
+      type: String,
+      default: null,
+    },
+    vnpTransactionNo: {
+      type: String,
+      default: null,
     },
     status: {
       type: String,

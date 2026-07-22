@@ -14,7 +14,7 @@ const generateToken = (id) =>
 // @route POST /api/auth/register
 const register = async (req, res) => {
   try {
-    const { fullName, email, password, phone } = req.body;
+    const { fullName, email, password, phone, bankAccountNumber, bankName, bankAccountHolder } = req.body;
 
     if (!fullName || !email || !password) {
       return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
@@ -25,7 +25,15 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email đã được sử dụng" });
     }
 
-    const user = await User.create({ fullName, email, passwordHash: password, phone });
+    const user = await User.create({
+      fullName,
+      email,
+      passwordHash: password,
+      phone,
+      bankAccountNumber: bankAccountNumber || null,
+      bankName: bankName || null,
+      bankAccountHolder: bankAccountHolder || null,
+    });
 
     const otp = generateOTP();
     saveOTP(email, otp, "register");

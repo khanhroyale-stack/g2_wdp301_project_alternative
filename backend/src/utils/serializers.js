@@ -23,6 +23,9 @@ const formatUser = (user) => {
     proExpiresAt: user.proExpiresAt || null,
     isPro: isUserPro(user),
     hasSetupFeaturedProducts: !!user.hasSetupFeaturedProducts,
+    bankAccountNumber: user.bankAccountNumber || "",
+    bankName: user.bankName || "",
+    bankAccountHolder: user.bankAccountHolder || "",
   };
 };
 

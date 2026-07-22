@@ -33,7 +33,7 @@ const assertVnpayConfig = () => {
   }
 };
 
-const buildPaymentUrl = ({ amount, txnRef, orderInfo, ipAddr }) => {
+const buildPaymentUrl = ({ amount, txnRef, orderInfo, ipAddr, returnUrl }) => {
   assertVnpayConfig();
 
   const now = new Date();
@@ -47,7 +47,7 @@ const buildPaymentUrl = ({ amount, txnRef, orderInfo, ipAddr }) => {
     vnp_OrderInfo: orderInfo,
     vnp_OrderType: "other",
     vnp_Amount: amount * 100,
-    vnp_ReturnUrl: process.env.VNP_RETURNURL,
+    vnp_ReturnUrl: returnUrl || process.env.VNP_RETURNURL,
     vnp_IpAddr: ipAddr || "127.0.0.1",
     vnp_CreateDate: formatVnpDate(now),
     vnp_ExpireDate: formatVnpDate(new Date(now.getTime() + 15 * 60 * 1000)),

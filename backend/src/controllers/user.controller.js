@@ -52,7 +52,7 @@ const getMyProfile = async (req, res) => {
 const updateMyProfile = async (req, res) => {
   try {
 
-    const { fullName, phone, address, avatarUrl, addresses, dateOfBirth, gender } = req.body;
+    const { fullName, phone, address, avatarUrl, addresses, dateOfBirth, gender, bankAccountNumber, bankName, bankAccountHolder } = req.body;
     const currentUser = await User.findById(req.user._id);
 
     const normalizedAddresses = Array.isArray(addresses)
@@ -72,6 +72,9 @@ const updateMyProfile = async (req, res) => {
       ...(typeof address !== "undefined" ? { address } : {}),
       ...(typeof dateOfBirth !== "undefined" ? { dateOfBirth } : {}),
       ...(typeof gender !== "undefined" ? { gender } : {}),
+      ...(typeof bankAccountNumber !== "undefined" ? { bankAccountNumber } : {}),
+      ...(typeof bankName !== "undefined" ? { bankName } : {}),
+      ...(typeof bankAccountHolder !== "undefined" ? { bankAccountHolder } : {}),
       ...(Array.isArray(addresses) ? { addresses: normalizedAddresses } : {}),
     };
 
