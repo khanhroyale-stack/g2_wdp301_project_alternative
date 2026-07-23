@@ -16,6 +16,7 @@ import NotFoundPage from "./pages/core/NotFoundPage";
 import Profile from "./pages/user/Profile";
 import PublicProfile from "./pages/user/PublicProfile";
 import MyPosts from "./pages/user/MyPosts";
+import SellerStats from "./pages/user/SellerStats";
 import CreatePost from "./pages/product/CreatePost";
 import SelectFeaturedProducts from "./pages/user/SelectFeaturedProducts";
 import Rentals from "./pages/user/Rentals";
@@ -162,6 +163,7 @@ function App() {
 
               <Route path="/ho-so" element={<PrivateRoute userOnly><Profile /></PrivateRoute>} />
               <Route path="/quan-ly/bai-dang" element={<PrivateRoute userOnly><MyPosts /></PrivateRoute>} />
+              <Route path="/thong-ke-ban-hang" element={<PrivateRoute userOnly><SellerStats /></PrivateRoute>} />
               <Route path="/dang-tin" element={<PrivateRoute userOnly><CreatePost /></PrivateRoute>} />
               <Route path="/dang-tin/:id" element={<PrivateRoute userOnly><CreatePost /></PrivateRoute>} />
               <Route path="/thue-muon" element={<PrivateRoute userOnly><Rentals /></PrivateRoute>} />
@@ -196,6 +198,7 @@ function App() {
               <Route path="/admin/don-hang" element={<PrivateRoute adminOnly><OrderManagement /></PrivateRoute>} />
               <Route path="/admin/revenue" element={<PrivateRoute adminOnly><RevenueReport /></PrivateRoute>} />
               <Route path="/admin/hop-dong" element={<PrivateRoute adminOnly><ContractManagement /></PrivateRoute>} />
+              <Route path="/admin/hop-dong/:id" element={<PrivateRoute adminOnly><RentalDetail /></PrivateRoute>} />
               <Route path="/admin/danh-gia" element={<PrivateRoute adminOnly><ReviewManagement /></PrivateRoute>} />
               <Route path="/admin/shippers" element={<PrivateRoute adminOnly><LogisticsManagement mode="shippers" /></PrivateRoute>} />
               <Route path="/admin/giao-hang" element={<PrivateRoute adminOnly><LogisticsManagement mode="deliveries" /></PrivateRoute>} />

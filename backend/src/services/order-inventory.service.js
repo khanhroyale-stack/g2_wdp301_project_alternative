@@ -23,7 +23,7 @@ const reserveProductQuantity = async (productId, requestedQuantity) => {
     { new: true }
   );
   if (!product) return null;
-  await syncProductAvailability(productId);
+  await syncProductAvailability(productId, true);
   return product;
 };
 

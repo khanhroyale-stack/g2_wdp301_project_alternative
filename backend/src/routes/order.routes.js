@@ -2,6 +2,7 @@ const express = require("express");
 const {
   getCheckoutPreview,
   createOrder,
+  vnpayReturn,
   getMyOrders,
   getMySales,
   getOrderById,
@@ -14,6 +15,9 @@ const {
 const { protect, activeOnly, shipperOnly } = require("../middleware/auth.middleware");
 
 const router = express.Router();
+
+// Public: VNPay redirect về sau thanh toán (mở bằng trình duyệt, không kèm JWT)
+router.get("/vnpay-return", vnpayReturn);
 
 router.use(protect, activeOnly);
 

@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import rentalService from "../../services/rental.service";
+import { useAuth } from "../../context/AuthContext";
+import Sidebar from "../../components/Sidebar";
 
 const STATUS_MAP = {
   pending: { label: "Chờ xác nhận", color: "border-orange-200 bg-orange-50 text-orange-700" },
@@ -14,7 +16,6 @@ const STATUS_MAP = {
   completed: { label: "Hoàn tất", color: "border-teal-200 bg-teal-50 text-teal-700" },
   cancelled: { label: "Đã hủy", color: "border-gray-200 bg-gray-50 text-gray-600" },
   rejected: { label: "Bị từ chối", color: "border-red-200 bg-red-50 text-red-600" },
-  disputed: { label: "Tranh chấp", color: "border-purple-200 bg-purple-50 text-purple-700" },
 };
 
 const fmt = (value) =>
@@ -61,9 +62,23 @@ function Section({ title, children }) {
   );
 }
 
+function RentalDetailLayout({ admin, children }) {
+  if (admin) {
+    return (
+      <div className="flex min-h-screen bg-[#F5F5F7]">
+        <Sidebar variant="admin" />
+        <main className="flex-1 px-4 py-10 md:ml-72 md:px-10">{children}</main>
+      </div>
+    );
+  }
+  return <EcoTradeLayout>{children}</EcoTradeLayout>;
+}
+
 export default function RentalDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -92,11 +107,11 @@ export default function RentalDetail() {
 
   if (loading) {
     return (
-      <EcoTradeLayout>
+      <RentalDetailLayout admin={isAdmin}>
         <div className="flex min-h-[50vh] items-center justify-center">
           <span className="material-symbols-outlined animate-spin text-5xl text-green-500">refresh</span>
         </div>
-      </EcoTradeLayout>
+      </RentalDetailLayout>
     );
   }
 
@@ -112,9 +127,9 @@ export default function RentalDetail() {
     : null;
 
   return (
-    <EcoTradeLayout>
+    <RentalDetailLayout admin={isAdmin}>
       <div className="mx-auto max-w-5xl px-4 md:px-8">
-        <button onClick={() => navigate("/thue-muon")} className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-900">
+        <button onClick={() => navigate(isAdmin ? "/admin/hop-dong" : "/thue-muon")} className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-900">
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Quay lại danh sách
         </button>
@@ -167,8 +182,10 @@ export default function RentalDetail() {
               <InfoRow label="Ngày kết thúc" value={fmtDate(data.endDate)} />
               <InfoRow label="Số ngày thuê" value={`${totalDays} ngày`} />
               <InfoRow label="Tiền thuê" value={fmt(data.rentalFee)} />
-              <InfoRow label="Tiền cọc" value={fmt(data.depositAmount)} />
-              <InfoRow label="Tổng cần trả" value={fmt((data.rentalFee || 0) + (data.depositAmount || 0))} strong />
+              <InfoRow label="Tổng cần trả" value={fmt(data.rentalFee)} strong />
+              {contract && data.totalExtendedDays > 0 ? (
+                <InfoRow label="Tổng số ngày đã gia hạn" value={`+${data.totalExtendedDays} ngày`} strong />
+              ) : null}
             </Section>
 
             {contract ? (
@@ -199,16 +216,13 @@ export default function RentalDetail() {
             ) : null}
 
             {contract ? (
-              <Section title="Trả đồ và tiền cọc">
-                <InfoRow label="Trạng thái trả đồ" value={statusInfo.label} />
-                <InfoRow label="Tiền bồi thường" value={fmt(data.compensationAmount)} />
-                <InfoRow label="Tiền cọc hoàn lại" value={fmt(data.depositRefundAmount)} />
-                <InfoRow label="Lý do trừ cọc / ghi chú phụ kiện" value={data.accessoriesNote} />
+              <Section title="Trạng thái trả đồ">
+                <InfoRow label="Trạng thái hợp đồng" value={statusInfo.label} />
               </Section>
             ) : null}
           </div>
         </div>
       </div>
-    </EcoTradeLayout>
+    </RentalDetailLayout>
   );
 }

@@ -104,7 +104,6 @@ const mapProductPayload = (body) => {
     "rentPricePerDay",
     "rentPricePerWeek",
     "rentPricePerMonth",
-    "depositAmount",
     "location",
     "conditionStatus",
     "quantity",
@@ -123,7 +122,7 @@ const mapProductPayload = (body) => {
     payload.productType = normalizeProductType(payload.productType);
   }
 
-  for (const key of ["salePrice", "rentPricePerDay", "rentPricePerWeek", "rentPricePerMonth", "depositAmount", "quantity"]) {
+  for (const key of ["salePrice", "rentPricePerDay", "rentPricePerWeek", "rentPricePerMonth", "quantity"]) {
     if (payload[key] !== undefined && payload[key] !== null && payload[key] !== "") {
       payload[key] = Number(payload[key]);
     }

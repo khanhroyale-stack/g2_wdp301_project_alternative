@@ -52,7 +52,7 @@ const getMyProfile = async (req, res) => {
 const updateMyProfile = async (req, res) => {
   try {
 
-    const { fullName, phone, address, avatarUrl, addresses, dateOfBirth, gender } = req.body;
+    const { fullName, phone, address, avatarUrl, addresses, dateOfBirth, gender, bankAccountNumber, bankName, bankAccountHolder } = req.body;
     const currentUser = await User.findById(req.user._id);
 
     const normalizedAddresses = Array.isArray(addresses)
@@ -72,6 +72,9 @@ const updateMyProfile = async (req, res) => {
       ...(typeof address !== "undefined" ? { address } : {}),
       ...(typeof dateOfBirth !== "undefined" ? { dateOfBirth } : {}),
       ...(typeof gender !== "undefined" ? { gender } : {}),
+      ...(typeof bankAccountNumber !== "undefined" ? { bankAccountNumber } : {}),
+      ...(typeof bankName !== "undefined" ? { bankName } : {}),
+      ...(typeof bankAccountHolder !== "undefined" ? { bankAccountHolder } : {}),
       ...(Array.isArray(addresses) ? { addresses: normalizedAddresses } : {}),
     };
 
@@ -144,10 +147,19 @@ const getUserById = async (req, res) => {
 // @route PUT /api/users/admin/:id  (admin — đổi role hoặc status)
 const updateUserByAdmin = async (req, res) => {
   try {
-    const { role, accountStatus } = req.body;
+    const { role, accountStatus, verificationStatus } = req.body;
+    const updatePayload = {};
+    if (role !== undefined) updatePayload.role = role;
+    if (accountStatus !== undefined) updatePayload.accountStatus = accountStatus;
+    if (verificationStatus !== undefined) updatePayload.verificationStatus = verificationStatus;
+
+    if (!Object.keys(updatePayload).length) {
+      return res.status(400).json({ success: false, message: "KhÃ´ng cÃ³ thÃ´ng tin cáº§n cáº­p nháº­t" });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { role, accountStatus },
+      updatePayload,
       { new: true, runValidators: true }
     ).select("-passwordHash");
 

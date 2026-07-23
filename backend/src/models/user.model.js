@@ -122,6 +122,21 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    bankAccountNumber: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    bankName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    bankAccountHolder: {
+      type: String,
+      default: null,
+      trim: true,
+    },
   },
   {
     timestamps: true,

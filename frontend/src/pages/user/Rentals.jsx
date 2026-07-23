@@ -15,7 +15,6 @@ const STATUS_MAP = {
   completed: { label: "Hoàn tất", color: "border-teal-200 bg-teal-50 text-teal-700" },
   cancelled: { label: "Đã hủy", color: "border-gray-200 bg-gray-50 text-gray-600" },
   rejected: { label: "Bị từ chối", color: "border-red-200 bg-red-50 text-red-600" },
-  disputed: { label: "Tranh chấp", color: "border-purple-200 bg-purple-50 text-purple-700" },
 };
 
 const FILTERS = [
@@ -26,7 +25,6 @@ const FILTERS = [
   ["return_requested", "Chờ trả đồ"],
   ["completed", "Hoàn tất"],
   ["cancelled", "Đã hủy / Từ chối"],
-  ["disputed", "Tranh chấp"],
 ];
 
 const fmt = (value) =>
@@ -96,66 +94,7 @@ function ExtendModal({ contract, onClose, onDone }) {
   );
 }
 
-function DepositModal({ contract, onClose, onDone }) {
-  const [compensationAmount, setCompensationAmount] = useState(0);
-  const [compensationReason, setCompensationReason] = useState("");
-  const [loading, setLoading] = useState(false);
-  const refund = Math.max(0, Number(contract.depositAmount || 0) - Number(compensationAmount || 0));
-
-  const submit = async () => {
-    setLoading(true);
-    try {
-      const res = await rentalService.resolveDeposit(contract._id, { compensationAmount, compensationReason });
-      if (res.success) {
-        toast.success("Đã xử lý cọc và hoàn tất hợp đồng");
-        onDone();
-        onClose();
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Không thể xử lý cọc");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-        <h2 className="text-xl font-extrabold text-gray-900">Xử lý cọc</h2>
-        <p className="mt-1 text-sm text-gray-500">{contract.postId?.title}</p>
-        <div className="mt-5 rounded-xl bg-gray-50 p-4 text-sm">
-          <div className="flex justify-between"><span>Tiền cọc</span><strong>{fmt(contract.depositAmount)}</strong></div>
-          <div className="mt-2 flex justify-between"><span>Hoàn lại</span><strong className="text-green-600">{fmt(refund)}</strong></div>
-        </div>
-        <label className="mt-5 block text-sm font-bold text-gray-700">Tiền bồi thường</label>
-        <input
-          type="number"
-          min={0}
-          max={contract.depositAmount || 0}
-          value={compensationAmount}
-          onChange={(event) => setCompensationAmount(Math.max(Number(event.target.value) || 0, 0))}
-          className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 font-bold outline-none focus:border-green-500"
-        />
-        <label className="mt-4 block text-sm font-bold text-gray-700">Lý do trừ cọc</label>
-        <textarea
-          value={compensationReason}
-          onChange={(event) => setCompensationReason(event.target.value)}
-          rows={3}
-          className="mt-2 w-full resize-none rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-green-500"
-          placeholder="Ví dụ: trầy xước, thiếu phụ kiện..."
-        />
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button onClick={onClose} className="rounded-xl border border-gray-200 py-3 font-bold text-gray-600">Hủy</button>
-          <button onClick={submit} disabled={loading} className="rounded-xl bg-green-600 py-3 font-bold text-white disabled:opacity-60">
-            {loading ? "Đang xử lý..." : "Hoàn tất"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RentalCard({ item, ownerView, onAction, onExtend, onDeposit, onView, processing }) {
+function RentalCard({ item, ownerView, onAction, onExtend, onView, processing }) {
   const status = getStatus(item);
   const statusInfo = STATUS_MAP[status] || { label: status, color: "border-gray-200 bg-gray-50 text-gray-600" };
   const party = ownerView ? item.renterId : item.ownerId;
@@ -182,10 +121,9 @@ function RentalCard({ item, ownerView, onAction, onExtend, onDeposit, onView, pr
         </div>
       </div>
 
-      <div className="mx-5 grid grid-cols-3 rounded-xl bg-gray-50 p-3 text-center text-xs">
+      <div className="mx-5 grid grid-cols-2 rounded-xl bg-gray-50 p-3 text-center text-xs">
         <div><p className="text-gray-400">Tiền thuê</p><strong>{fmt(item.rentalFee)}</strong></div>
-        <div className="border-x border-gray-200"><p className="text-gray-400">Tiền cọc</p><strong>{fmt(item.depositAmount)}</strong></div>
-        <div><p className="text-gray-400">Tổng</p><strong className="text-green-600">{fmt((item.rentalFee || 0) + (item.depositAmount || 0))}</strong></div>
+        <div><p className="text-gray-400">Tổng</p><strong className="text-green-600">{fmt(item.rentalFee)}</strong></div>
       </div>
 
       {isContract(item) && item.extendStatus === "pending" ? (
@@ -245,8 +183,8 @@ function RentalCard({ item, ownerView, onAction, onExtend, onDeposit, onView, pr
           ) : null}
 
           {ownerView && status === "return_requested" ? (
-            <button disabled={processing} onClick={() => onDeposit(item)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
-              Xử lý cọc
+            <button disabled={processing} onClick={() => onAction(item._id, { status: "completed" })} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
+              Xác nhận đã nhận đồ & hoàn tất
             </button>
           ) : null}
         </div>
@@ -265,7 +203,6 @@ export default function Rentals() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [extendTarget, setExtendTarget] = useState(null);
-  const [depositTarget, setDepositTarget] = useState(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -383,7 +320,6 @@ export default function Rentals() {
                 processing={processing}
                 onAction={handleAction}
                 onExtend={setExtendTarget}
-                onDeposit={setDepositTarget}
                 onView={(id) => navigate(`/thue-muon/${id}`)}
               />
             ))}
@@ -392,7 +328,6 @@ export default function Rentals() {
       </div>
 
       {extendTarget ? <ExtendModal contract={extendTarget} onClose={() => setExtendTarget(null)} onDone={fetchAll} /> : null}
-      {depositTarget ? <DepositModal contract={depositTarget} onClose={() => setDepositTarget(null)} onDone={fetchAll} /> : null}
     </EcoTradeLayout>
   );
 }

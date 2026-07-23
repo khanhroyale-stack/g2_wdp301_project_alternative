@@ -9,7 +9,7 @@ import {
   Search,
   Truck,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import ReviewModal from "../../components/reviews/ReviewModal";
@@ -164,11 +164,25 @@ export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
+
+  // Thông báo kết quả thanh toán VNPay khi được redirect về (?payment=success|failed)
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (!payment) return;
+    if (payment === "success") {
+      toast.success("Thanh toán VNPay thành công!");
+    } else if (payment === "failed") {
+      toast.error("Thanh toán VNPay thất bại hoặc đã bị hủy. Đơn hàng đã được hủy.");
+    }
+    searchParams.delete("payment");
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const refreshOrder = useCallback(async () => {
     const res = await orderService.getOrderById(id);
@@ -346,7 +360,12 @@ export default function OrderDetail() {
     {
       label: orderStatusInfo.label,
       value: money(total),
-      sub: order?.paymentMethod === "COD" ? "Đã thanh toán khi nhận hàng" : "Phương thức thanh toán khác",
+      sub:
+        order?.paymentMethod === "VNPAY"
+          ? order?.paymentStatus === "paid"
+            ? "VNPay · Đã thanh toán"
+            : "VNPay · Chưa thanh toán"
+          : "COD · Thanh toán khi nhận hàng",
       icon: Truck,
       accent: "success",
     },

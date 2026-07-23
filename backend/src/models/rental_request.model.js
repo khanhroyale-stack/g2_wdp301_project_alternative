@@ -35,11 +35,6 @@ const rentalRequestSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    depositAmount: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
     totalAmount: {
       type: Number,
       required: true,

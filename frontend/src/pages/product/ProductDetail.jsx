@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import cartService from "../../services/cart.service";
 import chatService from "../../services/chat.service";
 import productService from "../../services/product.service";
+import reviewService from "../../services/review.service";
 
 const getProductCategoryId = (product) => product?.categoryId?._id || product?.categoryId;
 
@@ -65,6 +66,8 @@ const ProductDetail = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [purchaseQuantity, setPurchaseQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState({ averageRating: 0, count: 0 });
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -85,6 +88,23 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchReviews = async () => {
+      try {
+        const res = await reviewService.getPostReviews(id);
+        if (res.success) {
+          setReviews(res.data || []);
+          setReviewStats({ averageRating: res.averageRating || 0, count: res.count || 0 });
+        }
+      } catch {
+        setReviews([]);
+      }
+    };
+
+    fetchReviews();
   }, [id]);
 
   useEffect(() => {
@@ -305,12 +325,6 @@ const ProductDetail = () => {
               <div className="flex flex-col gap-1 p-5 bg-background rounded-2xl border border-primary/5">
                 <p className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest">{product.productType === "rent" ? "Giá thuê mỗi ngày" : "Giá niêm yết"}</p>
                 <p className="text-4xl font-display font-black text-primary">{displayPrice}</p>
-                {product.productType === "rent" && product.depositAmount > 0 && (
-                  <div className="mt-4 flex items-center gap-2 text-xs font-bold text-secondary bg-secondary/5 w-fit px-3 py-1.5 rounded-lg border border-secondary/10">
-                    <span className="material-symbols-outlined text-[16px]">lock_clock</span>
-                    Tiền cọc: {formatPrice(product.depositAmount)}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -439,40 +453,90 @@ const ProductDetail = () => {
           <div className="flex flex-col gap-8">
             <section className="bg-white p-6 lg:p-8 rounded-[28px] shadow-sm border border-primary/5">
               <h2 className="text-2xl font-display font-bold text-foreground mb-6 flex items-center justify-between">
-                Đánh giá ({product.reviewCount || 0})
-                <Link
-                  to={`/marketplaces/${product._id}/reviews`}
-                  className="text-sm font-bold text-primary hover:underline"
-                >
-                  Xem tất cả
-                </Link>
+                Đánh giá ({reviewStats.count || 0})
+                {reviewStats.count > 0 ? (
+                  <Link
+                    to={`/marketplaces/${product._id}/reviews`}
+                    className="text-sm font-bold text-primary hover:underline"
+                  >
+                    Xem tất cả
+                  </Link>
+                ) : null}
               </h2>
-              {product.reviewCount === 0 ? (
+              {reviewStats.count === 0 ? (
                 <div className="text-center py-12 bg-background rounded-2xl border border-dashed border-primary/10">
                   <span className="material-symbols-outlined text-5xl text-primary/20 mb-4">rate_review</span>
                   <p className="text-on-surface-variant font-bold uppercase tracking-widest text-[10px]">Chưa có đánh giá</p>
                 </div>
               ) : (
-                <div className="flex items-center gap-10 p-8 bg-background rounded-2xl border border-primary/5">
-                  <div className="text-center">
-                    <p className="text-6xl font-display font-black text-primary leading-none">{product.averageRating || 0}</p>
-                    <div className="flex justify-center text-amber-500 mt-4 mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span key={star} className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: star <= Math.round(product.averageRating || 0) ? "'FILL' 1" : "" }}>
-                          star
-                        </span>
-                      ))}
+                <div className="flex flex-col gap-6">
+                  <div className="flex items-center gap-10 p-8 bg-background rounded-2xl border border-primary/5">
+                    <div className="text-center">
+                      <p className="text-6xl font-display font-black text-primary leading-none">{reviewStats.averageRating || 0}</p>
+                      <div className="flex justify-center text-amber-500 mt-4 mb-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <span key={star} className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: star <= Math.round(reviewStats.averageRating || 0) ? "'FILL' 1" : "" }}>
+                            star
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">{reviewStats.count} đánh giá</p>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      {[5, 4, 3, 2, 1].map(lvl => {
+                        const lvlCount = reviews.filter((r) => r.rating === lvl).length;
+                        const pct = reviewStats.count > 0 ? (lvlCount / reviewStats.count) * 100 : 0;
+                        return (
+                          <div key={lvl} className="flex items-center gap-3">
+                            <span className="text-[10px] font-bold text-on-surface-variant/50 w-2">{lvl}</span>
+                            <div className="flex-1 h-1.5 bg-primary/5 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }}></div>
+                            </div>
+                            <span className="text-[10px] font-bold text-on-surface-variant/50 w-4 text-right">{lvlCount}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  <div className="flex-1 space-y-2">
-                    {[5, 4, 3, 2, 1].map(lvl => (
-                      <div key={lvl} className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-on-surface-variant/50 w-2">{lvl}</span>
-                        <div className="flex-1 h-1.5 bg-primary/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary rounded-full" style={{ width: lvl === 5 ? '80%' : '5%' }}></div>
+
+                  <div className="flex flex-col gap-4">
+                    {reviews.slice(0, 3).map((review) => (
+                      <div key={review._id} className="p-5 bg-background rounded-2xl border border-primary/5">
+                        <div className="flex items-center gap-3 mb-3">
+                          {review.reviewerId?.avatarUrl ? (
+                            <img src={review.reviewerId.avatarUrl} alt={review.reviewerId.fullName} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-sm border-2 border-white">
+                              {review.reviewerId?.fullName?.charAt(0)?.toUpperCase() || "U"}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-foreground truncate">{review.reviewerId?.fullName || "Người dùng"}</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex text-amber-500">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <span key={star} className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: star <= review.rating ? "'FILL' 1" : "" }}>
+                                    star
+                                  </span>
+                                ))}
+                              </div>
+                              <span className="text-[10px] text-on-surface-variant/40">{new Date(review.createdAt).toLocaleDateString("vi-VN")}</span>
+                            </div>
+                          </div>
                         </div>
+                        {review.comment ? (
+                          <p className="text-sm text-on-surface-variant leading-relaxed">{review.comment}</p>
+                        ) : null}
                       </div>
                     ))}
+                    {reviewStats.count > 3 ? (
+                      <Link
+                        to={`/marketplaces/${product._id}/reviews`}
+                        className="text-center text-sm font-bold text-primary hover:underline py-2"
+                      >
+                        Xem thêm {reviewStats.count - 3} đánh giá
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               )}

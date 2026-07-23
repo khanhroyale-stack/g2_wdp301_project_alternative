@@ -10,10 +10,75 @@ const {
   releaseProductQuantity,
   reserveProductQuantity,
 } = require("../services/order-inventory.service");
+const { buildPaymentUrl, verifyReturn } = require("../utils/vnpay.util");
 
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 const SHIPPING_FEE = 35000;
+
+// Return URL riêng cho đơn hàng: cùng host với VNP_RETURNURL nhưng path của orders,
+// để không đụng handler của gói Pro và không cần thêm biến .env.
+const buildOrderReturnUrl = () => {
+  try {
+    const base = new URL(process.env.VNP_RETURNURL);
+    base.pathname = "/api/orders/vnpay-return";
+    base.search = "";
+    return base.toString();
+  } catch {
+    return `${process.env.SERVER_URL || "http://localhost:5000"}/api/orders/vnpay-return`;
+  }
+};
 const ACTIVE_DELIVERY_STATES = ["WAITING_SHIPPER", "SHIPPER_ACCEPTED", "PICKING_UP", "PICKED_UP", "DELIVERING", "DELIVERED"];
 const AVAILABLE_PRODUCT_STATUSES = ["approved", "available"];
+
+const ORDER_STATUS_TO_UI = {
+  PENDING: "pending",
+  SELLER_CONFIRMED: "confirmed",
+  PICKING_UP: "shipping",
+  PICKED_UP: "shipping",
+  DELIVERING: "shipping",
+  DELIVERED: "delivered",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
+};
+
+const ORDER_STATUS_FROM_UI = {
+  pending: "PENDING",
+  confirmed: "SELLER_CONFIRMED",
+  shipping: "DELIVERING",
+  delivered: "DELIVERED",
+  completed: "COMPLETED",
+  cancelled: "CANCELLED",
+};
+
+const DELIVERY_STATUS_TO_UI = {
+  WAITING_SHIPPER: "pending",
+  SHIPPER_ACCEPTED: "accepted",
+  PICKING_UP: "picking_up",
+  PICKED_UP: "picked_up",
+  DELIVERING: "in_transit",
+  DELIVERED: "delivered",
+  COMPLETED: "completed",
+  FAILED: "failed",
+};
+
+const getUiOrderStatus = (status) => ORDER_STATUS_TO_UI[status] || status || "pending";
+const getUiDeliveryStatus = (status) => DELIVERY_STATUS_TO_UI[status] || status || "pending";
+const getEntityId = (value) => value?._id || value?.id || value;
+
+const buildOrderActions = (order, viewerId) => {
+  const isBuyer = String(getEntityId(order.buyerId)) === String(viewerId);
+  const isSeller = String(getEntityId(order.sellerId)) === String(viewerId);
+  const uiStatus = getUiOrderStatus(order.status);
+
+  return {
+    isBuyer,
+    isSeller,
+    canBuyerCancel: isBuyer && uiStatus === "pending",
+    canBuyerComplete: isBuyer && uiStatus === "delivered",
+    canSellerConfirm: isSeller && uiStatus === "pending",
+    canSellerReject: isSeller && uiStatus === "pending",
+  };
+};
 
 const loadOrdersWithRelations = async (filter) => {
   const orders = await Order.find(filter).sort({ createdAt: -1 }).lean();
@@ -42,21 +107,33 @@ const loadOrdersWithRelations = async (filter) => {
   return orders.map((order) => {
     const delivery = deliveryMap.get(String(order._id));
     const shipper = delivery?.shipperId ? userMap.get(String(delivery.shipperId)) : null;
+    const product = productMap.get(String(order.postId)) || null;
+    const buyer = formatUser(userMap.get(String(order.buyerId)));
+    const seller = formatUser(userMap.get(String(order.sellerId)));
 
     return {
       ...order,
       status: order.status,
-      product: productMap.get(String(order.postId)) || null,
-      buyer: formatUser(userMap.get(String(order.buyerId))),
-      seller: formatUser(userMap.get(String(order.sellerId))),
+      orderStatus: getUiOrderStatus(order.status),
+      postId: product,
+      product,
+      productImage: product?.images?.[0] || product?.thumbnailUrl || null,
+      buyerId: buyer || order.buyerId,
+      sellerId: seller || order.sellerId,
+      buyer,
+      seller,
       shipper: formatUser(shipper),
+      actions: buildOrderActions(order, filter.buyerId || filter.sellerId || null),
       delivery: delivery
         ? {
             _id: delivery._id,
             status: delivery.status,
+            deliveryStatus: getUiDeliveryStatus(delivery.status),
+            shipperId: shipper ? { _id: delivery.shipperId, ...formatUser(shipper) } : null,
             pickupAddress: delivery.pickupAddress,
             deliveryAddress: delivery.deliveryAddress,
             deliveryFee: delivery.deliveryFee,
+            deliveryType: delivery.deliveryType,
             history: delivery.history || [],
           }
         : null,
@@ -132,6 +209,7 @@ const createOrder = async (req, res) => {
   try {
     const { productId, recipientName, buyerPhone, buyerAddress, note, shippingFee } = req.body;
     const quantity = Math.max(Number(req.body.quantity) || 1, 1);
+    const paymentMethod = req.body.paymentMethod === "VNPAY" ? "VNPAY" : "COD";
 
     if (!productId || !recipientName || !buyerPhone || !buyerAddress) {
       return res.status(400).json({ success: false, message: "Thiếu thông tin đặt hàng" });
@@ -164,7 +242,8 @@ const createOrder = async (req, res) => {
         buyerPhone: buyerPhone.trim(),
         buyerAddress: buyerAddress.trim(),
         note: (note || "").trim(),
-        paymentMethod: "COD",
+        paymentMethod,
+        paymentStatus: "unpaid",
         status: "PENDING",
         inventoryStatus: "reserved",
       });
@@ -173,15 +252,87 @@ const createOrder = async (req, res) => {
       throw error;
     }
 
+    // Thanh toán chuyển khoản qua VNPay: sinh mã giao dịch, trả về URL để redirect
+    if (paymentMethod === "VNPAY") {
+      try {
+        const txnRef = `ORDER-${order._id}-${Date.now()}`;
+        order.vnpTxnRef = txnRef;
+        await order.save();
+
+        const paymentUrl = buildPaymentUrl({
+          amount: order.totalAmount,
+          txnRef,
+          orderInfo: `Thanh toan don hang ${order._id}`,
+          ipAddr: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "127.0.0.1",
+          returnUrl: buildOrderReturnUrl(),
+        });
+
+        return res.status(201).json({
+          success: true,
+          message: "Đã tạo đơn hàng, chuyển tới cổng thanh toán VNPay",
+          paymentMethod: "VNPAY",
+          paymentUrl,
+          data: await loadOrdersWithRelations({ _id: order._id }).then((r) => r[0]),
+        });
+      } catch (vnpErr) {
+        // Không tạo được link thanh toán → hủy đơn, hoàn kho để tránh giữ hàng ảo
+        await releaseOrderInventory(order._id);
+        await Order.findByIdAndUpdate(order._id, { status: "CANCELLED" });
+        return res.status(500).json({ success: false, message: `Không thể khởi tạo thanh toán VNPay: ${vnpErr.message}` });
+      }
+    }
+
     const [data] = await loadOrdersWithRelations({ _id: order._id });
 
     res.status(201).json({
       success: true,
       message: "Tạo đơn hàng thành công",
+      paymentMethod: "COD",
       data,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/orders/vnpay-return — VNPay redirect về sau thanh toán đơn hàng (route public)
+const vnpayReturn = async (req, res) => {
+  const resultUrl = (orderId, status) => `${CLIENT_URL}/orders/${orderId}?payment=${status}`;
+  const failUrl = (status = "failed") => `${CLIENT_URL}/orders/my-orders?payment=${status}`;
+  try {
+    const { isValid, data } = verifyReturn(req.query);
+    const order = await Order.findOne({ vnpTxnRef: data.vnp_TxnRef });
+    if (!order) {
+      return res.redirect(failUrl());
+    }
+    if (!isValid) {
+      return res.redirect(resultUrl(order._id, "failed"));
+    }
+    // Idempotent: đã thanh toán trước đó (ví dụ người dùng refresh trang return)
+    if (order.paymentStatus === "paid") {
+      return res.redirect(resultUrl(order._id, "success"));
+    }
+
+    const paidOk =
+      data.vnp_ResponseCode === "00" &&
+      data.vnp_TransactionStatus === "00" &&
+      Number(data.vnp_Amount) === order.totalAmount * 100;
+
+    if (!paidOk) {
+      // Thất bại / hủy giữa chừng → hủy đơn + hoàn kho
+      await releaseOrderInventory(order._id);
+      await Order.findByIdAndUpdate(order._id, { status: "CANCELLED" });
+      return res.redirect(resultUrl(order._id, "failed"));
+    }
+
+    order.paymentStatus = "paid";
+    order.vnpTransactionNo = data.vnp_TransactionNo || null;
+    await order.save();
+    await commitOrderInventory(order._id);
+
+    return res.redirect(resultUrl(order._id, "success"));
+  } catch (err) {
+    return res.redirect(failUrl());
   }
 };
 
@@ -212,8 +363,8 @@ const getOrderById = async (req, res) => {
     }
 
     const canView =
-      String(order.buyerId) === String(req.user._id) ||
-      String(order.sellerId) === String(req.user._id) ||
+      String(getEntityId(order.buyerId)) === String(req.user._id) ||
+      String(getEntityId(order.sellerId)) === String(req.user._id) ||
       String(order.shipper?._id || "") === String(req.user._id) ||
       req.user.role === "admin";
 
@@ -221,7 +372,7 @@ const getOrderById = async (req, res) => {
       return res.status(403).json({ success: false, message: "Bạn không có quyền xem đơn hàng này" });
     }
 
-    res.json({ success: true, data: order });
+    res.json({ success: true, data: { ...order, actions: buildOrderActions(order, req.user._id) } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -247,7 +398,8 @@ const ensureDeliveryForOrder = async (order, seller) => {
 
 const updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const requestedStatus = req.body.status;
+    const status = ORDER_STATUS_FROM_UI[requestedStatus] || requestedStatus;
     const order = await Order.findById(req.params.id);
 
     if (!order) {
@@ -407,6 +559,7 @@ const createInspection = async (req, res) => {
 module.exports = {
   getCheckoutPreview,
   createOrder,
+  vnpayReturn,
   getMyOrders,
   getMySales,
   getOrderById,

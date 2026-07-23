@@ -20,12 +20,10 @@ const reviewSchema = new mongoose.Schema(
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
-      default: null,
     },
     rentalContractId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "RentalContract",
-      default: null,
     },
     reviewType: {
       type: String,
@@ -53,7 +51,19 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
-reviewSchema.index({ reviewerId: 1, orderId: 1 }, { unique: true, sparse: true });
-reviewSchema.index({ reviewerId: 1, rentalContractId: 1 }, { unique: true, sparse: true });
+reviewSchema.index(
+  { reviewerId: 1, orderId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { orderId: { $type: "objectId" } },
+  }
+);
+reviewSchema.index(
+  { reviewerId: 1, rentalContractId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { rentalContractId: { $type: "objectId" } },
+  }
+);
 
 module.exports = mongoose.model("Review", reviewSchema);

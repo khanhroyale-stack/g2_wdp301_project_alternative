@@ -57,6 +57,6 @@ test("delivery claim is restricted to an unassigned pending delivery", () => {
   assert.deepEqual(buildAvailableDeliveryClaimFilter("delivery-id"), {
     _id: "delivery-id",
     shipperId: null,
-    deliveryStatus: "pending",
+    status: "WAITING_SHIPPER",
   });
 });

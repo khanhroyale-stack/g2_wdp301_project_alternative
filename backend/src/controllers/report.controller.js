@@ -137,7 +137,7 @@ const getAdminReports = async (req, res) => {
     const reports = await Report.find(filter)
       .populate("reporterId", "fullName email avatarUrl")
       .populate("reportedUserId", "fullName email reputationScore")
-      .populate("postId", "title description productType salePrice rentPricePerDay depositAmount conditionStatus location ownerId createdAt")
+      .populate("postId", "title description productType salePrice rentPricePerDay conditionStatus location ownerId createdAt")
       .populate("orderId", "totalAmount")
       .populate("rentalContractId", "totalAmount")
       .sort({ createdAt: -1 })
@@ -156,7 +156,7 @@ const getReportById = async (req, res) => {
     const report = await Report.findById(req.params.id)
       .populate("reporterId", "fullName email avatarUrl phone")
       .populate("reportedUserId", "fullName email reputationScore accountStatus")
-      .populate("postId", "title description productType salePrice rentPricePerDay depositAmount conditionStatus location ownerId createdAt")
+      .populate("postId", "title description productType salePrice rentPricePerDay conditionStatus location ownerId createdAt")
       .populate("orderId")
       .populate("rentalContractId")
       .populate("adminId", "fullName");

@@ -31,7 +31,10 @@ const Profile = () => {
     address: "",
     avatarUrl: "",
     dateOfBirth: "",
-    gender: ""
+    gender: "",
+    bankAccountNumber: "",
+    bankName: "",
+    bankAccountHolder: ""
   });
 
   useEffect(() => {
@@ -42,7 +45,10 @@ const Profile = () => {
         address: user.address || "",
         avatarUrl: user.avatarUrl || "",
         dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : "",
-        gender: user.gender || ""
+        gender: user.gender || "",
+        bankAccountNumber: user.bankAccountNumber || "",
+        bankName: user.bankName || "",
+        bankAccountHolder: user.bankAccountHolder || ""
       });
     }
   }, [user]);
@@ -268,6 +274,9 @@ const Profile = () => {
                       { label: "Địa chỉ nhận hàng", value: user?.address || "Chưa cập nhật", icon: "location_on" },
                       { label: "Ngày sinh", value: user?.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString("vi-VN") : "Chưa cập nhật", icon: "cake" },
                       { label: "Giới tính", value: user?.gender ? { male: "Nam", female: "Nữ", other: "Khác" }[user.gender] : "Chưa cập nhật", icon: "transgender" },
+                      { label: "Số tài khoản", value: user?.bankAccountNumber || "Chưa cập nhật", icon: "account_balance" },
+                      { label: "Ngân hàng", value: user?.bankName || "Chưa cập nhật", icon: "account_balance_wallet" },
+                      { label: "Chủ tài khoản", value: user?.bankAccountHolder || "Chưa cập nhật", icon: "person" },
                     ].map((item) => (
                       <div key={item.label} className="group">
                         <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.15em] text-primary/40 group-hover:text-primary transition-colors">
@@ -399,6 +408,9 @@ const Profile = () => {
                         { key: "fullName", label: "Họ và tên", ph: "Nguyễn Văn A", required: true },
                         { key: "phone", label: "Số điện thoại", ph: "0901234567" },
                         { key: "address", label: "Địa chỉ hiện tại", ph: "Khu Công nghệ cao Hòa Lạc, Hà Nội", fullWidth: true },
+                        { key: "bankAccountNumber", label: "Số tài khoản ngân hàng", ph: "0123456789" },
+                        { key: "bankName", label: "Ngân hàng", ph: "Vietcombank" },
+                        { key: "bankAccountHolder", label: "Chủ tài khoản", ph: "NGUYEN VAN A", fullWidth: true },
                       ].map((f) => (
                         <div key={f.key} className={f.fullWidth ? "md:col-span-2" : ""}>
                           <label className="block text-xs font-black uppercase tracking-widest text-foreground/40 mb-2">

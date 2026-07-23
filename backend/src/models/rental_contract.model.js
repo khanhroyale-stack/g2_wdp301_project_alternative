@@ -35,11 +35,6 @@ const rentalContractSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    depositAmount: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
     handoverMethod: {
       type: String,
       enum: ["meet_directly", "shipping"],
@@ -57,16 +52,6 @@ const rentalContractSchema = new mongoose.Schema(
     note: {
       type: String,
       default: null,
-    },
-    compensationAmount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    depositRefundAmount: {
-      type: Number,
-      default: 0,
-      min: 0,
     },
     // Gia hạn — lưu yêu cầu đang chờ owner duyệt
     pendingExtendDays: {
@@ -102,9 +87,17 @@ const rentalContractSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    totalExtendedDays: { type: Number, default: 0, min: 0 },
+    extensionHistory: [{
+      extraDays: { type: Number, required: true, min: 1 },
+      extraFee: { type: Number, required: true, min: 0 },
+      previousEndDate: { type: Date, required: true },
+      newEndDate: { type: Date, required: true },
+      approvedAt: { type: Date, default: Date.now },
+    }],
     contractStatus: {
       type: String,
-      enum: ["active", "renting", "return_requested", "completed", "cancelled", "disputed"],
+      enum: ["active", "renting", "return_requested", "completed", "cancelled"],
       default: "active",
     },
   },

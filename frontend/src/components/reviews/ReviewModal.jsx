@@ -34,27 +34,20 @@ const ReviewModal = ({
       ? postId._id
       : (typeof postId === 'string' ? postId : postId);
 
-    console.log("Submitting review payload (sanitized):", {
-      reviewUserId: safeReviewUserId,
+    // Prepare payload: only include orderId/rentalContractId if they are truthy
+    const payload = {
+      reviewUserId: safeReviewUserId, // chỉ gửi nếu là ID hợp lệ
       postId: safePostId,
-      orderId,
-      rentalContractId,
       reviewType: "product",
       rating,
       comment
-    });
+    };
+    if (orderId) payload.orderId = orderId;
+    if (rentalContractId) payload.rentalContractId = rentalContractId;
 
     setLoading(true);
     try {
-      await reviewService.createReview({
-        reviewUserId: safeReviewUserId, // chỉ gửi nếu là ID hợp lệ
-        postId: safePostId,
-        orderId,
-        rentalContractId,
-        reviewType: "product",
-        rating,
-        comment
-      });
+      await reviewService.createReview(payload);
       toast.success("Cảm ơn bạn đã gửi đánh giá!");
       if (onSuccess) onSuccess();
       onClose();

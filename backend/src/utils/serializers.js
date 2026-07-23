@@ -1,6 +1,7 @@
 const Category = require("../models/category.model");
 const MediaFile = require("../models/media_file.model");
 const ProductImage = require("../models/product_image.model");
+const { isUserPro } = require("./business-rules");
 
 const formatUser = (user) => {
   if (!user) return null;
@@ -19,6 +20,12 @@ const formatUser = (user) => {
     verificationStatus: user.verificationStatus,
     reputationScore: user.reputationScore,
     accountStatus: user.accountStatus,
+    proExpiresAt: user.proExpiresAt || null,
+    isPro: isUserPro(user),
+    hasSetupFeaturedProducts: !!user.hasSetupFeaturedProducts,
+    bankAccountNumber: user.bankAccountNumber || "",
+    bankName: user.bankName || "",
+    bankAccountHolder: user.bankAccountHolder || "",
   };
 };
 
@@ -90,7 +97,6 @@ const hydrateProducts = async (products) => {
       productType: product.productType,
       salePrice: product.salePrice || 0,
       rentalPricePerDay: product.rentPricePerDay || 0,
-      depositAmount: product.depositAmount || 0,
       location: product.location || "",
       condition: CONDITION_LABEL[product.conditionStatus] || product.conditionStatus,
       status: PRODUCT_STATUS[product.postStatus] || product.postStatus,

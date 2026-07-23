@@ -9,6 +9,18 @@ const { normalizeInspectionOutcome, validateInspectionOutcome } = require("../ut
 const { createNotification } = require("./notification.controller");
 
 const REQUIRED_IMAGE_TYPES = ["front", "back", "accessories"];
+const DELIVERY_STATUS_TO_UI = {
+  WAITING_SHIPPER: "pending",
+  SHIPPER_ACCEPTED: "accepted",
+  PICKING_UP: "picking_up",
+  PICKED_UP: "picked_up",
+  DELIVERING: "in_transit",
+  DELIVERED: "delivered",
+  COMPLETED: "completed",
+  FAILED: "failed",
+};
+
+const getUiDeliveryStatus = (delivery) => DELIVERY_STATUS_TO_UI[delivery?.status] || delivery?.deliveryStatus || "pending";
 
 const canAccessDelivery = async (deliveryId, user) => {
   if (user.role === "admin") return true;
@@ -160,7 +172,7 @@ const createInspection = async (req, res) => {
       });
     }
 
-    if (!["picking_up", "picked_up", "ready_for_delivery"].includes(delivery.deliveryStatus)) {
+    if (!["picking_up", "picked_up", "ready_for_delivery"].includes(getUiDeliveryStatus(delivery))) {
       return res.status(400).json({
         success: false,
         message: "Chi co the lap bien ban khi shipper dang den diem lay hang va truoc khi bat dau giao",
@@ -198,23 +210,23 @@ const createInspection = async (req, res) => {
     })));
 
     if (outcome.result === "passed") {
-      delivery.deliveryStatus = "received";
+      delivery.status = "PICKED_UP";
       delivery.history.push({
-        status: "received",
+        status: "PICKED_UP",
         note: "Bien ban kiem tra dat tat ca tieu chi. Shipper da nhan hang hop le va san sang giao.",
-        timestamp: new Date(),
+        changedAt: new Date(),
       });
       await delivery.save();
       req.app.get("io")?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
     } else {
       const failedChecks = getFailedCheckLabels(checks);
-      delivery.deliveryStatus = "inspection_failed";
+      delivery.status = "FAILED";
       delivery.failureReason =
         `Kiem tra san pham that bai. Tieu chi khong dat: ${failedChecks.join(", ")}. ${conditionNote || ""}`.trim();
       delivery.history.push({
-        status: "inspection_failed",
+        status: "FAILED",
         note: delivery.failureReason,
-        timestamp: new Date(),
+        changedAt: new Date(),
       });
       await delivery.save();
       req.app.get("io")?.emit("realtime_update", { type: "delivery", relatedType: "delivery", relatedId: delivery._id });
