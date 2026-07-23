@@ -55,27 +55,27 @@ const hydrateCart = async (cart) => {
 
 const getProductAvailabilityError = (product, viewerId, seller) => {
   if (!product) {
-    return { code: 404, message: "San pham khong ton tai" };
+    return { code: 404, message: "Sản phẩm không tồn tại" };
   }
 
   if (!AVAILABLE_PRODUCT_STATUSES.includes(product.postStatus)) {
-    return { code: 400, message: "San pham hien khong kha dung de dat mua" };
+    return { code: 400, message: "Sản phẩm hiện không khả dụng để đặt mua" };
   }
 
   if (!["sale", "both"].includes(product.productType)) {
-    return { code: 400, message: "San pham nay khong ho tro mua" };
+    return { code: 400, message: "Sản phẩm này không hỗ trợ mua" };
   }
 
   if ((Number(product.quantity) || 0) < 1) {
-    return { code: 400, message: "San pham da het hang" };
+    return { code: 400, message: "Sản phẩm đã hết hàng" };
   }
 
   if (String(product.ownerId?._id || product.ownerId) === String(viewerId)) {
-    return { code: 400, message: "Ban khong the mua san pham cua chinh minh" };
+    return { code: 400, message: "Bạn không thể mua sản phẩm của chính mình" };
   }
 
   if (!seller || seller.accountStatus !== "active") {
-    return { code: 400, message: "Nguoi ban hien khong the nhan don hang" };
+    return { code: 400, message: "Người bán hiện không thể nhận đơn hàng" };
   }
 
   return null;
@@ -118,7 +118,7 @@ const addCartItem = async (req, res) => {
     const { productId, quantity = 1 } = req.body;
     const normalizedQuantity = Math.max(Number(quantity) || 1, 1);
     if (!productId) {
-      return res.status(400).json({ success: false, message: "Thieu productId" });
+      return res.status(400).json({ success: false, message: "Vui lòng chọn sản phẩm" });
     }
 
     const product = await ProductPost.findById(productId).populate("ownerId", "accountStatus");
@@ -130,7 +130,7 @@ const addCartItem = async (req, res) => {
     if ((Number(product.quantity) || 0) < normalizedQuantity) {
       return res.status(400).json({
         success: false,
-        message: `So luong vuot qua ton kho hien co. Chi con ${product.quantity} san pham.`,
+        message: `Số lượng vượt quá tồn kho hiện có. Chỉ còn ${product.quantity} sản phẩm.`,
       });
     }
 
@@ -152,7 +152,7 @@ const addCartItem = async (req, res) => {
     const hydratedCart = await loadCart(req.user._id);
     res.status(201).json({
       success: true,
-      message: "Da them san pham vao gio hang",
+      message: "Đã thêm sản phẩm vào giỏ hàng",
       data: hydratedCart,
     });
   } catch (error) {
@@ -169,7 +169,7 @@ const removeCartItem = async (req, res) => {
     const hydratedCart = await loadCart(req.user._id);
     res.json({
       success: true,
-      message: "Da xoa san pham khoi gio hang",
+      message: "Đã xóa sản phẩm khỏi giỏ hàng",
       data: hydratedCart,
     });
   } catch (error) {
@@ -181,12 +181,12 @@ const checkoutCart = async (req, res) => {
   try {
     const { buyerAddress, buyerPhone, recipientName, note } = req.body;
     if (!buyerAddress || !buyerPhone || !recipientName) {
-      return res.status(400).json({ success: false, message: "Vui long dien day du thong tin nhan hang" });
+      return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin nhận hàng" });
     }
 
     const cart = await getOrCreateCart(req.user._id);
     if (!cart.items.length) {
-      return res.status(400).json({ success: false, message: "Gio hang dang trong" });
+      return res.status(400).json({ success: false, message: "Giỏ hàng đang trống" });
     }
 
     const createdOrders = [];
@@ -238,7 +238,7 @@ const checkoutCart = async (req, res) => {
     if (!createdOrders.length) {
       return res.status(400).json({
         success: false,
-        message: "Khong co san pham nao trong gio hang du dieu kien de tao don",
+        message: "Không có sản phẩm nào trong giỏ hàng đủ điều kiện để tạo đơn",
       });
     }
 
@@ -251,7 +251,7 @@ const checkoutCart = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Checkout gio hang thanh cong",
+      message: "Checkout giỏ hàng thành công",
       data: populatedOrders,
     });
   } catch (error) {

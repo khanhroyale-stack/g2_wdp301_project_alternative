@@ -142,7 +142,6 @@ const acceptDelivery = async (req, res) => {
 
     res.json({
       success: true,
-
       message: "Đã nhận đơn giao hàng",
       data: normalizeDeliveryForClient(updatedDelivery),
     });
@@ -196,7 +195,7 @@ const getDeliveryById = async (req, res) => {
       .lean();
 
     if (!delivery) {
-      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn giao hàng" });
     }
 
     const isShipper = String(delivery.shipperId?._id) === String(req.user._id);
@@ -205,7 +204,7 @@ const getDeliveryById = async (req, res) => {
     if (!isShipper && !isBuyer && !isSeller && req.user.role !== "admin") {
       return res.status(403).json({
         success: false,
-        message: "Ban khong co quyen xem don giao hang nay",
+        message: "Bạn không có quyền xem đơn giao hàng này",
       });
     }
 
@@ -232,13 +231,13 @@ const updateDeliveryStatus = async (req, res) => {
     const delivery = await Delivery.findById(req.params.id);
 
     if (!delivery) {
-      return res.status(404).json({ success: false, message: "Khong tim thay don giao hang" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn giao hàng" });
     }
 
     if (String(delivery.shipperId) !== String(req.user._id)) {
       return res.status(403).json({
         success: false,
-        message: "Ban khong co quyen cap nhat don nay",
+        message: "Bạn không có quyền cập nhật đơn này",
       });
     }
 
@@ -246,7 +245,7 @@ const updateDeliveryStatus = async (req, res) => {
     if (!isDeliveryTransitionAllowed(currentStatus, status)) {
       return res.status(400).json({
         success: false,
-        message: "Khong the chuyen sang trang thai nay",
+        message: "Không thể chuyển sang trạng thái này",
       });
     }
 
@@ -255,7 +254,7 @@ const updateDeliveryStatus = async (req, res) => {
       if (!latestInspection || latestInspection.result !== "passed") {
         return res.status(400).json({
           success: false,
-          message: "Can co bien ban kiem tra hop le truoc khi bat dau giao hang",
+          message: "Cần có biên bản kiểm tra hợp lệ trước khi bắt đầu giao hàng",
         });
       }
     }
