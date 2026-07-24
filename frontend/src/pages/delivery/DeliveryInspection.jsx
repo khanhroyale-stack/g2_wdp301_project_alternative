@@ -15,11 +15,11 @@ import { formatPrice } from "../../lib/utils";
 
 function CheckRow({ label, checked, onChange, disabled }) {
   return (
-    <div className="rounded-[24px] bg-muted p-4">
+    <div className={`rounded-[24px] p-4 transition-colors ${checked ? "bg-success-soft border border-success/20" : "bg-danger-soft border border-danger/20"}`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-[1.15rem] font-bold">{label}</div>
         <div className="flex items-center gap-4">
-          <span className="text-lg font-extrabold">{checked ? "ĐẠT" : "KHÔNG ĐẠT"}</span>
+          <span className={`text-lg font-extrabold ${checked ? "text-success" : "text-danger"}`}>{checked ? "ĐẠT" : "KHÔNG ĐẠT"}</span>
           <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
         </div>
       </div>

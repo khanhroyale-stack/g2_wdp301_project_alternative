@@ -104,16 +104,30 @@ const RegisterPage = () => {
       )}
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-        <AuthField
-          id="register-name"
-          label="Họ và tên"
-          autoComplete="name"
-          placeholder="Nguyễn Văn A"
-          value={form.name}
-          onChange={handleChange("name")}
-          onBlur={handleBlur("name")}
-          error={touched.name ? errors.name : ""}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <AuthField
+            id="register-name"
+            label="Họ và tên"
+            autoComplete="name"
+            placeholder="Nguyễn Văn A"
+            value={form.name}
+            onChange={handleChange("name")}
+            onBlur={handleBlur("name")}
+            error={touched.name ? errors.name : ""}
+          />
+
+          <AuthField
+            id="register-phone"
+            label="Số điện thoại"
+            type="tel"
+            autoComplete="tel"
+            placeholder="0912345678"
+            value={form.phone}
+            onChange={handleChange("phone")}
+            onBlur={handleBlur("phone")}
+            error={touched.phone ? errors.phone : ""}
+          />
+        </div>
 
         <AuthField
           id="register-email"
@@ -127,42 +141,32 @@ const RegisterPage = () => {
           error={touched.email ? errors.email : ""}
         />
 
-        <AuthField
-          id="register-phone"
-          label="Số điện thoại"
-          type="tel"
-          autoComplete="tel"
-          placeholder="0912345678"
-          value={form.phone}
-          onChange={handleChange("phone")}
-          onBlur={handleBlur("phone")}
-          error={touched.phone ? errors.phone : ""}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <PasswordField
+              id="register-password"
+              label="Mật khẩu"
+              autoComplete="new-password"
+              placeholder="Tối thiểu 6 ký tự"
+              value={form.password}
+              onChange={handleChange("password")}
+              onBlur={handleBlur("password")}
+              error={touched.password ? errors.password : ""}
+            />
+            <PasswordStrength password={form.password} />
+          </div>
 
-        <div>
           <PasswordField
-            id="register-password"
-            label="Mật khẩu"
+            id="register-confirm-password"
+            label="Xác nhận mật khẩu"
             autoComplete="new-password"
-            placeholder="Tối thiểu 6 ký tự"
-            value={form.password}
-            onChange={handleChange("password")}
-            onBlur={handleBlur("password")}
-            error={touched.password ? errors.password : ""}
+            placeholder="Nhập lại mật khẩu"
+            value={form.confirmPassword}
+            onChange={handleChange("confirmPassword")}
+            onBlur={handleBlur("confirmPassword")}
+            error={touched.confirmPassword ? errors.confirmPassword : ""}
           />
-          <PasswordStrength password={form.password} />
         </div>
-
-        <PasswordField
-          id="register-confirm-password"
-          label="Xác nhận mật khẩu"
-          autoComplete="new-password"
-          placeholder="Nhập lại mật khẩu"
-          value={form.confirmPassword}
-          onChange={handleChange("confirmPassword")}
-          onBlur={handleBlur("confirmPassword")}
-          error={touched.confirmPassword ? errors.confirmPassword : ""}
-        />
 
         <div className="mt-1 rounded-xl border border-surface-variant/60 bg-surface-variant/10 p-4">
           <p className="mb-3 text-sm font-semibold text-on-surface">
@@ -172,7 +176,7 @@ const RegisterPage = () => {
           <p className="mb-3 text-xs text-on-surface-variant">
             Dùng để nhận tiền khi bạn bán hàng. Có thể bỏ trống và cập nhật sau trong hồ sơ.
           </p>
-          <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <AuthField
               id="register-bank-number"
               label="Số tài khoản"
@@ -187,13 +191,15 @@ const RegisterPage = () => {
               value={form.bankName}
               onChange={(e) => setForm((f) => ({ ...f, bankName: e.target.value }))}
             />
-            <AuthField
-              id="register-bank-holder"
-              label="Chủ tài khoản"
-              placeholder="VD: NGUYEN VAN A"
-              value={form.bankAccountHolder}
-              onChange={(e) => setForm((f) => ({ ...f, bankAccountHolder: e.target.value }))}
-            />
+            <div className="md:col-span-2">
+              <AuthField
+                id="register-bank-holder"
+                label="Chủ tài khoản"
+                placeholder="VD: NGUYEN VAN A"
+                value={form.bankAccountHolder}
+                onChange={(e) => setForm((f) => ({ ...f, bankAccountHolder: e.target.value }))}
+              />
+            </div>
           </div>
         </div>
 

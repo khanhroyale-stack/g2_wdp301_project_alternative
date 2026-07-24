@@ -17,12 +17,12 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 142 72% 36%; /* #16A34A */
     --secondary-foreground: 0 0% 100%;
-    --muted: 220 9% 64%; /* #9CA3AF */
-    --muted-foreground: 220 9% 46%; /* #6B7280 */
+    --muted: 148 15% 62%; /* #8FAF99 */
+    --muted-foreground: 148 22% 39%; /* #4D7A60 */
     --accent: 140 18% 96%; /* #F3F7F4 */
     --accent-foreground: 142 39% 30%;
-    --border: 140 12% 91%; /* #E6ECE7 */
-    --input: 140 12% 91%;
+    --border: 148 22% 83%; /* #C8DDD0 */
+    --input: 148 22% 83%;
     --ring: 142 39% 30%;
     --success: 142 72% 36%;
     --success-foreground: 0 0% 100%;
@@ -38,9 +38,9 @@
     --sky-soft: 203 100% 95%;
     --page-bg: #F8FAF8;
     --surface: #FFFFFF;
-    --surface-secondary: #F3F7F4;
+    --surface-secondary: #EDF5F0;
     --text-primary: #1F2937;
-    --text-secondary: #6B7280;
+    --text-secondary: #4D7A60;
     --radius-card: 16px;
     --radius-image: 14px;
     --radius-btn: 10px;
@@ -139,11 +139,11 @@
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #E6ECE7;
+  background-color: #C8DDD0;
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #D1D9D3;
+  background-color: #8FAF99;
 }
 
 @keyframes scaleUp {
