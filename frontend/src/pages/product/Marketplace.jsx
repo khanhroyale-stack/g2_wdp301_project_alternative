@@ -157,50 +157,136 @@ const Marketplace = () => {
     }
   };
 
+  const resetFilters = () => {
+    setSelectedCat("Tất cả");
+    setSelectedCond("");
+    setMinPrice("");
+    setMaxPrice("");
+    setCurrentPage(1);
+  };
+
+  const filterBtnClass = (active) =>
+    `w-full text-left px-4 py-3 rounded-field text-sm font-semibold transition-all duration-200 ${
+      active
+        ? "bg-primary text-white shadow-card"
+        : "text-muted-foreground hover:bg-surface-secondary hover:text-primary"
+    }`;
+
+  const renderActionButtons = (product) => (
+    <>
+      {["rent", "both"].includes(product.productType) && (
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={(event) => handleRentNow(event, product._id)}
+            className="h-10 rounded-btn bg-secondary px-3 text-xs font-bold text-white transition-all duration-200 hover:bg-secondary/90 active:scale-[0.98]"
+          >
+            Thuê ngay
+          </button>
+          <button
+            type="button"
+            onClick={(event) => handleContact(event, product)}
+            className="h-10 rounded-btn border border-border bg-surface px-3 text-xs font-bold text-primary transition-all duration-200 hover:bg-surface-secondary hover:border-primary/30 active:scale-[0.98]"
+          >
+            Liên hệ
+          </button>
+        </div>
+      )}
+      {["sale", "both"].includes(product.productType) && (
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={(event) => handleBuyNow(event, product)}
+            className="h-10 rounded-btn bg-primary px-3 text-xs font-bold text-white transition-all duration-200 hover:bg-primary-hover active:scale-[0.98]"
+          >
+            Mua ngay
+          </button>
+          <button
+            type="button"
+            onClick={(event) => handleAddToCart(event, product)}
+            className="h-10 rounded-btn border border-border bg-surface px-3 text-xs font-bold text-primary transition-all duration-200 hover:bg-surface-secondary hover:border-primary/30 active:scale-[0.98]"
+          >
+            Thêm vào giỏ
+          </button>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-grow pt-24 pb-16 px-4 md:px-10 max-w-7xl mx-auto w-full flex flex-col md:flex-row gap-12">
+      <main className="flex-grow pt-24 pb-16 px-4 md:px-10 max-w-7xl mx-auto w-full flex flex-col md:flex-row gap-8 lg:gap-12">
         {/* Sidebar filter */}
-        <aside className="w-full md:w-64 flex-shrink-0">
-          <div className="sticky top-24 flex flex-col gap-10">
+        <aside className="w-full md:w-64 lg:w-72 flex-shrink-0">
+          <div className="sticky top-24 flex flex-col gap-8 rounded-card border border-border bg-surface p-6 shadow-card">
             <div>
-              <h3 className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-[0.2em] mb-6">Bộ lọc danh mục</h3>
-              <div className="flex flex-col gap-2">
-                <button onClick={() => { setSelectedCat("Tất cả"); setCurrentPage(1); }}
-                  className={`w-full text-left px-5 py-3 rounded-pill text-sm font-bold transition-all ${selectedCat === "Tất cả" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-on-surface-variant hover:bg-primary/5 hover:text-primary"}`}>
+              <h3 className="text-[11px] font-bold text-muted uppercase tracking-[0.16em] mb-4">
+                Bộ lọc danh mục
+              </h3>
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => { setSelectedCat("Tất cả"); setCurrentPage(1); }}
+                  className={filterBtnClass(selectedCat === "Tất cả")}
+                >
                   Tất cả sản phẩm
                 </button>
                 {categories.map((cat) => (
-                  <button key={cat._id} onClick={() => { setSelectedCat(cat._id); setCurrentPage(1); }}
-                    className={`w-full text-left px-5 py-3 rounded-pill text-sm font-bold transition-all ${selectedCat === cat._id ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-on-surface-variant hover:bg-primary/5 hover:text-primary"}`}>
+                  <button
+                    key={cat._id}
+                    onClick={() => { setSelectedCat(cat._id); setCurrentPage(1); }}
+                    className={filterBtnClass(selectedCat === cat._id)}
+                  >
                     {cat.name}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="bg-primary/5 rounded-organic p-6">
-              <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Khoảng giá</h3>
+            <div className="rounded-field bg-surface-secondary p-4">
+              <h3 className="text-[11px] font-bold text-primary uppercase tracking-[0.16em] mb-3">
+                Khoảng giá
+              </h3>
               <div className="flex flex-col gap-3">
                 <div className="relative">
-                  <input className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all pr-8" placeholder="Từ" type="number" value={minPrice} onChange={(e) => { setMinPrice(e.target.value); setCurrentPage(1); }} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary/40">₫</span>
+                  <input
+                    className="et-input pr-8"
+                    placeholder="Từ"
+                    type="number"
+                    value={minPrice}
+                    onChange={(e) => { setMinPrice(e.target.value); setCurrentPage(1); }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted">₫</span>
                 </div>
                 <div className="relative">
-                  <input className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all pr-8" placeholder="Đến" type="number" value={maxPrice} onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(1); }} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary/40">₫</span>
+                  <input
+                    className="et-input pr-8"
+                    placeholder="Đến"
+                    type="number"
+                    value={maxPrice}
+                    onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(1); }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted">₫</span>
                 </div>
               </div>
             </div>
 
             <div>
-              <h3 className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-[0.2em] mb-6">Tình trạng đồ</h3>
+              <h3 className="text-[11px] font-bold text-muted uppercase tracking-[0.16em] mb-4">
+                Tình trạng đồ
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {CONDITION_OPTIONS.map((condition) => (
-                  <button key={condition.value || "all"} onClick={() => { setSelectedCond(condition.value); setCurrentPage(1); }}
-                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${selectedCond === condition.value ? "bg-secondary border-secondary text-white" : "border-primary/10 text-on-surface-variant hover:border-primary/30 hover:text-primary"}`}>
+                  <button
+                    key={condition.value || "all"}
+                    onClick={() => { setSelectedCond(condition.value); setCurrentPage(1); }}
+                    className={`px-3.5 py-2 rounded-pill text-xs font-semibold transition-all duration-200 border ${
+                      selectedCond === condition.value
+                        ? "bg-primary border-primary text-white"
+                        : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary bg-surface"
+                    }`}
+                  >
                     {condition.label}
                   </button>
                 ))}
@@ -208,8 +294,8 @@ const Marketplace = () => {
             </div>
 
             <button
-              onClick={() => { setSelectedCat("Tất cả"); setSelectedCond(""); setMinPrice(""); setMaxPrice(""); setCurrentPage(1); }}
-              className="inline-flex items-center gap-2 text-xs font-bold text-error/60 hover:text-error transition-colors pt-4 border-t border-primary/5"
+              onClick={resetFilters}
+              className="inline-flex items-center gap-2 text-xs font-bold text-danger/70 hover:text-danger transition-colors duration-200 pt-4 border-t border-border"
             >
               <span className="material-symbols-outlined text-[16px]">refresh</span>
               Đặt lại bộ lọc
@@ -219,17 +305,22 @@ const Marketplace = () => {
 
         {/* Danh sách sản phẩm */}
         <section className="flex-grow min-w-0">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-5">
             <div>
-              <h1 className="text-4xl font-display font-bold text-foreground">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight">
                 {keyword ? `Kết quả: "${keyword}"` : (isRentPage ? "Thuê đồ dùng" : "Mua sắm")}
               </h1>
-              <p className="text-on-surface-variant font-medium mt-1">Tìm thấy {featuredProducts.length + products.length} món đồ chất lượng</p>
+              <p className="text-muted-foreground font-medium mt-2">
+                Tìm thấy {featuredProducts.length + products.length} món đồ chất lượng
+              </p>
             </div>
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-pill shadow-sm border border-primary/5">
-              <span className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest">Sắp xếp:</span>
-              <select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-                className="bg-transparent text-sm font-bold text-primary outline-none cursor-pointer">
+            <div className="flex items-center gap-3 bg-surface px-4 py-2.5 rounded-field shadow-card border border-border">
+              <span className="text-[11px] font-bold text-muted uppercase tracking-wider">Sắp xếp:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
+                className="bg-transparent text-sm font-bold text-primary outline-none cursor-pointer"
+              >
                 <option value="newest">Mới nhất</option>
                 <option value="price_asc">Giá rẻ nhất</option>
                 <option value="price_desc">Giá cao nhất</option>
@@ -241,9 +332,9 @@ const Marketplace = () => {
             <div className="mb-12">
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-foreground">Sản phẩm nổi bật</h2>
-                <div className="h-1 w-12 bg-secondary rounded-full mt-1"></div>
+                <div className="h-1 w-12 bg-primary rounded-pill mt-2" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 {featuredProducts.map((product) => {
                   const displayPrice = product.productType === "rent"
                     ? `${formatPrice(product.rentPricePerDay)}/ngày`
@@ -253,59 +344,30 @@ const Marketplace = () => {
                     <article
                       key={product._id}
                       onClick={() => navigate(`/marketplaces/${product._id}`)}
-                      className="cursor-pointer group flex flex-col bg-white rounded-organic overflow-hidden border border-primary/10 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5"
+                      className="cursor-pointer group et-card et-card-hover flex flex-col overflow-hidden"
                     >
-                      <div className="relative aspect-square overflow-hidden bg-background">
-                        <img alt={product.title} src={product.thumbnailUrl || "https://placehold.co/600x600?text=EcoTrade"} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                        <div className="absolute top-4 left-4">
-                          <span className="bg-secondary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">Nổi bật</span>
+                      <div className="relative aspect-[4/3] overflow-hidden bg-surface-secondary m-3 mb-0 rounded-image">
+                        <img
+                          alt={product.title}
+                          src={product.thumbnailUrl || "https://placehold.co/600x600?text=EcoTrade"}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute top-3 left-3">
+                          <span className="et-badge bg-warning text-white shadow-sm">Nổi bật</span>
                         </div>
                       </div>
-                      <div className="p-6 flex flex-col flex-grow">
-                        <h3 className="line-clamp-2 font-display font-bold text-lg text-foreground mb-4 group-hover:text-primary transition-colors">{product.title}</h3>
-                        <div className="mt-auto flex justify-between items-end border-t border-primary/5 pt-4">
-                          <p className="text-2xl font-display font-black text-primary">{displayPrice}</p>
-                          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest flex items-center gap-1">
+                      <div className="p-5 flex flex-col flex-grow">
+                        <h3 className="line-clamp-2 font-bold text-base text-foreground mb-3 group-hover:text-primary transition-colors duration-200">
+                          {product.title}
+                        </h3>
+                        <div className="mt-auto flex justify-between items-end border-t border-border pt-4">
+                          <p className="text-xl font-extrabold text-primary">{displayPrice}</p>
+                          <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
                             <span className="material-symbols-outlined text-[14px]">location_on</span>
                             {product.location?.split(',')[0] || "Hòa Lạc"}
                           </span>
                         </div>
-                        {["rent", "both"].includes(product.productType) && (
-                          <div className="mt-4 grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={(event) => handleRentNow(event, product._id)}
-                              className="h-10 rounded-full bg-secondary px-3 text-xs font-black text-white transition-all hover:bg-secondary/90 active:scale-95"
-                            >
-                              Thuê ngay
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(event) => handleContact(event, product)}
-                              className="h-10 rounded-full border border-primary/20 bg-white px-3 text-xs font-black text-primary transition-all hover:bg-primary/5 active:scale-95"
-                            >
-                              Liên hệ
-                            </button>
-                          </div>
-                        )}
-                        {["sale", "both"].includes(product.productType) && (
-                          <div className="mt-4 grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={(event) => handleBuyNow(event, product)}
-                              className="h-10 rounded-full bg-primary px-3 text-xs font-black text-white transition-all hover:bg-primary/90 active:scale-95"
-                            >
-                              Mua ngay
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(event) => handleAddToCart(event, product)}
-                              className="h-10 rounded-full border border-primary/20 bg-white px-3 text-xs font-black text-primary transition-all hover:bg-primary/5 active:scale-95"
-                            >
-                              Thêm vào giỏ
-                            </button>
-                          </div>
-                        )}
+                        {renderActionButtons(product)}
                       </div>
                     </article>
                   );
@@ -315,100 +377,91 @@ const Marketplace = () => {
           )}
 
           {loading ? (
-            <div className="flex justify-center items-center py-24">
-              <span className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-surface rounded-card border border-border overflow-hidden">
+                  <div className="aspect-[4/3] m-3 rounded-image bg-surface-secondary" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-4 bg-surface-secondary rounded-btn w-4/5" />
+                    <div className="h-4 bg-surface-secondary rounded-btn w-2/5" />
+                    <div className="h-10 bg-surface-secondary rounded-btn w-full mt-4" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : products.length === 0 && featuredProducts.length === 0 ? (
-            <div className="text-center py-24 bg-white rounded-organic border border-primary/5">
+            <div className="text-center py-24 bg-surface rounded-card border border-border shadow-card">
               <span className="material-symbols-outlined text-6xl text-primary/20 block mb-4">search_off</span>
-              <p className="text-on-surface-variant font-medium">Không tìm thấy sản phẩm phù hợp.</p>
-              <button onClick={() => { setSelectedCat("Tất cả"); setSelectedCond(""); setMinPrice(""); setMaxPrice(""); setCurrentPage(1); }}
-                className="mt-4 text-primary font-bold hover:underline">Xóa tất cả bộ lọc</button>
+              <p className="text-muted-foreground font-medium">Không tìm thấy sản phẩm phù hợp.</p>
+              <button
+                onClick={resetFilters}
+                className="mt-5 text-primary font-bold hover:underline"
+              >
+                Xóa tất cả bộ lọc
+              </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {products.map((product) => {
                 const conditionLabel = mapStatusToCondition(product.conditionStatus);
                 const conditionColor = product.conditionStatus === "new" || product.conditionStatus === "like_new"
                   ? "bg-primary text-white"
-                  : "bg-background text-on-surface-variant";
+                  : "bg-surface-secondary text-muted-foreground";
 
                 const displayPrice = product.productType === "rent"
                   ? `${formatPrice(product.rentPricePerDay)}/ngày`
                   : formatPrice(product.salePrice);
 
                 return (
-                  <article key={product._id} onClick={() => navigate(`/marketplaces/${product._id}`)}
-                    className="group flex flex-col bg-white rounded-organic overflow-hidden border border-primary/5 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 cursor-pointer">
-                    <div className="relative aspect-square bg-background overflow-hidden">
-                      <img alt={product.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src={product.thumbnailUrl || "https://placehold.co/600x600?text=EcoTrade"} />
-                      <div className="absolute top-4 left-4 flex gap-2">
-                        <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${conditionColor}`}>
-                          {conditionLabel}
-                        </span>
+                  <article
+                    key={product._id}
+                    onClick={() => navigate(`/marketplaces/${product._id}`)}
+                    className="group et-card et-card-hover flex flex-col overflow-hidden cursor-pointer"
+                  >
+                    <div className="relative aspect-[4/3] bg-surface-secondary overflow-hidden m-3 mb-0 rounded-image">
+                      <img
+                        alt={product.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        src={product.thumbnailUrl || "https://placehold.co/600x600?text=EcoTrade"}
+                      />
+                      <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                        {conditionLabel ? (
+                          <span className={`et-badge shadow-sm ${conditionColor}`}>
+                            {conditionLabel}
+                          </span>
+                        ) : null}
                         {["rent", "both"].includes(product.productType) && (
-                          <span className="px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-secondary text-white shadow-sm">Thuê</span>
+                          <span className="et-badge bg-secondary text-white shadow-sm">Thuê</span>
                         )}
                       </div>
                     </div>
                     <div className="p-5 flex flex-col flex-grow">
-                      <div className="flex justify-between items-start mb-3 gap-2">
-                        <h2 className="font-display font-bold text-foreground text-base leading-tight flex-1 line-clamp-2 group-hover:text-primary transition-colors">{product.title}</h2>
-                        <span className="text-primary font-black text-lg whitespace-nowrap">{displayPrice}</span>
-                      </div>
-                      
-                      <div className="mt-auto pt-4 border-t border-primary/5 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
+                      <h2 className="font-bold text-foreground text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors duration-200 mb-2">
+                        {product.title}
+                      </h2>
+                      <p className="text-lg font-extrabold text-primary mb-4">{displayPrice}</p>
+
+                      <div className="mt-auto pt-4 border-t border-border flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           {product.ownerId?.avatarUrl ? (
-                            <img src={product.ownerId.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+                            <img src={product.ownerId.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
                           ) : (
-                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                              <span className="material-symbols-outlined text-[10px] text-primary">person</span>
+                            <div className="w-6 h-6 rounded-full bg-surface-secondary flex items-center justify-center shrink-0">
+                              <span className="material-symbols-outlined text-[12px] text-primary">person</span>
                             </div>
                           )}
-                          <span className="text-[11px] font-bold text-on-surface-variant truncate max-w-[80px]">{product.ownerId?.fullName || "EcoTrader"}</span>
+                          <span className="text-[12px] font-semibold text-muted-foreground truncate">
+                            {product.ownerId?.fullName || "EcoTrader"}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1 text-on-surface-variant">
+                        <div className="flex items-center gap-1 text-muted-foreground shrink-0">
                           <span className="material-symbols-outlined text-[14px]">location_on</span>
-                          <span className="text-[11px] font-medium truncate max-w-[70px]">{product.location?.split(',')[0] || "Hòa Lạc"}</span>
+                          <span className="text-[12px] font-medium truncate max-w-[80px]">
+                            {product.location?.split(',')[0] || "Hòa Lạc"}
+                          </span>
                         </div>
                       </div>
-                      {["rent", "both"].includes(product.productType) && (
-                        <div className="mt-4 grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={(event) => handleRentNow(event, product._id)}
-                            className="h-10 rounded-full bg-secondary px-3 text-xs font-black text-white transition-all hover:bg-secondary/90 active:scale-95"
-                          >
-                            Thuê ngay
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => handleContact(event, product)}
-                            className="h-10 rounded-full border border-primary/20 bg-white px-3 text-xs font-black text-primary transition-all hover:bg-primary/5 active:scale-95"
-                          >
-                            Liên hệ
-                          </button>
-                        </div>
-                      )}
-                      {["sale", "both"].includes(product.productType) && (
-                        <div className="mt-4 grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={(event) => handleBuyNow(event, product)}
-                            className="h-10 rounded-full bg-primary px-3 text-xs font-black text-white transition-all hover:bg-primary/90 active:scale-95"
-                          >
-                            Mua ngay
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => handleAddToCart(event, product)}
-                            className="h-10 rounded-full border border-primary/20 bg-white px-3 text-xs font-black text-primary transition-all hover:bg-primary/5 active:scale-95"
-                          >
-                            Thêm vào giỏ
-                          </button>
-                        </div>
-                      )}
+                      {renderActionButtons(product)}
                     </div>
                   </article>
                 );
@@ -420,21 +473,27 @@ const Marketplace = () => {
           {!loading && totalPages > 1 && (
             <div className="flex justify-center items-center mt-12 gap-2">
               <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                onClick={() => {
+                  setCurrentPage(p => Math.max(1, p - 1));
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
                 disabled={currentPage === 1}
-                className="w-10 h-10 flex items-center justify-center rounded-full border border-primary/10 text-on-surface-variant hover:border-primary hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-10 h-10 flex items-center justify-center rounded-btn border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed bg-surface"
               >
                 <span className="material-symbols-outlined text-[18px]">chevron_left</span>
               </button>
-              
+
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                 <button
                   key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold transition-all ${
-                    currentPage === page 
-                      ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                      : "border border-primary/10 text-on-surface-variant hover:border-primary hover:text-primary"
+                  onClick={() => {
+                    setCurrentPage(page);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className={`w-10 h-10 flex items-center justify-center rounded-btn text-sm font-bold transition-all duration-200 ${
+                    currentPage === page
+                      ? "bg-primary text-white shadow-card"
+                      : "border border-border text-muted-foreground hover:border-primary hover:text-primary bg-surface"
                   }`}
                 >
                   {page}
@@ -442,9 +501,12 @@ const Marketplace = () => {
               ))}
 
               <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                onClick={() => {
+                  setCurrentPage(p => Math.min(totalPages, p + 1));
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
                 disabled={currentPage === totalPages}
-                className="w-10 h-10 flex items-center justify-center rounded-full border border-primary/10 text-on-surface-variant hover:border-primary hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-10 h-10 flex items-center justify-center rounded-btn border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed bg-surface"
               >
                 <span className="material-symbols-outlined text-[18px]">chevron_right</span>
               </button>
@@ -457,4 +519,5 @@ const Marketplace = () => {
     </div>
   );
 };
+
 export default Marketplace;

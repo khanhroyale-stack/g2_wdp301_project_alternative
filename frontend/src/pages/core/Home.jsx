@@ -48,55 +48,63 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/20">
+    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/15">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-24 px-4 md:px-10 text-center relative overflow-hidden leaf-texture">
-        {/* Organic background blobs */}
-        <div className="absolute top-[-5%] left-[-5%] w-[30rem] h-[30rem] bg-primary/10 blur-[100px] rounded-full animate-blob"></div>
-        <div className="absolute bottom-[10%] right-[-5%] w-[25rem] h-[25rem] bg-secondary/15 blur-[100px] rounded-full animate-blob animation-delay-2000"></div>
+      <section className="pt-32 pb-20 md:pt-40 md:pb-28 px-4 md:px-10 text-center relative overflow-hidden leaf-texture">
+        <div className="absolute top-[-8%] left-[-6%] w-[28rem] h-[28rem] bg-primary/8 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[5%] right-[-8%] w-[24rem] h-[24rem] bg-secondary/10 blur-[120px] rounded-full pointer-events-none" />
 
-        <div className="relative z-10 max-w-5xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary/10 border border-primary/20 mb-10 shadow-sm">
-            <span className="material-symbols-outlined text-primary text-[20px]">eco</span>
-            <span className="text-[11px] font-black text-primary uppercase tracking-[0.25em]">Sống xanh cùng Hòa Lạc</span>
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-pill bg-surface border border-border mb-8 shadow-card">
+            <span className="material-symbols-outlined text-primary text-[18px]">eco</span>
+            <span className="text-[11px] font-bold text-primary uppercase tracking-[0.2em]">
+              Sống xanh cùng Hòa Lạc
+            </span>
           </div>
-          
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-extrabold text-foreground tracking-tight mb-10 leading-[1.15]">
+
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground tracking-tight mb-6 leading-[1.12]">
             Trao đổi thông minh <br className="hidden sm:block" />
-            <span className="text-primary italic">Xây dựng tương lai</span>
+            <span className="text-primary">Xây dựng tương lai</span>
           </h1>
-          
-          <p className="text-on-surface-variant text-base md:text-lg mb-14 max-w-xl mx-auto leading-relaxed font-medium opacity-90">
+
+          <p className="text-muted-foreground text-base md:text-lg mb-12 max-w-xl mx-auto leading-relaxed font-medium">
             Nền tảng mua bán và cho thuê đồ dùng bền vững dành cho cộng đồng sinh viên. Giảm lãng phí, tăng giá trị cho mọi người.
           </p>
 
           {/* Search bar */}
           <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-            <div className="flex items-center bg-white rounded-pill p-1.5 shadow-2xl shadow-primary/5 border border-primary/10 focus-within:border-primary/30 focus-within:shadow-primary/10 transition-all duration-500">
-              <div className="flex items-center flex-1 px-4">
-                <span className="material-symbols-outlined text-on-surface-variant/40 mr-3">search</span>
+            <div className="flex items-center bg-surface rounded-card p-2 shadow-glass border border-border focus-within:border-primary/40 focus-within:shadow-card-hover transition-all duration-200">
+              <div className="flex items-center flex-1 px-3 md:px-4 min-w-0">
+                <span className="material-symbols-outlined text-muted mr-3 shrink-0">search</span>
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Bạn đang cần tìm món đồ gì?"
-                  className="flex-1 bg-transparent border-none outline-none text-foreground text-lg placeholder:text-on-surface-variant/30"
+                  className="flex-1 min-w-0 bg-transparent border-none outline-none text-foreground text-base md:text-lg font-medium placeholder:text-muted placeholder:font-normal"
                 />
               </div>
-              <button type="submit"
-                className="px-8 py-3.5 bg-primary text-white rounded-pill text-base font-bold hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-[0.98]">
+              <button
+                type="submit"
+                className="shrink-0 px-6 md:px-8 py-3 bg-primary text-white rounded-btn text-sm md:text-base font-bold hover:bg-primary-hover transition-all duration-200 active:scale-[0.98]"
+              >
                 Tìm kiếm
               </button>
             </div>
           </form>
 
-          <div className="flex flex-wrap gap-2.5 justify-center mt-12">
-            <span className="text-[10px] font-black text-on-surface-variant/40 py-2 mr-2 uppercase tracking-[0.2em]">Gợi ý:</span>
+          <div className="flex flex-wrap gap-2 justify-center mt-8">
+            <span className="text-[11px] font-bold text-muted py-2 mr-1 uppercase tracking-[0.16em]">
+              Gợi ý:
+            </span>
             {["Laptop cũ", "Sách giáo trình", "Xe đạp", "Quạt sinh viên", "Máy ảnh"].map((tag) => (
-              <button key={tag} onClick={() => navigate(`/marketplaces?q=${tag}`)}
-                className="px-6 py-2.5 bg-white/40 backdrop-blur-md border border-primary/5 rounded-full text-xs font-bold text-primary/80 hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 shadow-sm">
+              <button
+                key={tag}
+                onClick={() => navigate(`/marketplaces?q=${tag}`)}
+                className="px-4 py-2 bg-surface border border-border rounded-pill text-xs font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-surface-secondary transition-all duration-200"
+              >
                 {tag}
               </button>
             ))}
@@ -105,64 +113,88 @@ const Home = () => {
       </section>
 
       {/* Sản phẩm nổi bật */}
-      <section className="py-24 px-4 md:px-10 bg-white">
+      <section className="et-section bg-surface">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
             <div>
-              <h2 className="text-4xl font-display font-bold text-foreground mb-4">Sản phẩm nổi bật</h2>
-              <div className="h-1.5 w-24 bg-secondary rounded-full"></div>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mb-3">
+                Sản phẩm nổi bật
+              </h2>
+              <div className="h-1 w-16 bg-primary rounded-pill" />
             </div>
-            <Link to="/marketplaces" className="inline-flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all group">
-              Khám phá tất cả <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">east</span>
+            <Link
+              to="/marketplaces"
+              className="inline-flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all duration-200 group"
+            >
+              Khám phá tất cả
+              <span className="material-symbols-outlined text-[20px] group-hover:translate-x-0.5 transition-transform duration-200">
+                east
+              </span>
             </Link>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-background rounded-organic h-96"></div>
+                <div key={i} className="animate-pulse bg-surface-secondary rounded-card h-96" />
               ))}
             </div>
           ) : featuredProducts.length === 0 ? (
-            <div className="text-center text-on-surface-variant py-20 bg-background rounded-organic">
+            <div className="text-center text-muted-foreground py-20 bg-surface-secondary rounded-card font-medium">
               Chưa có sản phẩm nổi bật nào.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
               {featuredProducts.map((product) => {
                 const isRent = product.productType === "rent" || product.productType === "both";
                 const price = isRent
                   ? `${product.rentPricePerDay?.toLocaleString()}đ/ngày`
                   : `${product.salePrice?.toLocaleString()}đ`;
-                
+
                 return (
-                  <Link key={product._id} to={`/san-pham/${product._id}`}
-                    className="group flex flex-col bg-background rounded-organic overflow-hidden border border-primary/5 hover:border-primary/20 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
-                    <div className="relative aspect-square overflow-hidden bg-surface-container-low">
+                  <Link
+                    key={product._id}
+                    to={`/san-pham/${product._id}`}
+                    className="group et-card et-card-hover flex flex-col overflow-hidden"
+                  >
+                    <div className="relative aspect-[4/3] overflow-hidden bg-surface-secondary m-3 mb-0 rounded-image">
                       <img
                         src={product.thumbnailUrl || "https://placehold.co/600x600?text=EcoTrade"}
                         alt={product.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute top-4 left-4 flex gap-2">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md shadow-sm ${isRent ? "bg-secondary text-white" : "bg-primary text-white"}`}>
+                      <div className="absolute top-3 left-3 flex gap-2">
+                        <span
+                          className={`et-badge shadow-sm ${
+                            isRent ? "bg-secondary text-white" : "bg-primary text-white"
+                          }`}
+                        >
                           {isRent ? "Cho thuê" : "Bán"}
                         </span>
                       </div>
                       {product.isFeatured && (
-                        <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-xl shadow-sm">
-                           <span className="material-symbols-outlined text-amber-500 text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
+                        <div className="absolute bottom-3 right-3 bg-surface/95 backdrop-blur-sm p-2 rounded-btn shadow-card">
+                          <span
+                            className="material-symbols-outlined text-warning text-[18px]"
+                            style={{ fontVariationSettings: "'FILL' 1" }}
+                          >
+                            workspace_premium
+                          </span>
                         </div>
                       )}
                     </div>
-                    <div className="p-6 flex flex-col flex-grow">
-                      <h3 className="font-display font-bold text-foreground text-lg leading-tight mb-3 line-clamp-2 group-hover:text-primary transition-colors">{product.title}</h3>
-                      <div className="mt-auto pt-4 border-t border-primary/5 flex justify-between items-center">
+                    <div className="p-5 flex flex-col flex-grow">
+                      <h3 className="font-bold text-foreground text-base leading-snug mb-4 line-clamp-2 group-hover:text-primary transition-colors duration-200">
+                        {product.title}
+                      </h3>
+                      <div className="mt-auto pt-4 border-t border-border flex justify-between items-center">
                         <div>
-                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">{isRent ? "Giá thuê / ngày" : "Giá bán"}</p>
-                          <p className="text-xl font-display font-black text-primary">{price}</p>
+                          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                            {isRent ? "Giá thuê / ngày" : "Giá bán"}
+                          </p>
+                          <p className="text-xl font-extrabold text-primary">{price}</p>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-primary/5 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                        <div className="w-10 h-10 rounded-btn bg-surface-secondary text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-200">
                           <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
                         </div>
                       </div>
@@ -176,26 +208,37 @@ const Home = () => {
       </section>
 
       {/* Danh mục */}
-      <section className="py-24 px-4 md:px-10 bg-background overflow-hidden relative">
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 w-64 h-64 bg-secondary/5 blur-[80px] rounded-full"></div>
+      <section className="et-section bg-background relative overflow-hidden">
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 w-64 h-64 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
         <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-display font-bold text-foreground mb-4">Khám phá theo danh mục</h2>
-            <p className="text-on-surface-variant font-medium">Tìm kiếm chính xác món đồ bạn cần theo từng nhóm hàng.</p>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mb-3">
+              Khám phá theo danh mục
+            </h2>
+            <p className="text-muted-foreground font-medium max-w-lg mx-auto">
+              Tìm kiếm chính xác món đồ bạn cần theo từng nhóm hàng.
+            </p>
           </div>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
             {CATEGORIES.map((cat) => (
-              <Link key={cat.label} to={`/marketplaces?category=${cat.q}`}
-                className="group flex flex-col items-center gap-4">
-                <div className="relative w-full aspect-square rounded-organic overflow-hidden shadow-sm group-hover:shadow-xl transition-all duration-500 group-hover:-translate-y-2">
-                  <img src={cat.img} alt={cat.label} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-all duration-500"></div>
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="material-symbols-outlined text-white text-4xl">{cat.icon}</span>
+              <Link key={cat.label} to={`/marketplaces?category=${cat.q}`} className="group flex flex-col items-center gap-3">
+                <div className="relative w-full aspect-square rounded-image overflow-hidden shadow-card group-hover:shadow-card-hover group-hover:-translate-y-[3px] transition-all duration-200">
+                  <img
+                    src={cat.img}
+                    alt={cat.label}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-primary/25 group-hover:bg-primary/10 transition-all duration-200" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <span className="material-symbols-outlined text-white text-3xl drop-shadow-md">
+                      {cat.icon}
+                    </span>
                   </div>
                 </div>
-                <span className="font-display font-bold text-foreground group-hover:text-primary transition-colors">{cat.label}</span>
+                <span className="font-bold text-sm text-foreground group-hover:text-primary transition-colors duration-200">
+                  {cat.label}
+                </span>
               </Link>
             ))}
           </div>
@@ -203,50 +246,66 @@ const Home = () => {
       </section>
 
       {/* Features */}
-      <section className="py-24 px-4 md:px-10 bg-white">
+      <section className="et-section bg-surface">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div>
-              <h2 className="text-5xl font-display font-bold text-foreground mb-8 leading-tight">Giao dịch <br /> <span className="text-primary italic">An toàn & Tin cậy</span></h2>
-              <div className="space-y-8">
+              <h2 className="text-3xl md:text-5xl font-extrabold text-foreground mb-8 leading-tight">
+                Giao dịch <br />
+                <span className="text-primary">An toàn & Tin cậy</span>
+              </h2>
+              <div className="space-y-6">
                 {FEATURES.map((f) => (
-                  <div key={f.title} className="flex gap-6 group">
-                    <div className="w-16 h-16 rounded-2xl bg-background flex items-center justify-center flex-shrink-0 group-hover:bg-primary transition-colors">
-                      <span className="material-symbols-outlined text-3xl text-primary group-hover:text-white transition-colors">{f.icon}</span>
+                  <div key={f.title} className="flex gap-5 group">
+                    <div className="w-14 h-14 rounded-card bg-surface-secondary flex items-center justify-center flex-shrink-0 group-hover:bg-primary transition-colors duration-200">
+                      <span className="material-symbols-outlined text-2xl text-primary group-hover:text-white transition-colors duration-200">
+                        {f.icon}
+                      </span>
                     </div>
-                    <div>
-                      <h3 className="font-display font-bold text-xl text-foreground mb-2">{f.title}</h3>
-                      <p className="text-on-surface-variant font-medium leading-relaxed">{f.desc}</p>
+                    <div className="pt-1">
+                      <h3 className="font-bold text-lg text-foreground mb-1">{f.title}</h3>
+                      <p className="text-muted-foreground font-medium leading-relaxed">{f.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             <div className="relative">
-              <div className="aspect-square rounded-organic overflow-hidden shadow-2xl relative z-10">
-                <img src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&q=80" alt="Sustainability" className="w-full h-full object-cover" />
+              <div className="aspect-square rounded-card overflow-hidden shadow-card-hover relative z-10">
+                <img
+                  src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&q=80"
+                  alt="Sustainability"
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <div className="absolute -top-10 -right-10 w-48 h-48 bg-secondary/20 rounded-organic animate-pulse"></div>
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-primary/20 rounded-organic animate-bounce duration-[3000ms]"></div>
+              <div className="absolute -top-6 -right-6 w-40 h-40 bg-secondary/15 rounded-card -z-0" />
+              <div className="absolute -bottom-6 -left-6 w-28 h-28 bg-primary/15 rounded-card -z-0" />
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-4 md:px-10 bg-white">
-        <div className="max-w-7xl mx-auto rounded-[3rem] bg-primary relative overflow-hidden p-12 md:p-24 text-center">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/20 blur-[60px] rounded-full -translate-x-1/2 translate-y-1/2"></div>
-          
+      <section className="et-section bg-background">
+        <div className="max-w-7xl mx-auto rounded-card bg-primary relative overflow-hidden px-8 py-16 md:px-20 md:py-24 text-center">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 blur-[80px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-secondary/20 blur-[60px] rounded-full -translate-x-1/3 translate-y-1/3 pointer-events-none" />
+
           <div className="relative z-10">
-            <h2 className="text-4xl md:text-6xl font-display font-extrabold text-white mb-8 leading-tight">Đừng để lãng phí <br className="md:hidden" /> món đồ của bạn</h2>
-            <p className="text-white/80 text-lg md:text-xl mb-12 max-w-2xl mx-auto font-medium">
+            <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-6 leading-tight">
+              Đừng để lãng phí <br className="md:hidden" /> món đồ của bạn
+            </h2>
+            <p className="text-white/80 text-base md:text-lg mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
               Đăng tin miễn phí, bán hoặc cho thuê những vật dụng bạn không cần dùng đến. Giúp ích cho cộng đồng sinh viên.
             </p>
-            <Link to="/dang-tin"
-              className="inline-flex items-center gap-3 px-10 py-5 bg-secondary text-white font-bold rounded-pill hover:scale-105 transition-all shadow-xl hover:shadow-secondary/30 text-lg group">
-              Bắt đầu đăng tin <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            <Link
+              to="/dang-tin"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-surface text-primary font-bold rounded-btn hover:bg-surface-secondary transition-all duration-200 shadow-glass text-base group active:scale-[0.98]"
+            >
+              Bắt đầu đăng tin
+              <span className="material-symbols-outlined group-hover:translate-x-0.5 transition-transform duration-200">
+                arrow_forward
+              </span>
             </Link>
           </div>
         </div>
@@ -256,4 +315,5 @@ const Home = () => {
     </div>
   );
 };
+
 export default Home;

@@ -1,20 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import {
+  CalendarDays,
+  Handshake,
+  Loader2,
+  Package,
+  Receipt,
+  X,
+} from "lucide-react";
 import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
 import { useAuth } from "../../context/AuthContext";
 import rentalService from "../../services/rental.service";
 
 const STATUS_MAP = {
-  pending: { label: "Chờ xác nhận", color: "border-orange-200 bg-orange-50 text-orange-700" },
-  approved: { label: "Đã xác nhận", color: "border-blue-200 bg-blue-50 text-blue-700" },
-  active: { label: "Chờ nhận đồ", color: "border-sky-200 bg-sky-50 text-sky-700" },
-  renting: { label: "Đang thuê", color: "border-green-200 bg-green-50 text-green-700" },
-  return_requested: { label: "Chờ trả đồ", color: "border-amber-200 bg-amber-50 text-amber-700" },
-  completed: { label: "Hoàn tất", color: "border-teal-200 bg-teal-50 text-teal-700" },
-  cancelled: { label: "Đã hủy", color: "border-gray-200 bg-gray-50 text-gray-600" },
-  rejected: { label: "Bị từ chối", color: "border-red-200 bg-red-50 text-red-600" },
+  pending: { label: "Chờ xác nhận", color: "border-warning/30 bg-warning-soft text-warning" },
+  approved: { label: "Đã xác nhận", color: "border-primary/20 bg-primary/10 text-primary" },
+  active: { label: "Chờ nhận đồ", color: "border-primary/20 bg-surface-secondary text-primary" },
+  renting: { label: "Đang thuê", color: "border-success/25 bg-success-soft text-success" },
+  return_requested: { label: "Chờ trả đồ", color: "border-warning/30 bg-warning-soft text-warning" },
+  completed: { label: "Hoàn tất", color: "border-success/25 bg-success-soft text-success" },
+  cancelled: { label: "Đã hủy", color: "border-border bg-surface-secondary text-muted-foreground" },
+  rejected: { label: "Bị từ chối", color: "border-danger/25 bg-danger-soft text-danger" },
 };
 
 const FILTERS = [
@@ -62,31 +70,77 @@ function ExtendModal({ contract, onClose, onDone }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-        <h2 className="text-xl font-extrabold text-gray-900">Yêu cầu gia hạn</h2>
-        <p className="mt-1 text-sm text-gray-500">{contract.postId?.title}</p>
-
-        <div className="mt-5 grid gap-3 rounded-xl bg-gray-50 p-4 text-sm">
-          <div className="flex justify-between"><span>Ngày kết thúc hiện tại</span><strong>{fmtDate(contract.endDate)}</strong></div>
-          <div className="flex justify-between"><span>Ngày kết thúc mới</span><strong>{fmtDate(newEnd)}</strong></div>
-          <div className="flex justify-between"><span>Phí dự tính</span><strong className="text-green-600">{fmt(pricePerDay * days)}</strong></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-4 backdrop-blur-sm">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="extend-modal-title"
+        className="w-full max-w-md rounded-modal border border-border bg-surface p-6 shadow-card-hover animate-[scaleUp_0.2s_ease-out]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 id="extend-modal-title" className="text-xl font-extrabold text-foreground">
+              Yêu cầu gia hạn
+            </h2>
+            <p className="mt-1 text-sm font-medium text-muted-foreground">{contract.postId?.title}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-btn p-2 text-muted transition-all duration-200 hover:bg-surface-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
+            aria-label="Đóng"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        <label className="mt-5 block text-sm font-bold text-gray-700">Số ngày muốn gia hạn</label>
+        <div className="mt-5 grid gap-3 rounded-field bg-surface-secondary p-4 text-sm font-medium">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Ngày kết thúc hiện tại</span>
+            <strong className="text-foreground">{fmtDate(contract.endDate)}</strong>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Ngày kết thúc mới</span>
+            <strong className="text-foreground">{fmtDate(newEnd)}</strong>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Phí dự tính</span>
+            <strong className="text-primary">{fmt(pricePerDay * days)}</strong>
+          </div>
+        </div>
+
+        <label className="mt-5 block text-sm font-bold text-foreground">Số ngày muốn gia hạn</label>
         <input
           type="number"
           min={1}
           max={90}
           value={days}
           onChange={(event) => setDays(Math.max(Number(event.target.value) || 1, 1))}
-          className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-lg font-bold outline-none focus:border-green-500"
+          className="et-input mt-2 text-lg font-bold"
         />
 
         <div className="mt-6 grid grid-cols-2 gap-3">
-          <button onClick={onClose} className="rounded-xl border border-gray-200 py-3 font-bold text-gray-600">Hủy</button>
-          <button onClick={submit} disabled={loading} className="rounded-xl bg-green-600 py-3 font-bold text-white disabled:opacity-60">
-            {loading ? "Đang gửi..." : "Gửi yêu cầu"}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-btn border border-border bg-surface py-3 text-sm font-bold text-muted-foreground transition-all duration-200 hover:-translate-y-[3px] hover:bg-surface-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98]"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-btn bg-primary py-3 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-[3px] hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang gửi...
+              </>
+            ) : (
+              "Gửi yêu cầu"
+            )}
           </button>
         </div>
       </div>
@@ -96,73 +150,132 @@ function ExtendModal({ contract, onClose, onDone }) {
 
 function RentalCard({ item, ownerView, onAction, onExtend, onView, processing }) {
   const status = getStatus(item);
-  const statusInfo = STATUS_MAP[status] || { label: status, color: "border-gray-200 bg-gray-50 text-gray-600" };
+  const statusInfo = STATUS_MAP[status] || {
+    label: status,
+    color: "border-border bg-surface-secondary text-muted-foreground",
+  };
   const party = ownerView ? item.renterId : item.ownerId;
   const image = getImage(item);
   const days = Math.max(1, Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / 86400000));
 
+  const btnBase =
+    "inline-flex items-center justify-center rounded-btn px-3 py-2 text-xs font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
+
   return (
-    <article className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+    <article className="overflow-hidden rounded-card border border-border bg-surface shadow-card transition-all duration-200 ease-out hover:-translate-y-[3px] hover:border-primary/20 hover:shadow-card-hover">
       <div className="flex gap-4 p-5">
-        <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-gray-50">
-          {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-gray-300">image</div>}
+        <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-image bg-surface-secondary">
+          {image ? (
+            <img src={image} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full items-center justify-center text-muted">
+              <Package className="h-7 w-7" />
+            </div>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="line-clamp-2 font-bold text-gray-900">{item.postId?.title || "Sản phẩm không xác định"}</h3>
-            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase ${statusInfo.color}`}>{statusInfo.label}</span>
+            <h3 className="line-clamp-2 font-bold text-foreground">
+              {item.postId?.title || "Sản phẩm không xác định"}
+            </h3>
+            <span className={`et-badge shrink-0 border ${statusInfo.color}`}>
+              {statusInfo.label}
+            </span>
           </div>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0" />
             {fmtDate(item.startDate)} - {fmtDate(item.endDate)} · {days} ngày
           </p>
-          <p className="mt-1 text-sm text-gray-500">
-            {ownerView ? "Người thuê" : "Chủ đồ"}: <strong className="text-gray-800">{party?.fullName || party?.name || "Chưa cập nhật"}</strong>
+          <p className="mt-1 text-sm font-medium text-muted-foreground">
+            {ownerView ? "Người thuê" : "Chủ đồ"}:{" "}
+            <strong className="font-semibold text-foreground">
+              {party?.fullName || party?.name || "Chưa cập nhật"}
+            </strong>
           </p>
         </div>
       </div>
 
-      <div className="mx-5 grid grid-cols-2 rounded-xl bg-gray-50 p-3 text-center text-xs">
-        <div><p className="text-gray-400">Tiền thuê</p><strong>{fmt(item.rentalFee)}</strong></div>
-        <div><p className="text-gray-400">Tổng</p><strong className="text-green-600">{fmt(item.rentalFee)}</strong></div>
+      <div className="mx-5 grid grid-cols-2 rounded-field bg-surface-secondary p-3 text-center text-xs">
+        <div>
+          <p className="font-medium text-muted">Tiền thuê</p>
+          <strong className="text-sm text-foreground">{fmt(item.rentalFee)}</strong>
+        </div>
+        <div>
+          <p className="font-medium text-muted">Tổng</p>
+          <strong className="text-sm text-primary">{fmt(item.rentalFee)}</strong>
+        </div>
       </div>
 
       {isContract(item) && item.extendStatus === "pending" ? (
-        <div className="mx-5 mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Đang chờ duyệt gia hạn {item.pendingExtendDays} ngày, dự kiến đến {fmtDate(item.lastExtendNewEndDate || new Date(new Date(item.endDate).getTime() + item.pendingExtendDays * 86400000))}.
+        <div className="mx-5 mt-3 rounded-field border border-warning/30 bg-warning-soft p-3 text-sm font-medium text-warning">
+          Đang chờ duyệt gia hạn {item.pendingExtendDays} ngày, dự kiến đến{" "}
+          {fmtDate(
+            item.lastExtendNewEndDate ||
+              new Date(new Date(item.endDate).getTime() + item.pendingExtendDays * 86400000)
+          )}
+          .
         </div>
       ) : null}
 
       {isContract(item) && item.extendStatus === "approved" && item.lastExtendDays > 0 ? (
-        <div className="mx-5 mt-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-          Đã gia hạn thêm {item.lastExtendDays} ngày, ngày kết thúc mới: {fmtDate(item.lastExtendNewEndDate || item.endDate)}.
+        <div className="mx-5 mt-3 rounded-field border border-success/25 bg-success-soft p-3 text-sm font-medium text-success">
+          Đã gia hạn thêm {item.lastExtendDays} ngày, ngày kết thúc mới:{" "}
+          {fmtDate(item.lastExtendNewEndDate || item.endDate)}.
         </div>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-50 px-5 py-3">
-        <span className="text-xs font-mono text-gray-400">{isContract(item) ? "HĐ" : "YC"}#{String(item._id).slice(-8).toUpperCase()}</span>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4">
+        <span className="font-mono text-[11px] font-medium text-muted">
+          {isContract(item) ? "HĐ" : "YC"}#{String(item._id).slice(-8).toUpperCase()}
+        </span>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => onView(item._id)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50">
+          <button
+            type="button"
+            onClick={() => onView(item._id)}
+            className={`${btnBase} border border-border bg-surface text-muted-foreground hover:-translate-y-[3px] hover:border-primary/30 hover:bg-surface-secondary hover:text-primary`}
+          >
             Chi tiết
           </button>
 
           {!ownerView && status === "pending" ? (
-            <button disabled={processing} onClick={() => onAction(item._id, "cancelled")} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50">
+            <button
+              type="button"
+              disabled={processing}
+              onClick={() => onAction(item._id, "cancelled")}
+              className={`${btnBase} border border-danger/25 bg-surface text-danger hover:-translate-y-[3px] hover:bg-danger-soft`}
+            >
               Hủy yêu cầu
             </button>
           ) : null}
 
           {!ownerView && status === "active" ? (
-            <button disabled={processing} onClick={() => onAction(item._id, "renting")} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
+            <button
+              type="button"
+              disabled={processing}
+              onClick={() => onAction(item._id, "renting")}
+              className={`${btnBase} bg-primary text-white hover:-translate-y-[3px] hover:bg-primary-hover`}
+            >
+              {processing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               Xác nhận đã nhận đồ
             </button>
           ) : null}
 
           {!ownerView && status === "renting" ? (
             <>
-              <button disabled={processing || item.extendStatus === "pending"} onClick={() => onExtend(item)} className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
+              <button
+                type="button"
+                disabled={processing || item.extendStatus === "pending"}
+                onClick={() => onExtend(item)}
+                className={`${btnBase} border border-primary/25 bg-surface text-primary hover:-translate-y-[3px] hover:bg-surface-secondary disabled:hover:translate-y-0`}
+              >
                 Yêu cầu gia hạn
               </button>
-              <button disabled={processing} onClick={() => onAction(item._id, "return")} className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
+              <button
+                type="button"
+                disabled={processing}
+                onClick={() => onAction(item._id, "return")}
+                className={`${btnBase} bg-warning text-white hover:-translate-y-[3px] hover:brightness-95`}
+              >
                 Trả đồ
               </button>
             </>
@@ -170,26 +283,86 @@ function RentalCard({ item, ownerView, onAction, onExtend, onView, processing })
 
           {ownerView && status === "pending" ? (
             <>
-              <button disabled={processing} onClick={() => onAction(item._id, { status: "rejected" })} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50">Từ chối</button>
-              <button disabled={processing} onClick={() => onAction(item._id, { status: "approved" })} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">Chấp nhận</button>
+              <button
+                type="button"
+                disabled={processing}
+                onClick={() => onAction(item._id, { status: "rejected" })}
+                className={`${btnBase} border border-danger/25 bg-surface text-danger hover:-translate-y-[3px] hover:bg-danger-soft`}
+              >
+                Từ chối
+              </button>
+              <button
+                type="button"
+                disabled={processing}
+                onClick={() => onAction(item._id, { status: "approved" })}
+                className={`${btnBase} bg-primary text-white hover:-translate-y-[3px] hover:bg-primary-hover`}
+              >
+                Chấp nhận
+              </button>
             </>
           ) : null}
 
           {ownerView && item.extendStatus === "pending" ? (
             <>
-              <button disabled={processing} onClick={() => onAction(item._id, "extend_reject")} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50">Từ chối gia hạn</button>
-              <button disabled={processing} onClick={() => onAction(item._id, "extend_approve")} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">Duyệt gia hạn</button>
+              <button
+                type="button"
+                disabled={processing}
+                onClick={() => onAction(item._id, "extend_reject")}
+                className={`${btnBase} border border-danger/25 bg-surface text-danger hover:-translate-y-[3px] hover:bg-danger-soft`}
+              >
+                Từ chối gia hạn
+              </button>
+              <button
+                type="button"
+                disabled={processing}
+                onClick={() => onAction(item._id, "extend_approve")}
+                className={`${btnBase} bg-primary text-white hover:-translate-y-[3px] hover:bg-primary-hover`}
+              >
+                Duyệt gia hạn
+              </button>
             </>
           ) : null}
 
           {ownerView && status === "return_requested" ? (
-            <button disabled={processing} onClick={() => onAction(item._id, { status: "completed" })} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
+            <button
+              type="button"
+              disabled={processing}
+              onClick={() => onAction(item._id, { status: "completed" })}
+              className={`${btnBase} bg-primary text-white hover:-translate-y-[3px] hover:bg-primary-hover`}
+            >
               Xác nhận đã nhận đồ & hoàn tất
             </button>
           ) : null}
         </div>
       </div>
     </article>
+  );
+}
+
+function RentalsSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="overflow-hidden rounded-card border border-border bg-surface shadow-card">
+          <div className="flex gap-4 p-5">
+            <div className="h-20 w-20 shrink-0 animate-pulse rounded-image bg-surface-secondary" />
+            <div className="flex-1 space-y-3">
+              <div className="h-5 w-3/4 animate-pulse rounded-btn bg-surface-secondary" />
+              <div className="h-4 w-1/2 animate-pulse rounded-btn bg-surface-secondary" />
+              <div className="h-4 w-2/5 animate-pulse rounded-btn bg-surface-secondary" />
+            </div>
+          </div>
+          <div className="mx-5 mb-4 h-14 animate-pulse rounded-field bg-surface-secondary" />
+          <div className="flex justify-between border-t border-border px-5 py-4">
+            <div className="h-4 w-24 animate-pulse rounded-btn bg-surface-secondary" />
+            <div className="flex gap-2">
+              <div className="h-8 w-20 animate-pulse rounded-btn bg-surface-secondary" />
+              <div className="h-8 w-24 animate-pulse rounded-btn bg-surface-secondary" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -268,24 +441,45 @@ export default function Rentals() {
 
   return (
     <EcoTradeLayout>
-      <div className="mx-auto max-w-5xl px-4 md:px-8">
+      <div className="mx-auto w-full max-w-5xl font-sans">
         <div className="mb-8">
-          <h1 className="text-2xl font-extrabold text-gray-900">Quản lý thuê mượn</h1>
-          <p className="mt-1 text-sm text-gray-500">Xin chào <strong>{user?.fullName || user?.name}</strong>, theo dõi yêu cầu thuê, hợp đồng, gia hạn và trả đồ tại đây.</p>
+          <div className="mb-3 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-primary shadow-card">
+            <Handshake className="h-3.5 w-3.5" />
+            Thuê & mượn
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+            Quản lý thuê mượn
+          </h1>
+          <p className="mt-2 text-sm font-medium text-muted-foreground">
+            Xin chào <strong className="font-semibold text-foreground">{user?.fullName || user?.name}</strong>, theo dõi yêu cầu thuê, hợp đồng, gia hạn và trả đồ tại đây.
+          </p>
         </div>
 
-        <div className="mb-6 flex w-fit gap-2 rounded-2xl border border-gray-100 bg-white p-1.5 shadow-sm">
+        <div className="mb-6 flex w-fit gap-1.5 rounded-card border border-border bg-surface p-1.5 shadow-card">
           {[
             ["Đồ tôi thuê", counters[0]],
             ["Đồ tôi cho thuê", counters[1]],
           ].map(([label, count], index) => (
             <button
               key={label}
+              type="button"
               onClick={() => { setTab(index); setStatusFilter("all"); }}
-              className={`relative rounded-xl px-5 py-2 text-sm font-bold transition ${tab === index ? "bg-green-600 text-white" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"}`}
+              className={`relative rounded-btn px-5 py-2.5 text-sm font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] ${
+                tab === index
+                  ? "bg-primary text-white shadow-card"
+                  : "text-muted-foreground hover:bg-surface-secondary hover:text-primary"
+              }`}
             >
               {label}
-              {count > 0 ? <span className="ml-2 rounded-full bg-white/90 px-1.5 text-[10px] text-green-700">{count > 9 ? "9+" : count}</span> : null}
+              {count > 0 ? (
+                <span
+                  className={`ml-2 rounded-pill px-1.5 py-0.5 text-[10px] font-extrabold ${
+                    tab === index ? "bg-white/95 text-primary" : "bg-surface-secondary text-primary"
+                  }`}
+                >
+                  {count > 9 ? "9+" : count}
+                </span>
+              ) : null}
             </button>
           ))}
         </div>
@@ -294,8 +488,13 @@ export default function Rentals() {
           {FILTERS.map(([value, label]) => (
             <button
               key={value}
+              type="button"
               onClick={() => setStatusFilter(value)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${statusFilter === value ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"}`}
+              className={`rounded-pill border px-3.5 py-2 text-xs font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] ${
+                statusFilter === value
+                  ? "border-primary bg-primary text-white shadow-card"
+                  : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-primary"
+              }`}
             >
               {label}
             </button>
@@ -303,12 +502,24 @@ export default function Rentals() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20"><span className="material-symbols-outlined animate-spin text-5xl text-green-500">refresh</span></div>
+          <RentalsSkeleton />
         ) : currentItems.length === 0 ? (
-          <div className="rounded-2xl border border-gray-100 bg-white py-16 text-center">
-            <span className="material-symbols-outlined block text-5xl text-gray-200">receipt_long</span>
-            <p className="mt-3 font-semibold text-gray-500">{tab === 0 ? "Bạn chưa có giao dịch thuê nào" : "Chưa có ai thuê đồ của bạn"}</p>
-            {tab === 0 ? <button onClick={() => navigate("/cho-thue")} className="mt-4 rounded-xl bg-green-600 px-5 py-2 text-sm font-bold text-white">Tìm đồ để thuê</button> : null}
+          <div className="rounded-card border border-dashed border-border bg-surface py-16 text-center shadow-card">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-card bg-surface-secondary">
+              <Receipt className="h-8 w-8 text-muted" />
+            </div>
+            <p className="font-semibold text-muted-foreground">
+              {tab === 0 ? "Bạn chưa có giao dịch thuê nào" : "Chưa có ai thuê đồ của bạn"}
+            </p>
+            {tab === 0 ? (
+              <button
+                type="button"
+                onClick={() => navigate("/cho-thue")}
+                className="et-btn-primary mt-5 hover:-translate-y-[3px]"
+              >
+                Tìm đồ để thuê
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -327,7 +538,13 @@ export default function Rentals() {
         )}
       </div>
 
-      {extendTarget ? <ExtendModal contract={extendTarget} onClose={() => setExtendTarget(null)} onDone={fetchAll} /> : null}
+      {extendTarget ? (
+        <ExtendModal
+          contract={extendTarget}
+          onClose={() => setExtendTarget(null)}
+          onDone={fetchAll}
+        />
+      ) : null}
     </EcoTradeLayout>
   );
 }

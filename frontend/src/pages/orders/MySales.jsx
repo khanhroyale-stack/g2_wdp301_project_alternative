@@ -11,6 +11,7 @@ import {
   CircleCheck,
   Clock,
   Leaf,
+  Loader2,
   MapPin,
   Package2,
   ShoppingBag,
@@ -61,6 +62,47 @@ function getSellerConfirmStage(order) {
   }
 
   return null;
+}
+
+function SalesSkeleton() {
+  return (
+    <div className="space-y-5">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="overflow-hidden rounded-card border border-border bg-surface shadow-card"
+        >
+          <div className="p-6">
+            <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="space-y-3">
+                <div className="h-6 w-48 animate-pulse rounded-btn bg-surface-secondary" />
+                <div className="h-4 w-64 animate-pulse rounded-btn bg-surface-secondary" />
+              </div>
+              <div className="h-10 w-32 animate-pulse rounded-btn bg-surface-secondary" />
+            </div>
+            <div className="flex flex-col gap-5 border-y border-border py-5 lg:flex-row">
+              <div className="h-24 w-24 shrink-0 animate-pulse rounded-image bg-surface-secondary" />
+              <div className="flex-1 space-y-4">
+                <div className="h-6 w-3/4 animate-pulse rounded-btn bg-surface-secondary" />
+                <div className="flex gap-4">
+                  <div className="h-4 w-32 animate-pulse rounded-btn bg-surface-secondary" />
+                  <div className="h-4 w-40 animate-pulse rounded-btn bg-surface-secondary" />
+                </div>
+                <div className="h-14 w-full animate-pulse rounded-field bg-surface-secondary" />
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="h-4 w-1/2 animate-pulse rounded-btn bg-surface-secondary" />
+              <div className="flex gap-3">
+                <div className="h-10 w-32 animate-pulse rounded-btn bg-surface-secondary" />
+                <div className="h-10 w-32 animate-pulse rounded-btn bg-surface-secondary" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function MySales() {
@@ -140,151 +182,136 @@ export default function MySales() {
   const shipperConfirmedCount = orders.filter((order) => order.orderStatus === "delivered").length;
   const buyerConfirmedCount = orders.filter((order) => order.orderStatus === "completed").length;
 
+  const stats = [
+    {
+      label: "Đơn mới",
+      value: pendingCount,
+      hint: "Cần seller xử lý ngay",
+      icon: BellRing,
+      tone: "text-warning bg-warning-soft border-warning/25",
+      iconTone: "bg-warning/15 text-warning",
+    },
+    {
+      label: "Đã xác nhận",
+      value: confirmedCount,
+      hint: "Đang chờ shipper nhận đơn",
+      icon: Clock,
+      tone: "text-primary bg-surface-secondary border-primary/15",
+      iconTone: "bg-primary/10 text-primary",
+    },
+    {
+      label: "Shipper confirm",
+      value: shipperConfirmedCount,
+      hint: "Đã giao, chờ buyer xác nhận",
+      icon: CircleCheck,
+      tone: "text-success bg-success-soft border-success/20",
+      iconTone: "bg-success-soft text-success",
+    },
+    {
+      label: "Buyer confirm",
+      value: buyerConfirmedCount,
+      hint: "Buyer xác nhận hoặc tự hoàn tất",
+      icon: CircleCheck,
+      tone: "text-success bg-success-soft border-success/20",
+      iconTone: "bg-success-soft text-success",
+    },
+  ];
+
   return (
     <EcoTradeLayout>
-      <div className="w-full">
-        <div className="mb-9 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="w-full font-sans">
+        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1 text-xs font-semibold uppercase tracking-wide text-success">
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-primary shadow-card">
               <Leaf className="h-3.5 w-3.5" />
               Kênh bán hàng
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Đơn bán của tôi</h1>
-            <p className="mt-2 text-sm text-muted-foreground max-w-lg">
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+              Đơn bán của tôi
+            </h1>
+            <p className="mt-2 max-w-lg text-sm font-medium leading-relaxed text-muted-foreground">
               Seller nhận thông báo khi có đơn mới, bấm vào đơn để xác nhận hoặc từ chối kèm lý do, sau đó theo dõi quá trình giao hàng.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <Card className="border-warning/30 bg-[#fffaf1] shadow-sm transition-shadow hover:shadow-md">
-              <CardContent className="flex items-start gap-3 pt-5">
-                <div className="shrink-0 rounded-2xl bg-warning/15 p-2.5 text-warning">
-                  <BellRing className="h-5 w-5" />
+            {stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div
+                  key={stat.label}
+                  className={`rounded-card border p-4 shadow-card transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-card-hover ${stat.tone}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`shrink-0 rounded-field p-2.5 ${stat.iconTone}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="min-h-[32px] text-[11px] font-bold uppercase tracking-[0.12em]">
+                        {stat.label}
+                      </div>
+                      <div className="mt-1 text-[1.75rem] font-extrabold leading-none text-foreground">
+                        {stat.value}
+                      </div>
+                      <div className="mt-1 text-xs font-medium text-muted-foreground">{stat.hint}</div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-warning min-h-[32px]">Đơn mới</div>
-                  <div className="mt-1 text-[1.75rem] font-extrabold leading-none">{pendingCount}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">Cần seller xử lý ngay</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-sky/20 bg-[#f4faff] shadow-sm transition-shadow hover:shadow-md">
-              <CardContent className="flex items-start gap-3 pt-5">
-                <div className="shrink-0 rounded-2xl bg-sky-soft p-2.5 text-sky">
-                  <Clock className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-sky min-h-[32px]">Đã xác nhận</div>
-                  <div className="mt-1 text-[1.75rem] font-extrabold leading-none">{confirmedCount}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">Đang chờ shipper nhận đơn</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-success/20 bg-[#f5fdf8] shadow-sm transition-shadow hover:shadow-md">
-              <CardContent className="flex items-start gap-3 pt-5">
-                <div className="shrink-0 rounded-2xl bg-success-soft p-2.5 text-success">
-                  <CircleCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-success min-h-[32px]">Shipper confirm</div>
-                  <div className="mt-1 text-[1.75rem] font-extrabold leading-none">{shipperConfirmedCount}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">Đã giao, chờ buyer xác nhận</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-success/20 bg-[#f5fdf8] shadow-sm transition-shadow hover:shadow-md">
-              <CardContent className="flex items-start gap-3 pt-5">
-                <div className="shrink-0 rounded-2xl bg-success-soft p-2.5 text-success">
-                  <CircleCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.12em] text-success min-h-[32px]">Buyer confirm</div>
-                  <div className="mt-1 text-[1.75rem] font-extrabold leading-none">{buyerConfirmedCount}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">Buyer xác nhận hoặc tự hoàn tất</div>
-                </div>
-              </CardContent>
-            </Card>
+              );
+            })}
           </div>
         </div>
 
-        <Card className="mb-6 border-sky/20 bg-[#f4faff] shadow-sm">
-          <CardContent className="flex items-start gap-4 pt-6">
-            <div className="rounded-2xl bg-sky-soft p-3 text-sky">
-              <BellRing className="h-6 w-6" />
+        <div className="mb-5 rounded-card border border-border bg-surface p-5 shadow-card sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-field bg-primary/10 p-3 text-primary">
+              <BellRing className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-lg font-bold">Luồng seller hiện tại</div>
-              <div className="mt-1 text-sm leading-7 text-muted-foreground">
+              <h2 className="text-base font-bold text-foreground sm:text-lg">Luồng seller hiện tại</h2>
+              <p className="mt-1 text-sm font-medium leading-7 text-muted-foreground">
                 Khi buyer đặt hàng, hệ thống tạo thông báo cho seller. Seller mở thông báo hoặc vào danh sách này để duyệt đơn,
                 xác nhận tạo delivery hoặc từ chối có kèm lý do. Nếu đơn đã sang luồng shipper, seller chỉ theo dõi tiến độ.
-              </div>
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="mb-6 border-warning/20 bg-[#fffdf7] shadow-sm">
-          <CardContent className="flex items-start gap-4 pt-6">
-            <div className="rounded-2xl bg-warning/15 p-3 text-warning">
-              <CircleAlert className="h-6 w-6" />
+        <div className="mb-6 rounded-card border border-warning/25 bg-warning-soft/60 p-5 shadow-card sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-field bg-warning/15 p-3 text-warning">
+              <CircleAlert className="h-5 w-5" />
             </div>
-            <div className="text-sm leading-7 text-muted-foreground">
+            <p className="text-sm font-medium leading-7 text-muted-foreground">
               Trạng thái trong hệ thống đang dùng `pending`, `confirmed`, `shipping`, `delivered`, `completed`, `cancelled`.
               Về nghiệp vụ seller, bạn có thể hiểu lần lượt là chờ xác nhận, đã xác nhận, đang giao, đã giao, hoàn tất và đã hủy.
-            </div>
-          </CardContent>
-        </Card>
+            </p>
+          </div>
+        </div>
 
         {loading ? (
-          <div className="space-y-5">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden">
-                <CardContent className="pt-6">
-                  <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div>
-                      <div className="mb-3 h-6 w-48 animate-pulse rounded-md bg-surface-variant/40" />
-                      <div className="h-4 w-64 animate-pulse rounded-md bg-surface-variant/40" />
-                    </div>
-                    <div className="h-9 w-32 animate-pulse rounded-md bg-surface-variant/40" />
-                  </div>
-                  <div className="flex flex-col gap-5 border-y border-border py-5 lg:flex-row">
-                    <div className="h-24 w-24 shrink-0 animate-pulse rounded-[18px] bg-surface-variant/40" />
-                    <div className="flex-1 space-y-4">
-                      <div className="h-6 w-3/4 animate-pulse rounded-md bg-surface-variant/40" />
-                      <div className="flex gap-4">
-                        <div className="h-4 w-32 animate-pulse rounded-md bg-surface-variant/40" />
-                        <div className="h-4 w-40 animate-pulse rounded-md bg-surface-variant/40" />
-                      </div>
-                      <div className="h-12 w-full animate-pulse rounded-2xl bg-surface-variant/40" />
-                    </div>
-                  </div>
-                  <div className="mt-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                    <div className="h-4 w-1/2 animate-pulse rounded-md bg-surface-variant/40" />
-                    <div className="flex gap-3">
-                      <div className="h-10 w-32 animate-pulse rounded-md bg-surface-variant/40" />
-                      <div className="h-10 w-32 animate-pulse rounded-md bg-surface-variant/40" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <SalesSkeleton />
         ) : sortedOrders.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex min-h-[280px] flex-col items-center justify-center gap-4 pt-6 text-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-success-soft">
+          <div className="rounded-card border border-dashed border-border bg-surface shadow-card">
+            <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-card bg-success-soft">
                 <Archive className="h-9 w-9 text-success" />
               </div>
-              <div className="text-2xl font-bold">Chưa có đơn bán nào</div>
-              <div className="max-w-md text-muted-foreground">
+              <h2 className="text-2xl font-extrabold text-foreground">Chưa có đơn bán nào</h2>
+              <p className="max-w-md text-sm font-medium text-muted-foreground">
                 Khi người mua đặt sản phẩm của bạn, đơn sẽ xuất hiện ở đây và bạn cũng sẽ nhận được thông báo để xử lý.
-              </div>
-              <Button asChild variant="outline" className="gap-2">
+              </p>
+              <Button
+                asChild
+                variant="outline"
+                className="gap-2 rounded-btn transition-all duration-200 hover:-translate-y-[3px] hover:shadow-card"
+              >
                 <Link to="/notifications">
                   Mở trang thông báo
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : (
           <div className="space-y-5">
             {sortedOrders.map((order) => {
@@ -297,19 +324,24 @@ export default function MySales() {
               const confirmStage = getSellerConfirmStage(order);
 
               return (
-                <Card key={order._id} className="overflow-hidden transition-shadow hover:shadow-md">
+                <Card
+                  key={order._id}
+                  className="overflow-hidden rounded-card border-border shadow-card transition-all duration-200 ease-out hover:-translate-y-[3px] hover:border-primary/20 hover:shadow-card-hover"
+                >
                   <CardContent className="pt-6">
                     <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                       <div>
                         <div className="mb-2 flex flex-wrap items-center gap-3">
-                          <span className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Mã đơn</span>
-                          <span className="rounded-md bg-muted px-2 py-0.5 text-xl font-extrabold tracking-wide">
+                          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+                            Mã đơn
+                          </span>
+                          <span className="rounded-field bg-surface-secondary px-2.5 py-1 text-lg font-extrabold tracking-wide text-foreground">
                             {String(order._id).slice(-8).toUpperCase()}
                           </span>
                           <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                           {confirmStage ? <Badge variant={confirmStage.variant}>{confirmStage.label}</Badge> : null}
                         </div>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-muted-foreground">
                           <span className="flex items-center gap-2">
                             <CalendarDays className="h-4 w-4" />
                             {formatDateTime(order.createdAt)}
@@ -320,7 +352,11 @@ export default function MySales() {
                           </span>
                         </div>
                       </div>
-                      <Button asChild variant="outline" className="gap-2">
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="gap-2 rounded-btn transition-all duration-200 hover:-translate-y-[3px] hover:shadow-card focus-visible:ring-2 focus-visible:ring-primary/30"
+                      >
                         <Link to={`/orders/${order._id}`}>
                           Xem chi tiết
                           <ArrowRight className="h-4 w-4" />
@@ -329,18 +365,20 @@ export default function MySales() {
                     </div>
 
                     <div className="flex flex-col gap-5 border-y border-border py-5 lg:flex-row">
-                      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[18px] border border-border bg-muted">
+                      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-image border border-border bg-surface-secondary">
                         {order.productImage ? (
                           <img src={order.productImage} alt={product.title} className="h-full w-full object-cover" />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                          <div className="flex h-full w-full items-center justify-center text-muted">
                             <Archive className="h-8 w-8" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-[1.35rem] font-bold">{product.title || "Sản phẩm EcoTrade"}</h3>
-                        <div className="mt-3 flex flex-wrap gap-5 text-sm text-muted-foreground">
+                        <h3 className="text-lg font-bold text-foreground sm:text-[1.25rem]">
+                          {product.title || "Sản phẩm EcoTrade"}
+                        </h3>
+                        <div className="mt-3 flex flex-wrap gap-5 text-sm font-medium text-muted-foreground">
                           <span className="flex items-center gap-2">
                             <ShoppingBag className="h-4 w-4" />
                             Giá trị đơn: {formatPrice(order.totalAmount)}
@@ -355,8 +393,8 @@ export default function MySales() {
                           </span>
                         </div>
                         <div
-                          className={`mt-4 flex items-start gap-2 rounded-2xl bg-muted px-4 py-3 text-sm leading-6 ${
-                            order.orderStatus === "cancelled" ? "text-black" : "text-muted-foreground"
+                          className={`mt-4 flex items-start gap-2 rounded-field bg-surface-secondary px-4 py-3 text-sm font-medium leading-6 ${
+                            order.orderStatus === "cancelled" ? "text-foreground" : "text-muted-foreground"
                           }`}
                         >
                           <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
@@ -366,10 +404,10 @@ export default function MySales() {
                     </div>
 
                     <div className="mt-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                         <MapPin className="h-4 w-4 shrink-0" />
                         Địa chỉ người mua:{" "}
-                        <span className="font-medium text-foreground">{order.buyerAddress || "Chưa cập nhật"}</span>
+                        <span className="font-semibold text-foreground">{order.buyerAddress || "Chưa cập nhật"}</span>
                       </div>
                       {isPendingAction ? (
                         <div className="flex flex-wrap gap-3">
@@ -377,11 +415,11 @@ export default function MySales() {
                             variant="danger"
                             disabled={isProcessing}
                             onClick={() => handleStatusUpdate(order._id, "cancelled")}
-                            className="gap-2"
+                            className="gap-2 rounded-btn transition-all duration-200 hover:-translate-y-[3px] active:scale-[0.98] disabled:translate-y-0 disabled:opacity-50"
                           >
                             {isProcessing ? (
                               <>
-                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                                <Loader2 className="h-4 w-4 animate-spin" />
                                 Đang xử lý...
                               </>
                             ) : (
@@ -394,11 +432,11 @@ export default function MySales() {
                           <Button
                             disabled={isProcessing}
                             onClick={() => handleStatusUpdate(order._id, "confirmed")}
-                            className="gap-2"
+                            className="gap-2 rounded-btn transition-all duration-200 hover:bg-primary-hover hover:-translate-y-[3px] active:scale-[0.98] disabled:translate-y-0 disabled:opacity-50"
                           >
                             {isProcessing ? (
                               <>
-                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                                <Loader2 className="h-4 w-4 animate-spin" />
                                 Đang xử lý...
                               </>
                             ) : (
