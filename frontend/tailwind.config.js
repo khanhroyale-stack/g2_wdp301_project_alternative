@@ -61,8 +61,8 @@ export default {
         'tertiary-container': '#F7B786',
       },
       fontFamily: {
-        sans: ['"Be Vietnam Pro"', 'Segoe UI', 'sans-serif'],
-        display: ['Urbanist', 'sans-serif'],
+        sans: ['Inter', 'Segoe UI', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'sans-serif'],
       },
       fontSize: {
         'display-lg': ['3rem', { lineHeight: '1.2', fontWeight: '700' }],

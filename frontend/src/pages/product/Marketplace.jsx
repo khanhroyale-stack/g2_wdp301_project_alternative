@@ -41,6 +41,8 @@ const Marketplace = () => {
   const [products, setProducts] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const keyword = searchParams.get("q") || "";
 
@@ -55,7 +57,9 @@ const Marketplace = () => {
     try {
       const params = {
         productType: isRentPage ? "rent" : "sale",
-        sort: sortBy
+        sort: sortBy,
+        page: currentPage,
+        limit: 12
       };
       if (keyword) params.keyword = keyword;
       if (selectedCat !== "Tất cả") params.category = selectedCat;
@@ -72,13 +76,18 @@ const Marketplace = () => {
           setFeaturedProducts(res.data?.featuredProducts || []);
           setProducts(res.data?.products || []);
         }
+        if (res.pagination) {
+          setTotalPages(res.pagination.pages || 1);
+        } else {
+          setTotalPages(1);
+        }
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [isRentPage, keyword, selectedCat, selectedCond, sortBy, minPrice, maxPrice]);
+  }, [isRentPage, keyword, selectedCat, selectedCond, sortBy, minPrice, maxPrice, currentPage]);
 
   useEffect(() => {
     fetchProducts();
@@ -159,12 +168,12 @@ const Marketplace = () => {
             <div>
               <h3 className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-[0.2em] mb-6">Bộ lọc danh mục</h3>
               <div className="flex flex-col gap-2">
-                <button onClick={() => setSelectedCat("Tất cả")}
+                <button onClick={() => { setSelectedCat("Tất cả"); setCurrentPage(1); }}
                   className={`w-full text-left px-5 py-3 rounded-pill text-sm font-bold transition-all ${selectedCat === "Tất cả" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-on-surface-variant hover:bg-primary/5 hover:text-primary"}`}>
                   Tất cả sản phẩm
                 </button>
                 {categories.map((cat) => (
-                  <button key={cat._id} onClick={() => setSelectedCat(cat._id)}
+                  <button key={cat._id} onClick={() => { setSelectedCat(cat._id); setCurrentPage(1); }}
                     className={`w-full text-left px-5 py-3 rounded-pill text-sm font-bold transition-all ${selectedCat === cat._id ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-on-surface-variant hover:bg-primary/5 hover:text-primary"}`}>
                     {cat.name}
                   </button>
@@ -176,11 +185,11 @@ const Marketplace = () => {
               <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Khoảng giá</h3>
               <div className="flex flex-col gap-3">
                 <div className="relative">
-                  <input className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all pr-8" placeholder="Từ" type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
+                  <input className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all pr-8" placeholder="Từ" type="number" value={minPrice} onChange={(e) => { setMinPrice(e.target.value); setCurrentPage(1); }} />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary/40">₫</span>
                 </div>
                 <div className="relative">
-                  <input className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all pr-8" placeholder="Đến" type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+                  <input className="w-full bg-white border border-primary/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all pr-8" placeholder="Đến" type="number" value={maxPrice} onChange={(e) => { setMaxPrice(e.target.value); setCurrentPage(1); }} />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary/40">₫</span>
                 </div>
               </div>
@@ -190,7 +199,7 @@ const Marketplace = () => {
               <h3 className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-[0.2em] mb-6">Tình trạng đồ</h3>
               <div className="flex flex-wrap gap-2">
                 {CONDITION_OPTIONS.map((condition) => (
-                  <button key={condition.value || "all"} onClick={() => setSelectedCond(condition.value)}
+                  <button key={condition.value || "all"} onClick={() => { setSelectedCond(condition.value); setCurrentPage(1); }}
                     className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${selectedCond === condition.value ? "bg-secondary border-secondary text-white" : "border-primary/10 text-on-surface-variant hover:border-primary/30 hover:text-primary"}`}>
                     {condition.label}
                   </button>
@@ -199,7 +208,7 @@ const Marketplace = () => {
             </div>
 
             <button
-              onClick={() => { setSelectedCat("Tất cả"); setSelectedCond(""); setMinPrice(""); setMaxPrice(""); }}
+              onClick={() => { setSelectedCat("Tất cả"); setSelectedCond(""); setMinPrice(""); setMaxPrice(""); setCurrentPage(1); }}
               className="inline-flex items-center gap-2 text-xs font-bold text-error/60 hover:text-error transition-colors pt-4 border-t border-primary/5"
             >
               <span className="material-symbols-outlined text-[16px]">refresh</span>
@@ -219,7 +228,7 @@ const Marketplace = () => {
             </div>
             <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-pill shadow-sm border border-primary/5">
               <span className="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest">Sắp xếp:</span>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+              <select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
                 className="bg-transparent text-sm font-bold text-primary outline-none cursor-pointer">
                 <option value="newest">Mới nhất</option>
                 <option value="price_asc">Giá rẻ nhất</option>
@@ -313,7 +322,7 @@ const Marketplace = () => {
             <div className="text-center py-24 bg-white rounded-organic border border-primary/5">
               <span className="material-symbols-outlined text-6xl text-primary/20 block mb-4">search_off</span>
               <p className="text-on-surface-variant font-medium">Không tìm thấy sản phẩm phù hợp.</p>
-              <button onClick={() => { setSelectedCat("Tất cả"); setSelectedCond(""); setMinPrice(""); setMaxPrice(""); }}
+              <button onClick={() => { setSelectedCat("Tất cả"); setSelectedCond(""); setMinPrice(""); setMaxPrice(""); setCurrentPage(1); }}
                 className="mt-4 text-primary font-bold hover:underline">Xóa tất cả bộ lọc</button>
             </div>
           ) : (
@@ -404,6 +413,41 @@ const Marketplace = () => {
                   </article>
                 );
               })}
+            </div>
+          )}
+
+          {/* Phân trang */}
+          {!loading && totalPages > 1 && (
+            <div className="flex justify-center items-center mt-12 gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-primary/10 text-on-surface-variant hover:border-primary hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+              </button>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold transition-all ${
+                    currentPage === page 
+                      ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                      : "border border-primary/10 text-on-surface-variant hover:border-primary hover:text-primary"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-primary/10 text-on-surface-variant hover:border-primary hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+              </button>
             </div>
           )}
         </section>
