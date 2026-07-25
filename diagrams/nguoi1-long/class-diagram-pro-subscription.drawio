@@ -1,0 +1,106 @@
+<mxfile host="app.diagrams.net" agent="claude-code" version="24.7.0">
+  <diagram id="classdiagram2" name="Class Diagram - Pro Upgrade VNPay Payment">
+    <mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="736" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+<mxCell id="cls2" value="CreatePaymentRequest" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#888888;fontSize=13;" vertex="1" parent="1">
+  <mxGeometry x="40" y="40" width="220" height="52" as="geometry" />
+</mxCell>
+<mxCell id="row3" value="+plan: String" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls2">
+  <mxGeometry y="28" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="cls4" value="SubscriptionController" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#888888;fontSize=13;" vertex="1" parent="1">
+  <mxGeometry x="320" y="40" width="220" height="124" as="geometry" />
+</mxCell>
+<mxCell id="row5" value="+getPlans(req, res)" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls4">
+  <mxGeometry y="28" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row6" value="+createPayment(req, res)" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls4">
+  <mxGeometry y="52" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row7" value="+vnpayReturn(req, res)" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls4">
+  <mxGeometry y="76" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row8" value="+getStatus(req, res)" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls4">
+  <mxGeometry y="100" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="cls9" value="VnpayUtil" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#888888;fontSize=13;" vertex="1" parent="1">
+  <mxGeometry x="680" y="40" width="220" height="76" as="geometry" />
+</mxCell>
+<mxCell id="row10" value="+buildPaymentUrl(data): String" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls9">
+  <mxGeometry y="28" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row11" value="+verifyReturn(query): Object" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls9">
+  <mxGeometry y="52" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="cls12" value="AdminSubscriptionController" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#888888;fontSize=13;" vertex="1" parent="1">
+  <mxGeometry x="320" y="300" width="220" height="76" as="geometry" />
+</mxCell>
+<mxCell id="row13" value="+getRevenueStats(req, res)" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls12">
+  <mxGeometry y="28" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row14" value="+getTransactions(req, res)" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls12">
+  <mxGeometry y="52" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="cls15" value="ProSubscription" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#888888;fontSize=13;" vertex="1" parent="1">
+  <mxGeometry x="40" y="480" width="220" height="196" as="geometry" />
+</mxCell>
+<mxCell id="row16" value="+userId: ObjectId" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls15">
+  <mxGeometry y="28" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row17" value="+plan: String" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls15">
+  <mxGeometry y="52" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row18" value="+durationDays: Number" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls15">
+  <mxGeometry y="76" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row19" value="+amount: Number" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls15">
+  <mxGeometry y="100" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row20" value="+vnpTxnRef: String" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls15">
+  <mxGeometry y="124" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row21" value="+status: String" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls15">
+  <mxGeometry y="148" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row22" value="+expiresAt: Date" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls15">
+  <mxGeometry y="172" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="cls23" value="User" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;horizontalStack=1;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#888888;fontSize=13;" vertex="1" parent="1">
+  <mxGeometry x="420" y="480" width="220" height="76" as="geometry" />
+</mxCell>
+<mxCell id="row24" value="+proExpiresAt: Date" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls23">
+  <mxGeometry y="28" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="row25" value="+hasSetupFeaturedProducts: Boolean" style="text;align=left;verticalAlign=middle;spacingLeft=6;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="cls23">
+  <mxGeometry y="52" width="220" height="24" as="geometry" />
+</mxCell>
+<mxCell id="edge26" value="Parameter" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=12;rounded=0;" edge="1" parent="1" source="cls2" target="cls4">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="edge27" value="Call" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=12;rounded=0;" edge="1" parent="1" source="cls4" target="cls9">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="edge28" value="Use" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=12;rounded=0;" edge="1" parent="1" source="cls4" target="cls15">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="edge29" value="Use" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=12;rounded=0;" edge="1" parent="1" source="cls4" target="cls23">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="edge30" value="Use" style="endArrow=open;endFill=0;dashed=1;html=1;fontSize=12;rounded=0;" edge="1" parent="1" source="cls12" target="cls15">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="edge31" value="" style="endArrow=none;startArrow=diamondThin;startFill=0;html=1;fontSize=12;rounded=0;" edge="1" parent="1" source="cls23" target="cls15">
+  <mxGeometry relative="1" as="geometry" />
+</mxCell>
+<mxCell id="lbl32" value="1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" vertex="1" connectable="0" parent="edge31">
+  <mxGeometry x="-0.8" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+</mxCell>
+<mxCell id="lbl33" value="0..*" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=12;" vertex="1" connectable="0" parent="edge31">
+  <mxGeometry x="0.8" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+</mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

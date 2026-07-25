@@ -1,0 +1,267 @@
+EcoTrade - Nguoi 1 (Long): Account / Role / Verification / Reputation / Pro-VNPay
+Format: sequencediagram.org (paste tung khoi vao https://sequencediagram.org)
+================================================================================
+
+================================================================================
+1. Register Account Sequence Diagram
+================================================================================
+title Register Account Sequence Diagram
+
+participant User
+participant RegisterPage
+participant AuthService as "auth.service.js"
+participant AuthController
+participant MongoDB
+
+User->RegisterPage: Fill in registration form & click "Register"
+RegisterPage->AuthService: register(data)
+AuthService->AuthController: POST /api/auth/register
+AuthController->MongoDB: User.findOne({ email })
+MongoDB-->AuthController: result
+
+alt Email not registered yet
+AuthController->MongoDB: User.create({ fullName, email, passwordHash, phone })
+MongoDB-->AuthController: user created
+AuthController->AuthController: generateOTP() + saveOTP(email, otp, "register")
+note right of AuthController: OTP valid 10 minutes,\nresend cooldown 60s
+AuthController->AuthController: sendOTPEmail(email, otp)
+AuthController-->AuthService: 201 { message, email }
+AuthService-->RegisterPage: response
+RegisterPage->User: navigate to OTP verification page
+else Email already in use
+AuthController-->AuthService: 400 "Email already in use"
+AuthService-->RegisterPage: error response
+RegisterPage->User: show error message
+end
+
+
+================================================================================
+2. Verify OTP Sequence Diagram
+================================================================================
+title Verify OTP Sequence Diagram
+
+participant User
+participant VerifyOTPPage
+participant AuthService as "auth.service.js"
+participant AuthController
+participant MongoDB
+
+User->VerifyOTPPage: Enter OTP & click "Verify"
+VerifyOTPPage->AuthService: verifyEmail({ email, otp })
+AuthService->AuthController: POST /api/auth/verify-email
+AuthController->AuthController: verify OTP code
+
+alt OTP valid
+AuthController->MongoDB: User.findOne({ email })
+MongoDB-->AuthController: user
+AuthController->AuthController: generateToken(user._id)
+AuthController-->AuthService: 200 { token, user }
+AuthService-->VerifyOTPPage: response
+VerifyOTPPage->User: save token & navigate to profile
+else OTP invalid or expired
+AuthController-->AuthService: 400 "Invalid or expired OTP"
+AuthService-->VerifyOTPPage: error response
+VerifyOTPPage->User: show error message
+end
+
+
+================================================================================
+3. Login Sequence Diagram
+================================================================================
+title Login Sequence Diagram
+
+participant User
+participant LoginPage
+participant AuthService as "auth.service.js"
+participant AuthController
+participant MongoDB
+
+User->LoginPage: Enter email/password & click "Login"
+LoginPage->AuthService: login({ email, password })
+AuthService->AuthController: POST /api/auth/login
+AuthController->MongoDB: User.findOne({ email })
+MongoDB-->AuthController: user
+
+alt Credentials correct & account active
+AuthController->AuthController: generateToken(user._id)
+AuthController-->AuthService: 200 { token, user }
+AuthService-->LoginPage: response
+LoginPage->User: store token & navigate by role
+else Wrong credentials or account banned
+AuthController-->AuthService: 401/403 error message
+AuthService-->LoginPage: error response
+LoginPage->User: show error message
+end
+
+
+================================================================================
+4. Forgot Password Sequence Diagram
+================================================================================
+title Forgot Password Sequence Diagram
+
+participant User
+participant ForgotPasswordPage
+participant AuthService as "auth.service.js"
+participant AuthController
+participant MongoDB
+
+User->ForgotPasswordPage: Enter email & click "Send OTP"
+ForgotPasswordPage->AuthService: forgotPassword(email)
+AuthService->AuthController: POST /api/auth/forgot-password
+AuthController->MongoDB: User.findOne({ email })
+MongoDB-->AuthController: user
+
+alt Email exists
+AuthController-->AuthService: 200 "OTP sent to email"
+AuthService-->ForgotPasswordPage: response
+ForgotPasswordPage->User: navigate to reset password page
+else Email not found
+AuthController-->AuthService: 404 "Email not found"
+AuthService-->ForgotPasswordPage: error response
+ForgotPasswordPage->User: show error message
+end
+
+
+================================================================================
+5. Reset Password Sequence Diagram
+================================================================================
+title Reset Password Sequence Diagram
+
+participant User
+participant ResetPasswordPage
+participant AuthService as "auth.service.js"
+participant AuthController
+participant MongoDB
+
+User->ResetPasswordPage: Enter OTP + new password & click "Reset password"
+ResetPasswordPage->AuthService: resetPassword({ email, otp, newPassword })
+AuthService->AuthController: POST /api/auth/reset-password
+AuthController->AuthController: verify OTP code
+
+alt OTP valid
+AuthController->MongoDB: update user password (hashed)
+MongoDB-->AuthController: updated
+AuthController-->AuthService: 200 "Password reset successful"
+AuthService-->ResetPasswordPage: response
+ResetPasswordPage->User: navigate to login page
+else OTP invalid or expired
+AuthController-->AuthService: 400 "Invalid or expired OTP"
+AuthService-->ResetPasswordPage: error response
+ResetPasswordPage->User: show error message
+end
+
+
+================================================================================
+6. Admin Deduct Reputation Sequence Diagram
+================================================================================
+title Admin Deduct Reputation Sequence Diagram
+
+participant Admin
+participant UserManagementPage
+participant AdminService as "admin.service.js"
+participant AuthMiddleware
+participant ReputationController
+participant MongoDB
+
+Admin->UserManagementPage: Select user & violation level, click "Deduct points"
+UserManagementPage->AdminService: deductReputation(userId, data)
+AdminService->AuthMiddleware: POST /api/reputation/admin/deduct (token)
+AuthMiddleware->AuthMiddleware: verify JWT & admin role
+
+alt Token valid & role = admin
+AuthMiddleware->ReputationController: forward request
+ReputationController->MongoDB: update reputationScore (ban if 0) & log change
+MongoDB-->ReputationController: updated
+ReputationController-->AdminService: 200 { reputationScore, accountStatus }
+AdminService-->UserManagementPage: response
+UserManagementPage->Admin: show updated score / ban notice
+else Invalid token or not admin
+AuthMiddleware-->AdminService: 401/403 error
+AdminService-->UserManagementPage: error response
+end
+
+
+================================================================================
+7. Admin Update Role Status Sequence Diagram
+================================================================================
+title Admin Update Role Status Sequence Diagram
+
+participant Admin
+participant UserManagementPage
+participant AdminService as "admin.service.js"
+participant AuthMiddleware
+participant UserController
+participant MongoDB
+
+Admin->UserManagementPage: Select user, change role/status, click "Update"
+UserManagementPage->AdminService: updateUser(id, data)
+AdminService->AuthMiddleware: PUT /api/users/admin/:id (token)
+AuthMiddleware->AuthMiddleware: verify JWT & admin role
+
+alt Token valid & role = admin
+AuthMiddleware->UserController: forward request
+UserController->MongoDB: User.findByIdAndUpdate(id, data)
+MongoDB-->UserController: updated user
+UserController-->AdminService: 200 { user }
+AdminService-->UserManagementPage: response
+UserManagementPage->Admin: refresh user list
+else Invalid token or not admin
+AuthMiddleware-->AdminService: 401/403 error
+AdminService-->UserManagementPage: error response
+end
+
+
+================================================================================
+8. Create Pro Payment (VNPay) Sequence Diagram
+================================================================================
+title Create Pro Payment (VNPay) Sequence Diagram
+
+participant User
+participant ProPlansPage
+participant SubscriptionService as "subscription.service.js"
+participant SubscriptionController
+participant VnpayUtil
+participant MongoDB
+
+User->ProPlansPage: Select plan & click "Upgrade to Pro"
+ProPlansPage->SubscriptionService: createPayment(plan)
+SubscriptionService->SubscriptionController: POST /api/subscriptions/create (token)
+
+alt Plan is valid
+SubscriptionController->MongoDB: create ProSubscription (status: pending)
+MongoDB-->SubscriptionController: subscription created
+SubscriptionController->VnpayUtil: buildPaymentUrl(amount, txnRef, ipAddr)
+VnpayUtil-->SubscriptionController: signed payment URL
+SubscriptionController-->SubscriptionService: 200 { paymentUrl }
+SubscriptionService-->ProPlansPage: response
+ProPlansPage->User: redirect to VNPay payment page
+else Invalid plan
+SubscriptionController-->SubscriptionService: 400 "Invalid plan"
+SubscriptionService-->ProPlansPage: error response
+end
+
+
+================================================================================
+9. VNPay Return (Confirm Payment) Sequence Diagram
+================================================================================
+title VNPay Return (Confirm Payment) Sequence Diagram
+
+participant User
+participant SubscriptionController
+participant VnpayUtil
+participant MongoDB
+
+User->SubscriptionController: GET /api/subscriptions/vnpay-return?... (redirected by VNPay)
+SubscriptionController->VnpayUtil: verifyReturn(query)
+VnpayUtil-->SubscriptionController: { isValid, data }
+
+alt isValid & payment successful
+SubscriptionController->MongoDB: find ProSubscription by vnpTxnRef
+MongoDB-->SubscriptionController: subscription
+SubscriptionController->MongoDB: update status = "paid" & extend User.proExpiresAt
+MongoDB-->SubscriptionController: updated
+SubscriptionController->User: redirect to featured product setup page
+else Invalid signature or payment failed
+SubscriptionController->MongoDB: update status = "failed"
+SubscriptionController->User: redirect to result page (status=failed)
+end
