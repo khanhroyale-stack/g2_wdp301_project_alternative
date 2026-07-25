@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock3, MapPin, Package2, ShieldCheck, Truck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, MapPin, Navigation, Package, Package2, ShieldCheck, Truck } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import ShipperLayout from "../../components/shipper/ShipperLayout";
@@ -8,7 +8,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
-import { getDeliveryStatusInfo } from "../../lib/orderFlow";
+import { getDeliveryStatusInfo, normalizeVietnameseNote, buildDeliveryTimeline } from "../../lib/orderFlow";
 import { formatDateTime, formatPrice } from "../../lib/utils";
 import deliveryService from "../../services/delivery.service";
 
@@ -32,6 +32,32 @@ const inspectionCheckRows = [
   ["isCorrectImage", "Khớp ảnh đăng bán"],
   ["isBasicFunctionWorking", "Hoạt động cơ bản"],
 ];
+
+const getStepIcon = (status = "") => {
+  const s = String(status).toUpperCase();
+  if (s === "WAITING_SHIPPER" || s === "PENDING") {
+    return { Icon: Package, bg: "bg-warning/15 text-warning border border-warning/30" };
+  }
+  if (s === "SHIPPER_ACCEPTED" || s === "ACCEPTED") {
+    return { Icon: Truck, bg: "bg-sky/15 text-sky border border-sky/30" };
+  }
+  if (s === "PICKING_UP" || s === "PICKED_UP") {
+    return { Icon: Navigation, bg: "bg-primary/15 text-primary border border-primary/30" };
+  }
+  if (s === "READY_FOR_DELIVERY" || s === "RECEIVED") {
+    return { Icon: ShieldCheck, bg: "bg-teal-500/15 text-teal-600 border border-teal-500/30" };
+  }
+  if (s === "DELIVERING" || s === "IN_TRANSIT" || s === "SHIPPING") {
+    return { Icon: Truck, bg: "bg-blue-500/15 text-blue-600 border border-blue-500/30" };
+  }
+  if (s === "DELIVERED" || s === "COMPLETED") {
+    return { Icon: CheckCircle2, bg: "bg-success/15 text-success border border-success/30" };
+  }
+  if (s === "FAILED" || s === "INSPECTION_FAILED" || s === "CANCELLED") {
+    return { Icon: AlertTriangle, bg: "bg-danger/15 text-danger border border-danger/30" };
+  }
+  return { Icon: Clock3, bg: "bg-muted text-muted-foreground border border-border" };
+};
 
 export default function DeliveryDetail() {
   const { id } = useParams();
@@ -79,6 +105,7 @@ export default function DeliveryDetail() {
   };
 
   const history = useMemo(() => delivery?.history || [], [delivery]);
+  const timelineSteps = useMemo(() => buildDeliveryTimeline(delivery), [delivery]);
 
   if (loading) {
     return (
@@ -339,36 +366,31 @@ export default function DeliveryDetail() {
                 </div>
               </CardHeader>
               <CardContent>
-                {history.length === 0 ? (
+                {timelineSteps.length === 0 ? (
                   <p className="text-muted-foreground py-4">Chưa có lịch sử trạng thái.</p>
                 ) : (
                   <div className="space-y-5">
-                    {history.map((item, index) => {
-                      const itemInfo = getDeliveryStatusInfo(item.status);
+                    {timelineSteps.map((item, index) => {
+                      const { Icon: StepIcon, bg: stepBg } = getStepIcon(item.status);
                       return (
                         <div
                           key={`${item.status}-${index}`}
                           className="flex items-start gap-4"
                         >
                           <div className="mt-1">
-                            <div className={`p-2 rounded-full ${item.status === "delivered" || item.status === "completed"
-                                ? "bg-success/10 text-success"
-                                : item.status === "failed"
-                                  ? "bg-danger/10 text-danger"
-                                  : "bg-muted"
-                              }`}>
-                              <Clock3 className="h-4 w-4" />
+                            <div className={`p-2 rounded-full ${stepBg}`}>
+                              <StepIcon className="h-4 w-4" />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
-                              <p className="font-semibold text-base">{itemInfo.label}</p>
-                              <Badge variant={itemInfo.variant} className="shrink-0">
-                                {itemInfo.label}
+                              <p className="font-semibold text-base">{item.label}</p>
+                              <Badge variant={item.variant} className="shrink-0">
+                                {item.label}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mt-1">
-                              {item.note || "Cập nhật delivery"}
+                              {item.note || "Cập nhật tiến độ vận chuyển"}
                             </p>
                             <p className="text-xs text-muted-foreground/80 mt-1">
                               {formatDateTime(item.timestamp)}

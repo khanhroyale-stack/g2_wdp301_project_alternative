@@ -322,10 +322,38 @@ const updateDeliveryStatus = async (req, res) => {
       const order = await Order.findByIdAndUpdate(delivery.orderId, {
         status: ORDER_STATUS_FROM_DELIVERY_UI[status],
         cancelReason: delivery.failureReason,
-      }, { new: true }).lean();
+      }, { new: true })
+        .populate("buyerId", "fullName")
+        .populate("sellerId", "fullName")
+        .populate("postId", "title")
+        .lean();
 
       if (order?.postId) {
         await releaseOrderInventory(delivery.orderId);
+      }
+
+      if (order) {
+        const productTitle = order.postId?.title || "sản phẩm";
+        await Promise.all([
+          createNotification({
+            recipientId: order.buyerId?._id || order.buyerId,
+            type: "order_update",
+            title: "Đơn hàng đã bị hủy",
+            content: `Vận đơn giao "${productTitle}" đã bị hủy do sự cố từ Shipper: "${delivery.failureReason}". Bấm vào đây để xem chi tiết.`,
+            relatedType: "order",
+            relatedId: order._id,
+            link: `/orders/${order._id}`,
+          }, io),
+          createNotification({
+            recipientId: order.sellerId?._id || order.sellerId,
+            type: "order_update",
+            title: "Đơn bán đã bị hủy",
+            content: `Vận đơn giao "${productTitle}" đã bị hủy do sự cố từ Shipper: "${delivery.failureReason}". Sản phẩm đã được hoàn lại vào kho.`,
+            relatedType: "order",
+            relatedId: order._id,
+            link: `/orders/${order._id}`,
+          }, io),
+        ]);
       }
     }
 

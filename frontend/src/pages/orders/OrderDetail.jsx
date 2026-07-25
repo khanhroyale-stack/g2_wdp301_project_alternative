@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
@@ -15,7 +16,7 @@ import EcoTradeLayout from "../../components/ecotrade/EcoTradeLayout";
 import ReviewModal from "../../components/reviews/ReviewModal";
 import { useAuth } from "../../context/AuthContext";
 import useRealtimeRefresh from "../../hooks/useRealtimeRefresh";
-import { getDeliveryStatusInfo, getOrderStatusInfo } from "../../lib/orderFlow";
+import { buildOrderTimeline, getDeliveryStatusInfo, getOrderStatusInfo } from "../../lib/orderFlow";
 import orderService from "../../services/order.service";
 import reviewService from "../../services/review.service";
 
@@ -281,80 +282,8 @@ export default function OrderDetail() {
   }, [order]);
 
   const timeline = useMemo(() => {
-    if (!order) return [];
-
-    const steps = [];
-    const addStep = (key, title, description, timestamp, tone = "muted") => {
-      if (!timestamp && !title) return;
-      steps.push({
-        key,
-        title,
-        description,
-        timestamp,
-        tone,
-      });
-    };
-
-    addStep(
-      "created",
-      "Đã đặt hàng",
-      "Đơn hàng đã được ghi nhận vào hệ thống.",
-      order.createdAt,
-      "success"
-    );
-
-    if (order.orderStatus === "pending") {
-      addStep("pending", "Chờ lấy hàng", "Người bán chưa xác nhận đơn hàng.", order.updatedAt, "warning");
-    }
-
-    if (order.orderStatus === "confirmed") {
-      addStep("confirmed", "Đã xác nhận", "Người bán đã xác nhận và chờ đơn vị vận chuyển.", order.updatedAt, "success");
-    }
-
-    const history = Array.isArray(delivery?.history) ? delivery.history : [];
-    history.forEach((item) => {
-      const info = getDeliveryStatusInfo(item.status);
-      addStep(
-        `delivery-${item.status}-${item.timestamp}`,
-        info.label,
-        item.note || "Cập nhật trạng thái giao hàng.",
-        item.timestamp,
-        item.status === "failed" ? "danger" : item.status === "delivered" || item.status === "completed" ? "success" : "sky"
-      );
-    });
-
-    if (order.orderStatus === "shipping") {
-      addStep("shipping", "Đang vận chuyển", "Đơn hàng đang trên đường giao đến người nhận.", order.updatedAt, "sky");
-    }
-
-    if (order.orderStatus === "delivered") {
-      addStep("delivered", "Đang giao hàng", "Đơn hàng đã đến chặng giao cuối cùng.", order.updatedAt, "success");
-    }
-
-    if (order.orderStatus === "completed") {
-      addStep("completed", "Đã giao hàng thành công", "Người mua đã xác nhận nhận hàng.", order.updatedAt, "success");
-    }
-
-    if (order.orderStatus === "cancelled") {
-      addStep(
-        "cancelled",
-        "Đơn hàng đã hủy",
-        order.cancelReason || "Đơn hàng đã được hủy và tồn kho đã được hoàn lại.",
-        order.updatedAt,
-        "danger"
-      );
-    }
-
-    const seen = new Set();
-    return steps
-      .filter((step) => {
-        const key = `${step.title}-${step.timestamp}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
-  }, [delivery?.history, order]);
+    return buildOrderTimeline(order);
+  }, [order]);
 
   const summaryBlocks = [
     {
@@ -466,6 +395,20 @@ export default function OrderDetail() {
           ))}
         </div>
 
+        {(order.cancelReason || delivery?.failureReason) && (
+          <div className="rounded-3xl border border-danger/30 bg-danger-soft/50 p-6 text-black shadow-apple flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-danger text-white font-bold text-lg">
+              ✕
+            </div>
+            <div>
+              <div className="text-[13px] font-extrabold uppercase tracking-[0.12em] text-danger">Đơn hàng đã bị hủy / Giao thất bại</div>
+              <div className="mt-1.5 text-base font-semibold leading-7 text-on-surface">
+                {order.cancelReason || delivery?.failureReason}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
           <div className="space-y-6">
             <SectionCard title="Danh sách sản phẩm" icon={PackageCheck}>
@@ -530,21 +473,21 @@ export default function OrderDetail() {
               <div className="space-y-7">
                 {timeline.length ? (
                   timeline.map((step, index) => {
-                    const isFirst = index === 0;
+                    const isLast = index === timeline.length - 1;
                     const tone = step.tone || "muted";
                     const lineTone =
                       tone === "danger" ? "bg-danger/30" : tone === "sky" ? "bg-sky/30" : tone === "warning" ? "bg-warning/30" : "bg-surface-variant";
 
                     return (
                       <div key={step.key} className="relative flex gap-4">
-                        {!isFirst ? <div className={`absolute left-[13px] bottom-8 h-[calc(100%+28px)] w-px ${lineTone}`} /> : null}
+                        {!isLast ? <div className={`absolute left-[13px] top-7 h-[calc(100%+28px)] w-px ${lineTone}`} /> : null}
                         <div className={`relative mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${chipClass[tone] || chipClass.muted}`}>
                           <div className="h-2.5 w-2.5 rounded-full bg-current" />
                         </div>
                         <div className="pb-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="text-sm font-bold text-on-surface">{step.title}</div>
-                            <StatusChip tone={tone}>{dateTimeText(step.timestamp)}</StatusChip>
+                            <StatusChip tone={step.timestamp ? tone : "muted"}>{dateTimeText(step.timestamp)}</StatusChip>
                           </div>
                           <p className={`mt-1 text-sm leading-6 ${step.key === "cancelled" ? "text-black" : "text-on-surface-variant"}`}>
                             {step.description}
@@ -590,58 +533,90 @@ export default function OrderDetail() {
             </SectionCard>
 
             <div className="rounded-[18px] border border-surface-variant/50 bg-white p-5 shadow-apple">
-              <button
-                type="button"
-                onClick={canComplete ? () => handleOrderAction("completed") : undefined}
-                disabled={!canComplete || processing}
-                className="flex h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {processing && canComplete ? "Đang xử lý..." : "Xác nhận đã nhận hàng"}
-              </button>
-
-              {isBuyerView && order?.orderStatus === "completed" && !hasReviewed && (
-                <button
-                  type="button"
-                  onClick={() => setShowReviewModal(true)}
-                  className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-primary/30 bg-primary/5 px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
-                >
-                  Đánh giá sản phẩm
-                </button>
-              )}
-
-              {hasReviewed && (
-                <div className="mt-3 text-center text-sm font-medium text-success bg-success/5 rounded-xl py-3 border border-success/20">
-                  Bạn đã đánh giá đơn hàng này
+              {order?.actions?.canSellerConfirm ? (
+                <div className="rounded-2xl border border-warning/35 bg-warning-soft/60 p-5 space-y-3 shadow-sm">
+                  <div className="flex items-center gap-2 font-bold text-warning text-base">
+                    <AlertTriangle className="h-5 w-5 shrink-0" />
+                    <span>Đơn hàng mới - Cần bạn xác nhận</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-5 font-medium">
+                    Khách hàng đã đặt mua sản phẩm này. Vui lòng xác nhận đơn để chuyển sang luồng Shipper đi lấy hàng, hoặc từ chối kèm lý do nếu không thể giao.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOrderAction("cancelled")}
+                      disabled={processing}
+                      className="flex h-11 w-full items-center justify-center rounded-xl border border-danger/30 bg-white px-3 text-sm font-bold text-danger transition-all hover:bg-danger-soft hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 shadow-sm"
+                    >
+                      {processing ? "Đang xử lý..." : "Từ chối đơn"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOrderAction("confirmed")}
+                      disabled={processing}
+                      className="flex h-11 w-full items-center justify-center rounded-xl bg-success px-3 text-sm font-bold text-white transition-all hover:bg-success/90 hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 shadow-md"
+                    >
+                      {processing ? "Đang xử lý..." : "Xác nhận đơn"}
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={canComplete ? () => handleOrderAction("completed") : undefined}
+                    disabled={!canComplete || processing}
+                    className="flex h-12 w-full items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {processing && canComplete ? "Đang xử lý..." : "Xác nhận đã nhận hàng"}
+                  </button>
+
+                  {isBuyerView && order?.orderStatus === "completed" && !hasReviewed && (
+                    <button
+                      type="button"
+                      onClick={() => setShowReviewModal(true)}
+                      className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-primary/30 bg-primary/5 px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+                    >
+                      Đánh giá sản phẩm
+                    </button>
+                  )}
+
+                  {hasReviewed && (
+                    <div className="mt-3 text-center text-sm font-medium text-success bg-success/5 rounded-xl py-3 border border-success/20">
+                      Bạn đã đánh giá đơn hàng này
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (canTrackDelivery) {
+                        toast("Đơn hàng đang được theo dõi trong hệ thống vận chuyển.");
+                      } else {
+                        toast("Đơn hàng chưa có vận đơn.");
+                      }
+                    }}
+                    className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-sky/30 bg-white px-4 text-sm font-semibold text-sky transition-colors hover:bg-sky-soft"
+                  >
+                    Theo dõi đơn vị vận chuyển
+                  </button>
+
+                  <div className="mt-5 border-t border-surface-variant/30 pt-5">
+                    <p className="text-center text-xs leading-6 text-on-surface-variant">
+                      Chỉ xác nhận sau khi bạn đã kiểm tra hàng. Sau khi xác nhận, yêu cầu trả hàng/hoàn tiền sẽ bị khóa theo quy trình hiện tại.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleOrderAction("cancelled")}
+                      disabled={!canCancel || processing}
+                      className="mt-5 flex h-12 w-full items-center justify-center rounded-xl border border-danger/30 bg-white px-4 text-sm font-semibold text-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {processing && canCancel ? "Đang hủy..." : order?.actions?.canSellerReject ? "Từ chối đơn hàng" : "Hủy đơn hàng"}
+                    </button>
+                  </div>
+                </>
               )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (canTrackDelivery) {
-                    toast("Đơn hàng đang được theo dõi trong hệ thống vận chuyển.");
-                  } else {
-                    toast("Đơn hàng chưa có vận đơn.");
-                  }
-                }}
-                className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-sky/30 bg-white px-4 text-sm font-semibold text-sky transition-colors hover:bg-sky-soft"
-              >
-                Theo dõi đơn vị vận chuyển
-              </button>
-
-              <div className="mt-5 border-t border-surface-variant/30 pt-5">
-                <p className="text-center text-xs leading-6 text-on-surface-variant">
-                  Chỉ xác nhận sau khi bạn đã kiểm tra hàng. Sau khi xác nhận, yêu cầu trả hàng/hoàn tiền sẽ bị khóa theo quy trình hiện tại.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleOrderAction("cancelled")}
-                  disabled={!canCancel || processing}
-                  className="mt-5 flex h-12 w-full items-center justify-center rounded-xl border border-danger/30 bg-white px-4 text-sm font-semibold text-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {processing && canCancel ? "Đang hủy..." : "Hủy đơn hàng"}
-                </button>
-              </div>
             </div>
 
             <div className="rounded-[18px] border border-dashed border-surface-variant/70 bg-surface-container-lowest p-5 shadow-sm">
@@ -658,14 +633,6 @@ export default function OrderDetail() {
                 </div>
               </div>
             </div>
-
-            {order.cancelReason ? (
-              <div className="rounded-[18px] border border-danger/30 bg-danger-soft/50 p-5 text-sm text-black shadow-sm">
-                <div className="font-bold uppercase tracking-[0.12em]">Lý do hủy đơn</div>
-                <div className="mt-2 leading-6 text-black">{order.cancelReason}</div>
-              </div>
-            ) : null}
-
           </div>
         </div>
       </div>

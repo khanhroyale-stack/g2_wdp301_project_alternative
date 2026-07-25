@@ -12,20 +12,26 @@ const createShipperReport = async (req, res) => {
       return res.status(400).json({ success: false, message: "Vui lòng điền đầy đủ thông tin sự cố" });
     }
 
-    const delivery = await Delivery.findOne({ _id: deliveryId, shipperId: req.user._id });
+    const delivery = await Delivery.findOne({ _id: deliveryId, shipperId: req.user._id })
+      .populate({
+        path: "orderId",
+        select: "buyerId sellerId postId",
+        populate: { path: "postId", select: "title" },
+      });
     if (!delivery) {
       return res.status(403).json({ success: false, message: "Bạn không phụ trách đơn giao hàng này" });
     }
 
     const report = await ShipperReport.create({
-      deliveryId,
+      deliveryId: delivery._id,
       shipperId: req.user._id,
       issueType,
       description: description.trim(),
     });
 
+    const io = req.app.get("io");
     const admins = await User.find({ role: "admin", accountStatus: "active" }).select("_id");
-    await Promise.all(admins.map((admin) => createNotification({
+    const adminNotifs = admins.map((admin) => createNotification({
       recipientId: admin._id,
       type: "report_update",
       title: "Shipper báo cáo sự cố",
@@ -33,7 +39,47 @@ const createShipperReport = async (req, res) => {
       relatedType: "report",
       relatedId: report._id,
       link: "/admin/bao-cao-giao-hang",
-    }, req.app.get("io"))));
+    }, io));
+
+    const userNotifs = [];
+    if (delivery.orderId) {
+      const order = delivery.orderId;
+      const productTitle = order.postId?.title || "sản phẩm";
+      const issueLabels = {
+        buyer_unavailable: "Không liên hệ được người mua",
+        wrong_address: "Sai địa chỉ giao hàng",
+        seller_unavailable: "Người bán không giao hàng",
+        product_damaged: "Sản phẩm hư hỏng",
+        vehicle_issue: "Sự cố phương tiện",
+        other: "Sự cố khác",
+      };
+      const issueLabel = issueLabels[issueType] || "Sự cố vận chuyển";
+
+      if (order.buyerId) {
+        userNotifs.push(createNotification({
+          recipientId: order.buyerId?._id || order.buyerId,
+          type: "report_update",
+          title: "Sự cố vận chuyển đơn hàng",
+          content: `Shipper đã báo cáo sự cố "${issueLabel}" với đơn hàng "${productTitle}": "${description.trim()}". Bấm để xem chi tiết.`,
+          relatedType: "order",
+          relatedId: order._id,
+          link: `/orders/${order._id}`,
+        }, io));
+      }
+      if (order.sellerId) {
+        userNotifs.push(createNotification({
+          recipientId: order.sellerId?._id || order.sellerId,
+          type: "report_update",
+          title: "Sự cố vận chuyển đơn bán",
+          content: `Shipper đã báo cáo sự cố "${issueLabel}" với đơn bán "${productTitle}": "${description.trim()}". Bấm để xem chi tiết.`,
+          relatedType: "order",
+          relatedId: order._id,
+          link: `/orders/${order._id}`,
+        }, io));
+      }
+    }
+
+    await Promise.all([...adminNotifs, ...userNotifs]);
 
     res.status(201).json({ success: true, data: report });
   } catch (error) {

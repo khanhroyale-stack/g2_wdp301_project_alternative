@@ -3,6 +3,7 @@ const DeliveryInspection = require("../models/delivery_inspection.model");
 const Order = require("../models/order.model");
 const ProductPost = require("../models/product_post.model");
 const User = require("../models/user.model");
+const { createNotification } = require("./notification.controller");
 const { formatUser, hydrateProducts } = require("../utils/serializers");
 const {
   commitOrderInventory,
@@ -250,6 +251,19 @@ const createOrder = async (req, res) => {
     } catch (error) {
       await releaseProductQuantity(product._id, quantity);
       throw error;
+    }
+
+    const io = req.app.get("io");
+    if (order && order.sellerId) {
+      await createNotification({
+        recipientId: order.sellerId,
+        type: "order_update",
+        title: "Bạn có đơn đặt hàng mới",
+        content: `Khách hàng ${recipientName.trim()} vừa đặt mua "${product.title}" (SL: ${quantity}). Vui lòng kiểm tra và xác nhận đơn!`,
+        relatedType: "order",
+        relatedId: order._id,
+        link: `/orders/${order._id}`,
+      }, io);
     }
 
     // Thanh toán chuyển khoản qua VNPay: sinh mã giao dịch, trả về URL để redirect

@@ -52,8 +52,8 @@ const isDeliveryTransitionAllowed = (currentStatus, nextStatus) => {
     delivered: [],
     completed: [],
     inspection_failed: ["failed"],
-    failed: [],
-    pending: [],
+    failed: ["failed"],
+    pending: ["accepted", "picking_up", "failed"],
   };
   return transitions[currentStatus]?.includes(nextStatus) || false;
 };

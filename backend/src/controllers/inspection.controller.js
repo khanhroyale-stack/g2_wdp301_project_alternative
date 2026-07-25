@@ -7,6 +7,7 @@ const MediaFile = require("../models/media_file.model");
 const User = require("../models/user.model");
 const { normalizeInspectionOutcome, validateInspectionOutcome } = require("../utils/business-rules");
 const { createNotification } = require("./notification.controller");
+const { releaseOrderInventory } = require("../services/order-inventory.service");
 
 const REQUIRED_IMAGE_TYPES = ["front", "back", "accessories"];
 const DELIVERY_STATUS_TO_UI = {
@@ -241,6 +242,44 @@ const createInspection = async (req, res) => {
         relatedId: null,
         link: "/admin/kiem-dinh",
       }, req.app.get("io"))));
+
+      const order = await Order.findByIdAndUpdate(delivery.orderId, {
+        status: "CANCELLED",
+        cancelReason: delivery.failureReason,
+      }, { new: true })
+        .populate("buyerId", "fullName")
+        .populate("sellerId", "fullName")
+        .populate("postId", "title")
+        .lean();
+
+      if (order?.postId) {
+        await releaseOrderInventory(delivery.orderId);
+      }
+
+      if (order) {
+        const io = req.app.get("io");
+        const productTitle = order.postId?.title || "sản phẩm";
+        await Promise.all([
+          createNotification({
+            recipientId: order.buyerId?._id || order.buyerId,
+            type: "order_update",
+            title: "Đơn hàng đã bị hủy (Kiểm tra hàng không đạt)",
+            content: `Vận đơn giao "${productTitle}" đã bị hủy do biên bản kiểm tra tại chỗ không đạt: "${delivery.failureReason}". Bấm vào đây để xem chi tiết.`,
+            relatedType: "order",
+            relatedId: order._id,
+            link: `/orders/${order._id}`,
+          }, io),
+          createNotification({
+            recipientId: order.sellerId?._id || order.sellerId,
+            type: "order_update",
+            title: "Đơn bán đã bị hủy (Kiểm tra hàng không đạt)",
+            content: `Vận đơn giao "${productTitle}" đã bị hủy do biên bản kiểm tra tại chỗ không đạt: "${delivery.failureReason}". Sản phẩm đã được hoàn lại vào kho.`,
+            relatedType: "order",
+            relatedId: order._id,
+            link: `/orders/${order._id}`,
+          }, io),
+        ]);
+      }
     }
 
     const populatedInspection = await DeliveryInspection.findById(inspection._id)

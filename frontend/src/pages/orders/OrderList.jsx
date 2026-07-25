@@ -11,6 +11,8 @@ const FILTERS = [
   ["pending", "Chờ xử lý"],
   ["confirmed", "Đã chấp nhận"],
   ["shipping", "Đang vận chuyển"],
+  ["completed", "Hoàn tất"],
+  ["cancelled", "Đã hủy"],
 ];
 
 const ORDER_STATUS = {
@@ -47,7 +49,7 @@ export default function OrderList() {
   useRealtimeRefresh("order", loadOrders);
 
   const visibleOrders = useMemo(() => orders.filter((order) => {
-    if (filter === "all") return !["completed", "cancelled"].includes(order.orderStatus);
+    if (filter === "all") return true;
     if (filter === "shipping") return ["shipping", "delivered"].includes(order.orderStatus);
     return order.orderStatus === filter;
   }), [filter, orders]);
@@ -78,9 +80,9 @@ export default function OrderList() {
       <section>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-[32px] font-extrabold tracking-[-.04em]">Đơn hàng của tôi</h1>
-          <span className="rounded-full bg-[#e9fff2] px-3 py-1 text-xs font-semibold text-[#15b85e]">{orders.filter(o => !["completed", "cancelled"].includes(o.orderStatus)).length} Đơn hàng</span>
+          <span className="rounded-full bg-[#e9fff2] px-3 py-1 text-xs font-semibold text-[#15b85e]">{visibleOrders.length} Đơn hàng</span>
         </div>
-        <p className="mt-1 max-w-[700px] text-sm leading-6 text-[#667085]">Quản lý và theo dõi các giao dịch đang diễn ra của bạn. Bạn chỉ có thể hủy đơn nếu quy trình lấy hàng chưa bắt đầu.</p>
+        <p className="mt-1 max-w-[700px] text-sm leading-6 text-[#667085]">Quản lý và theo dõi toàn bộ giao dịch mua bán của bạn trên EcoTrade.</p>
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-[#dfe3e8] pb-4">
           <div className="flex flex-wrap gap-2">
